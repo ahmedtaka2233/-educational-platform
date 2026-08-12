@@ -35,6 +35,68 @@ let globalTeacherStyle = "";
 let isTeacherRecording = false;
 let currentActiveDashTab = "users";
 
+// ============================================================================
+// نظام النوافذ المنبثقة الاحترافية (بديل الـ Alert الافتراضي)
+// ============================================================================
+function showCustomAlert(message, type = 'error') {
+    if (document.getElementById('custom-alert-overlay')) {
+        document.getElementById('custom-alert-overlay').remove();
+    }
+
+    let icon = type === 'error' ? '<i class="fas fa-exclamation-triangle" style="color:#ef4444; font-size: 3rem; margin-bottom: 15px;"></i>' : '<i class="fas fa-check-circle" style="color:#10b981; font-size: 3rem; margin-bottom: 15px;"></i>';
+    let titleColor = type === 'error' ? '#ef4444' : '#10b981';
+    let btnColor = type === 'error' ? '#ef4444' : '#10b981';
+
+    const overlay = document.createElement('div');
+    overlay.id = 'custom-alert-overlay';
+    overlay.style.cssText = 'position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(15, 23, 42, 0.8); z-index:99999999; display:flex; align-items:center; justify-content:center; direction:rtl; font-family: "Cairo", sans-serif; backdrop-filter: blur(5px); padding:20px;';
+    
+    overlay.innerHTML = `
+        <div style="background:#ffffff; width:100%; max-width:400px; border-radius:16px; box-shadow:0 25px 50px -12px rgba(0,0,0,0.5); text-align:center; padding:30px 20px; border-top: 5px solid ${titleColor}; animation: scaleInAlert 0.3s ease;">
+            ${icon}
+            <h3 style="margin: 0 0 15px 0; color:#0f172a; font-size:1.4rem;">Educational platform</h3>
+            <p style="color:#475569; font-size:1.1rem; line-height:1.6; margin-bottom:25px; font-weight:bold;">${message}</p>
+            <button onclick="document.getElementById('custom-alert-overlay').remove()" style="background:${btnColor}; color:white; border:none; padding:12px 30px; font-size:1.1rem; border-radius:10px; font-weight:bold; cursor:pointer; width:100%; box-shadow:0 4px 12px rgba(0,0,0,0.15); transition:0.3s;">حسناً</button>
+        </div>
+        <style>
+            @keyframes scaleInAlert { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        </style>
+    `;
+    document.body.appendChild(overlay);
+}
+
+function showCustomConfirm(message, callback) {
+    if (document.getElementById('custom-confirm-overlay')) {
+        document.getElementById('custom-confirm-overlay').remove();
+    }
+
+    const overlay = document.createElement('div');
+    overlay.id = 'custom-confirm-overlay';
+    overlay.style.cssText = 'position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(15, 23, 42, 0.8); z-index:99999999; display:flex; align-items:center; justify-content:center; direction:rtl; font-family: "Cairo", sans-serif; backdrop-filter: blur(5px); padding:20px;';
+    
+    overlay.innerHTML = `
+        <div style="background:#ffffff; width:100%; max-width:400px; border-radius:16px; box-shadow:0 25px 50px -12px rgba(0,0,0,0.5); text-align:center; padding:30px 20px; border-top: 5px solid #f59e0b; animation: scaleInAlert 0.3s ease;">
+            <i class="fas fa-question-circle" style="color:#f59e0b; font-size: 3rem; margin-bottom: 15px;"></i>
+            <h3 style="margin: 0 0 15px 0; color:#0f172a; font-size:1.4rem;">Educational platform</h3>
+            <p style="color:#475569; font-size:1.1rem; line-height:1.6; margin-bottom:25px; font-weight:bold;">${message}</p>
+            <div style="display:flex; gap:10px;">
+                <button id="custom-confirm-yes" style="flex:1; background:#f59e0b; color:white; border:none; padding:12px; font-size:1.1rem; border-radius:10px; font-weight:bold; cursor:pointer; box-shadow:0 4px 12px rgba(245, 158, 11, 0.2);">نعم، متأكد</button>
+                <button id="custom-confirm-no" style="flex:1; background:#f1f5f9; color:#475569; border:none; padding:12px; font-size:1.1rem; border-radius:10px; font-weight:bold; cursor:pointer;">إلغاء</button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(overlay);
+
+    document.getElementById('custom-confirm-yes').onclick = () => {
+        overlay.remove();
+        callback(true);
+    };
+    document.getElementById('custom-confirm-no').onclick = () => {
+        overlay.remove();
+        callback(false);
+    };
+}
+
 // دالة مساعدة لتنظيف وحذف أي نص بين الأقواس (...) من العناوين
 function stripParentheses(text) {
     if (!text) return "";
@@ -169,7 +231,7 @@ function openAdminPasswordModal(callback) {
     modal.style.cssText = 'position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(15, 23, 42, 0.8); z-index:9999999; display:flex; align-items:center; justify-content:center; direction:rtl; font-family: "Cairo", sans-serif; backdrop-filter: blur(6px); padding:20px;';
     
     modal.innerHTML = `
-        <div style="background:#ffffff; width:100%; max-width:420px; border-radius:16px; box-shadow:0 25px 50px -12px rgba(0,0,0,0.4); overflow:hidden; border-top: 5px solid #0ea5e9;">
+        <div style="background:#ffffff; width:100%; max-width:420px; border-radius:16px; box-shadow:0 25px 50px -12px rgba(0,0,0,0.4); overflow:hidden; border-top: 5px solid #0ea5e9; animation: scaleInAlert 0.3s ease;">
             <div style="padding:22px 20px; background:#f8fafc; border-bottom:1px solid #e2e8f0; display:flex; justify-content:space-between; align-items:center;">
                 <div style="display:flex; align-items:center; gap:10px;">
                     <div style="width:38px; height:38px; background:#e0f2fe; color:#0ea5e9; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:1.1rem;"><i class="fas fa-shield-alt"></i></div>
@@ -219,7 +281,7 @@ async function handleUserLogin() {
     const password = document.getElementById('auth-password') ? document.getElementById('auth-password').value.trim() : "";
 
     if (phone.length < 10 || password.length < 4) {
-        alert("برجاء إدخال رقم موبايل صحيح، ورقم سري لا يقل عن 4 خانات.");
+        showCustomAlert("برجاء إدخال رقم موبايل صحيح، ورقم سري لا يقل عن 4 خانات.", 'error');
         return;
     }
     
@@ -248,13 +310,13 @@ async function handleUserLogin() {
 
             openAdminPasswordModal(async (enteredPassword) => {
                 if (!enteredPassword) {
-                    btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> دخول الفوري';
+                    btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> دخول المنصة';
                     return; 
                 }
 
                 if (enteredPassword !== savedPassword) {
-                    alert("الرقم السري للإدارة غير صحيح! تم رفض الدخول.");
-                    btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> دخول الفوري';
+                    showCustomAlert("الرقم السري للإدارة غير صحيح! تم رفض الدخول.", 'error');
+                    btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> دخول المنصة';
                     return;
                 }
 
@@ -266,8 +328,8 @@ async function handleUserLogin() {
         await finishLoginProcess(teacherRef, doc, teacherData, phone, password, currentIP, deviceFingerprint, isAuthorizedAdmin, assignedRole, btn);
         
     } catch (e) {
-        alert("خطأ: " + e.message);
-        btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> دخول الفوري';
+        showCustomAlert("خطأ في الاتصال بقاعدة البيانات: " + e.message, 'error');
+        btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> دخول المنصة';
     }
 }
 
@@ -279,7 +341,7 @@ async function finishLoginProcess(teacherRef, doc, teacherData, phone, password,
             // 1. التحقق من الرقم السري للطالب
             if (teacherData.studentPassword) {
                 if (teacherData.studentPassword !== password) {
-                    alert("الرقم السري غير صحيح! لا يمكنك الدخول بهذا الحساب.");
+                    showCustomAlert("الرقم السري غير صحيح! تأكد من بياناتك.", 'error');
                     btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> دخول المنصة';
                     return;
                 }
@@ -291,7 +353,7 @@ async function finishLoginProcess(teacherRef, doc, teacherData, phone, password,
             // 2. التحقق من بصمة الجهاز (منع مشاركة الحساب)
             if (teacherData.registeredDeviceFingerprint) {
                 if (teacherData.registeredDeviceFingerprint !== deviceFingerprint) {
-                    alert("⛔ أمان المنصة: عذراً، هذا الحساب مسجل ومربوط بجهاز مختلف. لا يمكنك الدخول من هذا الجهاز.");
+                    showCustomAlert("عذراً، هذا الحساب مرتبط بجهاز آخر. لا يمكنك الدخول من هنا لحماية أمان حسابك.", 'error');
                     btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> دخول المنصة';
                     return;
                 }
@@ -303,7 +365,7 @@ async function finishLoginProcess(teacherRef, doc, teacherData, phone, password,
 
         let isExpired = await checkAndLockIfExpired(phone, teacherData);
         if (isExpired && !isAuthorizedAdmin) {
-            alert("انتهت مدة اشتراك الـ VIP الخاص بك. يجب تجديد الاشتراك للمتابعة ولا توجد محاولات مجانية متاحة.");
+            showCustomAlert("انتهت مدة اشتراكك. يجب تجديد الاشتراك للمتابعة.", 'error');
             document.getElementById('auth-user-card').style.display = 'none';
             document.getElementById('auth-payment-card').style.display = 'block';
             btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> دخول المنصة';
@@ -364,13 +426,13 @@ async function handlePaymentRequest() {
             role: isAuthorizedAdmin ? "Admin" : "User"
         });
 
-        alert("تم إرسال طلب التفعيل بنجاح! \nسيتم مراجعة التحويل على رقم فودافون كاش الخاص بالإدارة وتفعيل حسابك في أقرب وقت.");
+        showCustomAlert("تم إرسال طلب التفعيل بنجاح! سيتم مراجعة التحويل على رقم الإدارة وتفعيل حسابك قريباً.", 'success');
         
         document.getElementById('auth-overlay').style.display = 'none';
         btn.innerHTML = '<i class="fas fa-paper-plane"></i> تأكيد الدفع وطلب التفعيل';
         btn.style.pointerEvents = "auto";
     } catch (err) {
-        alert("حدث خطأ أثناء إرسال الطلب: " + err.message);
+        showCustomAlert("حدث خطأ أثناء إرسال الطلب: " + err.message, 'error');
         btn.innerHTML = '<i class="fas fa-paper-plane"></i> تأكيد الدفع وطلب التفعيل';
         btn.style.pointerEvents = "auto";
     }
@@ -421,7 +483,7 @@ function logout() {
 
 async function changeAdminPassword() {
     if (!currentTeacherId || (!AUTHORIZED_ADMIN_PHONES.includes(currentTeacherId) && currentUserRole !== 'Admin')) {
-        alert("غير مصرح لك بتغيير كلمة السر.");
+        showCustomAlert("غير مصرح لك بتغيير كلمة السر.", 'error');
         return;
     }
 
@@ -432,7 +494,7 @@ async function changeAdminPassword() {
     modal.style.cssText = 'position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(15, 23, 42, 0.8); z-index:9999999; display:flex; align-items:center; justify-content:center; direction:rtl; font-family: "Cairo", sans-serif; backdrop-filter: blur(6px); padding:20px;';
     
     modal.innerHTML = `
-        <div style="background:#ffffff; width:100%; max-width:440px; border-radius:16px; box-shadow:0 25px 50px -12px rgba(0,0,0,0.4); overflow:hidden; border-top: 5px solid #0284c7;">
+        <div style="background:#ffffff; width:100%; max-width:440px; border-radius:16px; box-shadow:0 25px 50px -12px rgba(0,0,0,0.4); overflow:hidden; border-top: 5px solid #0284c7; animation: scaleInAlert 0.3s ease;">
             <div style="padding:22px 20px; background:#f8fafc; border-bottom:1px solid #e2e8f0; display:flex; justify-content:space-between; align-items:center;">
                 <div style="display:flex; align-items:center; gap:10px;">
                     <div style="width:38px; height:38px; background:#e0f2fe; color:#0284c7; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:1.1rem;"><i class="fas fa-key"></i></div>
@@ -454,7 +516,7 @@ async function changeAdminPassword() {
                     <input type="password" id="cp-confirm" placeholder="أعد إدخال الرقم الجديد..." style="width:100%; padding:12px; border:1px solid #cbd5e1; border-radius:8px; font-size:1rem; box-sizing:border-box;">
                 </div>
                 <div style="display:flex; gap:10px;">
-                    <button id="cp-submit-btn" style="flex:1; background:#0284c7; color:white; border:none; padding:12px; border-radius:8px; font-weight:bold; cursor:pointer; font-size:1rem;"><i class="fas fa-save"></i> حفظ الرقم الجديد</button>
+                    <button id="cp-submit-btn" style="flex:1; background:#0284c7; color:white; border:none; padding:12px; border-radius:8px; font-weight:bold; cursor:pointer; font-size:1rem;"><i class="fas fa-save"></i> حفظ</button>
                     <button id="cp-cancel-btn" style="background:#f1f5f9; color:#475569; border:none; padding:12px 18px; border-radius:8px; font-weight:bold; cursor:pointer; font-size:1rem;">إلغاء</button>
                 </div>
             </div>
@@ -471,17 +533,17 @@ async function changeAdminPassword() {
         const confirmPass = document.getElementById('cp-confirm').value.trim();
 
         if (!oldPass || !newPass || !confirmPass) {
-            alert("برجاء ملء جميع الحقول المطلوبة.");
+            showCustomAlert("برجاء ملء جميع الحقول المطلوبة.", 'error');
             return;
         }
 
         if (newPass.length < 4) {
-            alert("يجب ألا يقل الرقم السري الجديد عن 4 أرقام أو أحرف.");
+            showCustomAlert("يجب ألا يقل الرقم السري الجديد عن 4 أرقام أو أحرف.", 'error');
             return;
         }
 
         if (newPass !== confirmPass) {
-            alert("كلمتا السر الجديدتان غير متطابقتين.");
+            showCustomAlert("كلمتا السر الجديدتان غير متطابقتين.", 'error');
             return;
         }
 
@@ -490,7 +552,7 @@ async function changeAdminPassword() {
             const doc = await teacherRef.get();
             
             if (!doc.exists) {
-                alert("الحساب غير موجود في قاعدة البيانات.");
+                showCustomAlert("الحساب غير موجود في قاعدة البيانات.", 'error');
                 return;
             }
 
@@ -498,7 +560,7 @@ async function changeAdminPassword() {
             let currentSavedPassword = teacherData.adminPassword || "1234";
 
             if (oldPass !== currentSavedPassword) {
-                alert("الرقم السري الحالي غير صحيح!");
+                showCustomAlert("الرقم السري الحالي غير صحيح!", 'error');
                 return;
             }
 
@@ -508,10 +570,10 @@ async function changeAdminPassword() {
             });
 
             modal.remove();
-            showToast("تم تحديث الرقم السري للإدارة بنجاح! 🔑");
+            showCustomAlert("تم تحديث الرقم السري للإدارة بنجاح!", 'success');
 
         } catch (e) {
-            alert("حدث خطأ أثناء تغيير الرقم السري: " + e.message);
+            showCustomAlert("حدث خطأ أثناء تغيير الرقم السري: " + e.message, 'error');
         }
     };
 }
@@ -565,7 +627,7 @@ function buildDynamicUserMenu(phone, role) {
 // ============================================================================
 async function loadAndShowDashboard() {
     if (!AUTHORIZED_ADMIN_PHONES.includes(currentTeacherId)) {
-        alert("غير مصرح لك بالوصول إلى لوحة التحكم.");
+        showCustomAlert("غير مصرح لك بالوصول إلى لوحة التحكم.", 'error');
         return;
     }
 
@@ -784,7 +846,7 @@ async function renderActiveDashTab() {
             let durationVal = document.getElementById('manual-add-duration').value.trim() || "365 يوم";
             
             if (phoneVal.length < 10) {
-                alert("برجاء إدخال رقم موبايل صحيح أولاً.");
+                showCustomAlert("برجاء إدخال رقم موبايل صحيح أولاً.", 'error');
                 return;
             }
 
@@ -821,7 +883,7 @@ async function renderActiveDashTab() {
                 document.getElementById('manual-add-phone').value = "";
                 loadDashboardTableData();
             } catch (e) {
-                alert("حدث خطأ أثناء الإضافة: " + e.message);
+                showCustomAlert("حدث خطأ أثناء الإضافة: " + e.message, 'error');
             }
         });
 
@@ -1174,51 +1236,56 @@ window.manualActivateVIP = async function(phone) {
         showToast(`تم تفعيل حساب ${phone} بنجاح لمدة (${customDurationText})`);
         renderActiveDashTab();
     } catch (e) {
-        alert("خطأ أثناء التفعيل اليدوي: " + e.message);
+        showCustomAlert("خطأ أثناء التفعيل اليدوي: " + e.message, 'error');
     }
 };
 
-window.resetUserDevice = async function(phone) {
+window.resetUserDevice = function(phone) {
     if (!AUTHORIZED_ADMIN_PHONES.includes(currentTeacherId)) return;
-    if (!confirm(`هل تريد فعلاً فك ارتباط جهاز الطالب (${phone}) ليتمكن من الدخول بهاتف جديد؟`)) return;
-
-    try {
-        await db.collection("teachers").doc(phone).update({
-            registeredDeviceFingerprint: null
-        });
-        showToast(`تم فك ارتباط الجهاز للحساب (${phone}) بنجاح!`, "#f59e0b");
-        renderActiveDashTab();
-    } catch (e) {
-        alert("خطأ: " + e.message);
-    }
+    showCustomConfirm(`هل تريد فعلاً فك ارتباط جهاز الطالب (${phone}) ليتمكن من الدخول بهاتف جديد؟`, async (isYes) => {
+        if(!isYes) return;
+        try {
+            await db.collection("teachers").doc(phone).update({
+                registeredDeviceFingerprint: null
+            });
+            showToast(`تم فك ارتباط الجهاز للحساب (${phone}) بنجاح!`, "#f59e0b");
+            renderActiveDashTab();
+        } catch (e) {
+            showCustomAlert("خطأ: " + e.message, 'error');
+        }
+    });
 };
 
-window.deactivateUserVIP = async function(phone) {
+window.deactivateUserVIP = function(phone) {
     if (!AUTHORIZED_ADMIN_PHONES.includes(currentTeacherId)) return;
-    try {
-        await db.collection("teachers").doc(phone).update({
-            status: "Expired",
-            isLifetimeVIP: false,
-            lastUpdatedByAdmin: new Date()
-        });
-        showToast(`تم قفل وإلغاء تفعيل الحساب: ${phone}`, "#ef4444");
-        renderActiveDashTab();
-    } catch (e) {
-        alert("خطأ: " + e.message);
-    }
+    showCustomConfirm(`هل أنت متأكد من قفل وإلغاء تفعيل حساب الطالب (${phone})؟`, async (isYes) => {
+        if(!isYes) return;
+        try {
+            await db.collection("teachers").doc(phone).update({
+                status: "Expired",
+                isLifetimeVIP: false,
+                lastUpdatedByAdmin: new Date()
+            });
+            showToast(`تم قفل وإلغاء تفعيل الحساب: ${phone}`, "#ef4444");
+            renderActiveDashTab();
+        } catch (e) {
+            showCustomAlert("خطأ: " + e.message, 'error');
+        }
+    });
 };
 
-window.deleteUserAccount = async function(phone) {
+window.deleteUserAccount = function(phone) {
     if (!AUTHORIZED_ADMIN_PHONES.includes(currentTeacherId)) return;
-    if (!confirm(`هل أنت متأكد من حذف الحساب رقم (${phone}) نهائياً من قاعدة البيانات؟`)) return;
-
-    try {
-        await db.collection("teachers").doc(phone).delete();
-        showToast(`تم حذف الحساب (${phone}) نهائياً بنجاح!`, "#ef4444");
-        renderActiveDashTab();
-    } catch (e) {
-        alert("خطأ أثناء الحذف: " + e.message);
-    }
+    showCustomConfirm(`هل أنت متأكد من حذف الحساب رقم (${phone}) نهائياً من قاعدة البيانات؟ لا يمكن التراجع عن هذه الخطوة.`, async (isYes) => {
+        if(!isYes) return;
+        try {
+            await db.collection("teachers").doc(phone).delete();
+            showToast(`تم حذف الحساب (${phone}) نهائياً بنجاح!`, "#ef4444");
+            renderActiveDashTab();
+        } catch (e) {
+            showCustomAlert("خطأ أثناء الحذف: " + e.message, 'error');
+        }
+    });
 };
 
 // ============================================================================
@@ -1227,7 +1294,7 @@ window.deleteUserAccount = async function(phone) {
 function checkAttempts() {
     let attempts = parseInt(localStorage.getItem('user_attempts') || 0);
     if (attempts >= 3) {
-        alert("عفواً، انتهت محاولاتك المجانية في التلخيص. سيتم فتح شاشة تسجيل الدخول الآن.");
+        showCustomAlert("عفواً، انتهت محاولاتك المجانية في التلخيص. سيتم فتح شاشة تسجيل الدخول الآن.", 'error');
         showAuthScreen();
         return false;
     }
@@ -1587,7 +1654,7 @@ document.addEventListener('DOMContentLoaded', () => {
     lessonImageInput.addEventListener('change', (event) => {
         if (event.target.files.length > 0) {
             if (event.target.files.length > 10) {
-                alert("عفواً، أقصى عدد مسموح به هو 10 صور فقط في المرة الواحدة! يرجى اختيار 10 صور أو أقل.");
+                showCustomAlert("عفواً، أقصى عدد مسموح به هو 10 صور فقط في المرة الواحدة! يرجى اختيار 10 صور أو أقل.", 'error');
                 event.target.value = ""; 
                 selectedLessonFiles = [];
                 return;
@@ -1595,7 +1662,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             for(let i = 0; i < event.target.files.length; i++) {
                 if (!event.target.files[i].type.includes('image')) {
-                    alert("عفواً، مسموح برفع الصور فقط.");
+                    showCustomAlert("عفواً، مسموح برفع الصور فقط.", 'error');
                     event.target.value = ""; 
                     return;
                 }
@@ -1644,17 +1711,17 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             
             if (!subject || !yearText) { 
-                alert("يرجى إكمال تحديد المرحلة، الصف الدراسي، والمادة العلمية أولاً."); 
+                showCustomAlert("يرجى إكمال تحديد المرحلة، الصف الدراسي، والمادة العلمية أولاً.", 'error'); 
                 return; 
             }
             
             if (selectedLessonFiles.length === 0) { 
-                alert("يرجى تصوير أو إرفاق صورة أولاً."); 
+                showCustomAlert("يرجى تصوير أو إرفاق صورة أولاً.", 'error'); 
                 return; 
             }
 
             if (selectedLessonFiles.length > 10) {
-                alert("عفواً، أقصى عدد مسموح به هو 10 صور فقط في المرة الواحدة!");
+                showCustomAlert("عفواً، أقصى عدد مسموح به هو 10 صور فقط في المرة الواحدة!", 'error');
                 return;
             }
 
@@ -1812,7 +1879,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.error("خطأ تقني:", error);
                 btnText.innerHTML = '<i class="fas fa-exclamation-triangle"></i> حدث خطأ';
                 processBtn.classList.remove('processing');
-                alert("الخطأ التقني الحقيقي هو: \n" + error.message);
+                showCustomAlert("الخطأ التقني الحقيقي هو: \n" + error.message, 'error');
             }
         });
     }
@@ -1930,7 +1997,7 @@ document.addEventListener('DOMContentLoaded', () => {
         let yearText = ui.yearStage.options[ui.yearStage.selectedIndex] ? ui.yearStage.options[ui.yearStage.selectedIndex].text : "";
         
         if (!subject || !yearText) { 
-            alert("يرجى تحديد المرحلة والصف والمادة أولاً من القوائم."); 
+            showCustomAlert("يرجى تحديد المرحلة والصف والمادة أولاً من القوائم.", 'error'); 
             return; 
         }
         
@@ -1944,7 +2011,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.log("Error starting microphone");
             }
         } else {
-            alert("متصفحك لا يدعم تسجيل الصوت.");
+            showCustomAlert("متصفحك لا يدعم تسجيل الصوت.", 'error');
         }
     };
 
