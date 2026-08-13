@@ -24,6 +24,10 @@
     {
       "src": "sw.js",
       "use": "@vercel/static"
+    },
+    {
+      "src": "1234.jpg",
+      "use": "@vercel/static"
     }
   ],
   "routes": [
