@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <title>منصة الذكاء الاصطناعي التعليمية</title>
+    
+    <meta name="description" content="منصة الذكاء الاصطناعي التعليمي. تلخيص الدروس، استخراج بنوك الأسئلة، المراجعات النهائية، وتحويل المناهج إلى اختبارات تفاعلية ذكية.">
+    <meta name="keywords" content="ذكاء اصطناعي تعليمي, تلخيص دروس, بنك أسئلة, ثانوية عامة, ثانوية أزهرية">
+    <meta name="author" content="AI Platform Team">
+
+    <meta property="og:title" content="منصة الذكاء الاصطناعي التعليمية">
+    <meta property="og:description" content="منصة الذكاء الاصطناعي الأولى لتلخيص الدروس وتوليد بنوك الأسئلة الذكية لجميع المراحل الدراسية.">
+    <meta property="og:type" content="website">
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
+
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#0f172a">
+    <link rel="apple-touch-icon" href="1234.jpg">
+
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    
+    <!-- الإضافات الجديدة: مكتبة Three.js للروبوت الـ 3D ومكتبة Chart.js للتحليلات -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "EducationalOrganization",
+      "name": "منصة الذكاء الاصطناعي التعليمية",
+      "url": "https://your-domain.com/",
+      "description": "منصة للذكاء الاصطناعي التعليمي. تلخيص الدروس، استخراج بنوك الأسئلة، وتحويل المناهج إلى اختبارات تفاعلية ذكية."
+    }
+    </script>
+
+    <style>
+        /* الأنيميشن العالمي والرايق للشاشة الافتتاحية */
+        @keyframes elegantFloat {
+            0% { transform: translateY(0px) scale(0.95); box-shadow: 0 10px 30px rgba(14, 165, 233, 0.2); }
+            50% { transform: translateY(-12px) scale(1); box-shadow: 0 25px 50px rgba(14, 165, 233, 0.5); }
+            100% { transform: translateY(0px) scale(0.95); box-shadow: 0 10px 30px rgba(14, 165, 233, 0.2); }
+        }
+        @keyframes textReveal {
+            0% { opacity: 0; transform: translateY(15px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes smoothLoad {
+            0% { width: 0%; }
+            100% { width: 100%; }
+        }
+        
+        #custom-splash-screen {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            z-index: 9999999999; display: flex; flex-direction: column;
+            justify-content: center; align-items: center;
+            transition: opacity 0.6s ease-out, visibility 0.6s;
+        }
+
+        /* أنيميشن زر الروبوت */
+        @keyframes robotFloat {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-8px); box-shadow: 0 15px 25px rgba(139, 92, 246, 0.5); }
+            100% { transform: translateY(0px); }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="custom-splash-screen">
+        <div style="position: relative; padding: 20px;">
+            <img src="1234.jpg" alt="EduPlatform Splash" style="width: 150px; height: 150px; object-fit: cover; border-radius: 35px; border: 2px solid rgba(255,255,255,0.05); animation: elegantFloat 3s infinite ease-in-out;">
+        </div>
+        
+        <h2 style="color: #ffffff; margin-top: 15px; font-family: 'Cairo', sans-serif; font-weight: 800; font-size: 1.8rem; letter-spacing: 1px; animation: textReveal 0.8s ease-out forwards; opacity: 0;">Educational platform</h2>
+        <p style="color: #94a3b8; font-size: 1rem; margin-top: 5px; animation: textReveal 0.8s ease-out forwards 0.3s; opacity: 0;">بوابتك للتعليم الذكي</p>
+        
+        <div style="margin-top: 40px; width: 200px; height: 4px; background: rgba(255,255,255,0.05); border-radius: 10px; overflow: hidden; box-shadow: inset 0 1px 3px rgba(0,0,0,0.2);">
+            <div style="height: 100%; background: #0ea5e9; border-radius: 10px; box-shadow: 0 0 10px #0ea5e9; animation: smoothLoad 2.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;"></div>
+        </div>
+    </div>
+
+    <div class="container fade-in-up">
+        
+        <div class="platform-logo-header" style="flex-direction: column; text-align: center; gap: 10px;">
+            <img src="1234.jpg" alt="Logo" style="max-width: 180px; height: auto; border-radius: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.15);">
+            <div class="logo-text-box">
+                <span style="font-size: 1.15rem; color: #64748b; font-weight: bold; display: block; margin-top: 5px;">منصة الذكاء الاصطناعي التعليمية المتقدمة</span>
+            </div>
+        </div>
+
+        <div class="form-group search-container">
+            <label>
+                <i class="fas fa-search"></i> ابحث عن المادة:
+            </label>
+            
+            <div class="search-box">
+                <input type="text" id="stage-search" placeholder="اكتب اسم المادة (مثال: اللغة العربية، الرياضيات، الفيزياء)...">
+                <i class="fas fa-magic magic-icon"></i>
+            </div>
+            
+            <ul id="search-results" class="search-results-list"></ul>
+            
+            <div id="search-filter-container" class="hidden-section" style="background: #f8fafc; padding: 20px; border-radius: 10px; margin-top: 15px; border: 2px solid var(--primary-light);">
+                <h4 style="margin-top: 0; color: var(--primary-dark); font-size: 1rem;" id="filter-title">جاري تحديد مسار المادة...</h4>
+                <div id="filter-stage-step" style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 15px;"></div>
+                <div id="filter-type-step" style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 15px;"></div>
+                <div id="filter-grade-step" style="display: flex; gap: 10px; flex-wrap: wrap;"></div>
+            </div>
+        </div>
+
+        <div id="main-ads-section" class="ads-container">
+            <span class="ads-label">إعلان ممول</span>
+            <div class="ad-content">
+                <p style="color: #94a3b8; font-size: 0.9rem; margin: 0;">مساحة إعلانية مخصصة</p>
+            </div>
+        </div>
+
+        <div class="divider">أو اختر من القوائم يدوياً</div>
+
+        <div class="stages-grid">
+            <div class="form-group">
+                <select id="main-stage">
+                    <option value="none">-- اختر المرحلة الدراسية --</option>
+                    <option value="primary">المرحلة الابتدائية (عام وأزهري)</option>
+                    <option value="prep">المرحلة الإعدادية (عام وأزهري)</option>
+                    <option value="high_general">الثانوية العامة</option>
+                    <option value="high_azhar">الثانوية الأزهرية</option>
+                    <option value="diploma">الدبلومات الفنية</option>
+                </select>
+            </div>
+
+            <div class="form-group hidden-section" id="sub-stage-container">
+                <select id="sub-stage"></select>
+            </div>
+
+            <div class="form-group hidden-section" id="year-stage-container">
+                <select id="year-stage"></select>
+            </div>
+
+            <div class="form-group hidden-section" id="subject-container">
+                <label>
+                    <i class="fas fa-book"></i> المادة العلمية:
+                </label>
+                <select id="subject-select"></select>
+                <div id="selected-path-display"></div>
+            </div>
+        </div>
+
+        <div id="student-upload-section" class="form-group hidden-section">
+            <hr class="section-divider">
+            <label>
+                <i class="fas fa-camera"></i> تصوير أو رفع الدرس للتلخيص:
+            </label>
+            
+            <div style="border: 2px dashed var(--primary-color); padding: 25px; text-align: center; border-radius: 10px; background: #f8fafc; cursor: pointer; transition: 0.3s;" id="lesson-upload-box" onmouseover="this.style.backgroundColor='#eff6ff'" onmouseout="this.style.backgroundColor='#f8fafc'">
+                <i class="fas fa-camera-retro" style="font-size: 2.5rem; color: var(--primary-color); margin-bottom: 15px;"></i>
+                <p style="margin: 0; color: #475569; font-weight: bold; font-size: 1.1rem;" id="lesson-upload-text">
+                    اضغط هنا لتصوير صفحة الكتاب أو رفع الدرس
+                </p>
+                <input type="file" id="lesson-image" accept="image/*" multiple style="display: none;">
+            </div>
+
+            <div id="image-preview-container" class="hidden-section" style="margin-top: 15px; text-align: center;">
+                <img id="image-preview" style="max-width: 100%; height: auto; border-radius: 10px; border: 2px solid var(--primary-color);">
+            </div>
+        </div>
+
+        <div id="extraction-settings" class="hidden-section">
+            <hr class="section-divider">
+            <label>
+                <i class="fas fa-cogs"></i> نوع المخرج المطلوب:
+            </label>
+            <div class="form-group">
+                <select id="study-material-format">
+                    <option value="pdf-qa">📄 استخراج كملف PDF (أسئلة مقالية مفصلة + اختيار من متعدد + صح وخطأ مع ذكر الأسباب)</option>
+                    <option value="exam-focus">🎯 أسئلة مضمونة ومفصلة للامتحانات (مراجعة نهائية)</option>
+                    <option value="summary">📝 تلخيص شامل للمنهج بنفس اللغة وبأدق التفاصيل</option>
+                </select>
+            </div>
+        </div>
+
+        <hr class="section-divider">
+        <div class="teacher-section">
+            <label>
+                <i class="fas fa-chalkboard-teacher"></i> قسم الترقية وحسابات الـ VIP (للطلاب والمعلمين):
+            </label>
+
+            <div class="audio-toggle teacher-toggle">
+                <input type="checkbox" id="teacher-mode">
+                <label for="teacher-mode">تسجيل الدخول برقم الـ VIP / تفعيل العضوية</label>
+            </div>
+            
+            <div id="subscription-box" class="subscription-box hidden-section">
+                <div class="vip-badge"><i class="fas fa-crown"></i> PRO</div>
+                <p>بصفتك طالباً VIP أو معلماً، يمكنك إنشاء بنوك أسئلة متقدمة والحصول على ملخصات مفصلة لجميع اللغات.</p>
+                <h4 id="price-display" style="color: var(--primary-dark); margin: 10px 0;">جاري حساب قيمة الاشتراك...</h4>
+                <p style="font-size: 0.85rem; color: #64748b;">قم بتحويل المبلغ لرقم فودافون كاش 01026336159 ثم اضغط على زر تأكيد التحويل بالأسفل.</p>
+                
+                <button class="btn subscribe-btn" id="request-activation-btn">
+                    <i class="fas fa-paper-plane"></i> تأكيد التحويل وطلب التفعيل
+                </button>
+
+                <hr style="border-top: 1px solid #fde68a; margin: 15px 0;">
+                <h4 style="color: var(--primary-dark); margin: 10px 0;">أدوات المعلم الذكية</h4>
+                <button class="btn action-btn" id="teacher-record-btn" style="background-color: #8b5cf6; margin-top: 10px;">
+                    <i class="fas fa-microphone-alt"></i> تسجيل المعلم
+                </button>
+                <p style="font-size: 0.8rem; color: #64748b; margin-top: 5px;">سيتم دمج أسلوبك مع أساليب التعليم العالمية، وسيحذف تلقائياً بعد 6 أشهر.</p>
+            </div>
+        </div>
+
+        <button class="btn action-btn" id="process-btn">
+            <span id="btn-text">🚀 بدء إنشاء المحتوى</span>
+        </button>
+
+        <div id="ai-output-container">
+            <h3><i class="fas fa-sparkles"></i> المخرجات الجاهزة</h3>
+            <div class="ai-badge" id="ai-meta-info"></div>
+            <div id="ai-response-text"></div>
+        </div>
+
+    </div>
+
+    <div id="pdf-template" style="display: none;">
+        <div style="padding: 40px; font-family: 'Cairo', 'Segoe UI', Arial, sans-serif; direction: rtl; text-align: right; background: white; color: black;">
+            <div style="text-align: center; border-bottom: 2px solid #0ea5e9; padding-bottom: 20px; margin-bottom: 30px;">
+                <img src="1234.jpg" alt="Logo" style="max-width: 120px; height: auto; border-radius: 15px; margin-bottom: 10px;">
+                <h3 id="pdf-header-title" style="color: #64748b; margin-top: 5px;">ملف تجريبي</h3>
+            </div>
+            <div id="pdf-qa-content"></div>
+            <div style="margin-top: 50px; text-align: center; color: #94a3b8; font-size: 12px; border-top: 1px solid #e2e8f0; padding-top: 10px;">
+                تم التوليد بواسطة منصة الذكاء الاصطناعي © 2026
+            </div>
+        </div>
+    </div>
+
+    <!-- نافذة المعلم الذكي الغامرة الجديدة (Immersive 3D AI Tutor Modal) -->
+    <!-- تمت إضافتها بالكامل بدون المساس بالكود القديم -->
+    <div id="tutor-immersive-modal" class="hidden-section">
+        <div class="tutor-immersive-overlay"></div>
+        <div class="tutor-immersive-content">
+            <button id="close-immersive-btn" class="tutor-close-btn"><i class="fas fa-times"></i></button>
+            <div class="tutor-split-layout">
+                
+                <!-- مساحة الـ 3D -->
+                <div class="tutor-3d-section">
+                    <div id="tutor-3d-canvas-container">
+                        <div class="tutor-3d-placeholder">
+                            <i class="fas fa-robot fa-4x" style="color: rgba(255,255,255,0.2); margin-bottom: 15px;"></i>
+                            <p style="color: #cbd5e1; font-weight: bold; margin: 0;">جاري تحميل المعلم الذكي 3D...</p>
+                            <span style="font-size: 0.8rem; color: #94a3b8;">يرجى الانتظار</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- مساحة الشات والمحادثة -->
+                <div class="tutor-chat-section">
+                    <div class="tutor-chat-header">
+                        <h4><i class="fas fa-chalkboard-teacher" style="color: #0ea5e9;"></i> المعلم الذكي (الإصدار التفاعلي)</h4>
+                        <span>متصل ويستمع إليك</span>
+                    </div>
+                    <div id="tutor-immersive-messages" class="tutor-chat-messages">
+                        <div class="tutor-msg bot-msg">
+                            أهلاً بك يا بطل! 🌟 أنا المعلم الذكي الخاص بك.<br>أنا جاهز للإجابة على أسئلتك وشرح أي نقطة في المنهج بصوت والصورة. كيف يمكنني مساعدتك اليوم؟ 😊
+                        </div>
+                    </div>
+                    <div class="tutor-chat-input-area">
+                        <input type="text" id="tutor-immersive-input" placeholder="اكتب سؤالك هنا للتفاعل المباشر...">
+                        <button id="tutor-immersive-send-btn"><i class="fas fa-paper-plane"></i></button>
+                    </div>
+                </div>
+                
+            </div>
+        </div>
+    </div>
+
+    <!-- حاوية الشات القديمة (تُركت كما هي بدون أي مسح للحفاظ على الأكواد القديمة) -->
+    <div id="ai-tutor-container" style="position: fixed; bottom: 25px; left: 20px; z-index: 999999; display: flex; flex-direction: column; align-items: flex-start;">
+        
+        <div id="tutor-chat-window" style="width: 340px; height: 480px; max-width: 90vw; max-height: 70vh; background: #ffffff; border-radius: 20px; box-shadow: 0 15px 40px rgba(0,0,0,0.25); display: none; flex-direction: column; overflow: hidden; border: 1px solid #e2e8f0; transform: scale(0.8); opacity: 0; transform-origin: bottom left; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); margin-bottom: 15px;">
+            
+            <div style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); padding: 15px; color: white; display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #0ea5e9;">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <div style="width: 42px; height: 42px; background: #3b82f6; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 1.3rem; box-shadow: 0 4px 10px rgba(0,0,0,0.3);">🤖</div>
+                    <div style="text-align: right; line-height: 1.2;">
+                        <h4 style="margin: 0; font-size: 1.1rem; font-family: 'Cairo', sans-serif;">مُعلمك الذكي</h4>
+                        <span style="font-size: 0.75rem; color: #10b981; font-weight: bold;">متصل الآن بذكاء الاصطناعي •</span>
+                    </div>
+                </div>
+                <button id="close-tutor-btn" style="background: rgba(255,255,255,0.1); border: none; color: white; width: 30px; height: 30px; border-radius: 50%; cursor: pointer; display: flex; justify-content: center; align-items: center; transition: 0.2s;"><i class="fas fa-times"></i></button>
+            </div>
+            
+            <div id="tutor-messages" style="flex: 1; padding: 15px; overflow-y: auto; background: #f8fafc; display: flex; flex-direction: column; gap: 12px; scroll-behavior: smooth;">
+                <div style="align-self: flex-start; background: #ffffff; padding: 14px 18px; border-radius: 15px 15px 15px 0; border: 1px solid #e2e8f0; max-width: 85%; box-shadow: 0 4px 6px rgba(0,0,0,0.02);">
+                    <p style="margin: 0; font-size: 0.95rem; color: #1e293b; line-height: 1.6; font-family: 'Cairo', sans-serif;">أهلاً بك يا بطل! 🌟 أنا المعلم الذكي الخاص بك.<br>هل يوجد جزء غير مفهوم في الدرس أو تود أن أشرح لك نقطة معينة بأسلوب مبسط ومختلف؟ أنا هنا من أجلك! 😊</p>
+                </div>
+            </div>
+            
+            <div style="padding: 12px 15px; background: white; border-top: 1px solid #e2e8f0; display: flex; gap: 10px; align-items: center;">
+                <input type="text" id="tutor-input" placeholder="اكتب سؤالك هنا..." style="flex: 1; padding: 12px 18px; border: 1px solid #cbd5e1; border-radius: 25px; font-size: 0.95rem; outline: none; transition: border 0.3s; font-family: 'Cairo', sans-serif;">
+                <button id="tutor-send-btn" style="background: linear-gradient(135deg, #0ea5e9, #3b82f6); color: white; border: none; width: 45px; height: 45px; border-radius: 50%; cursor: pointer; display: flex; justify-content: center; align-items: center; font-size: 1.1rem; box-shadow: 0 4px 10px rgba(14, 165, 233, 0.3); transition: transform 0.2s;"><i class="fas fa-paper-plane"></i></button>
+            </div>
+        </div>
+
+        <button id="tutor-fab-btn" style="width: 65px; height: 65px; border-radius: 50%; background: linear-gradient(135deg, #8b5cf6, #3b82f6); color: white; border: 3px solid #ffffff; font-size: 2rem; box-shadow: 0 10px 25px rgba(139, 92, 246, 0.4); cursor: pointer; animation: robotFloat 3s infinite ease-in-out; display: flex; align-items: center; justify-content: center; transition: transform 0.2s;">
+            <i class="fas fa-robot"></i>
+        </button>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+    <script src="java.js?v=122"></script>
+
+    <script>
+      // تسجيل عامل الخدمة للتطبيق
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('sw.js')
+            .then(() => {
+              console.log('ServiceWorker registration successful');
+            })
+            .catch(err => {
+              console.log('ServiceWorker registration failed: ', err);
+            });
+        });
+        
+        let refreshing;
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+            if (refreshing) return;
+            window.location.reload();
+            refreshing = true;
+        });
+      }
+    </script>
+</body>
+</html>
