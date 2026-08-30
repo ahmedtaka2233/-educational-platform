@@ -30,6 +30,36 @@ def analyze():
 
     try:
         data = request.get_json()
+        
+        # --- الإضافة الجذرية لحل مشكلة المعلم التفاعلي (الشات) ---
+        action = data.get('action')
+        if action == 'chat':
+            message = data.get('message', '')
+            context = data.get('context', '')
+            strict_prompt = data.get('strict_prompt_command', '')
+
+            chat_prompt = f"{strict_prompt}\n\n"
+            chat_prompt += f"معلومات الدرس المرفوع:\n{context}\n\n"
+            chat_prompt += f"سؤال الطالب:\n{message}"
+
+            payload = {
+                "contents": [{"parts": [{"text": chat_prompt}]}]
+            }
+
+            url = get_gemini_url()
+            response = requests.post(url, headers={'Content-Type': 'application/json'}, json=payload)
+            response_data = response.json()
+            
+            if 'candidates' not in response_data:
+                 return jsonify({"error": f"خطأ من جوجل: {str(response_data)}"}), 500
+                 
+            ai_reply = response_data['candidates'][0]['content']['parts'][0]['text']
+            
+            # الرد بـ reply كما يتوقعه ملف java.js
+            return jsonify({"reply": ai_reply}), 200
+        # --------------------------------------------------------
+
+        # استكمال كود تحليل الصور والامتحانات (كما هو بدون حذف)
         images_base64 = data.get('images_base64', [])
         if not images_base64 and data.get('image_base64'):
             images_base64 = [data.get('image_base64')]
@@ -37,6 +67,7 @@ def analyze():
         subject_title = data.get('subject')
         grade_year = data.get('year')
         mime_type = data.get('mime_type', 'image/jpeg')
+        prompt_command = data.get('strict_prompt_command', '')
 
         # إنشاء رقم جلسة فريد لضمان عدم تكرار الأسئلة في كل طلب جديد
         session_id = int(time.time())
@@ -44,6 +75,8 @@ def analyze():
         # هندسة البرومبت الصارم (4 أسئلة لكل قسم = 12 إجمالي لمنع قطع الـ JSON مع الشرح المباشر المركز)
         prompt = "أنت الآن 'رئيس لجنة وضع الامتحانات' و'خبير المناهج التعليمية الأول' في منصة Educational platform.\n"
         prompt += f"رقم الجلسة الفريد: {session_id} (تنبيه إجباري: قم بتوليد أسئلة جديدة ومختلفة تماماً عن أي محاولة سابقة لنفس الدرس).\n"
+        if prompt_command:
+             prompt += f"\nتوجيهات إضافية من النظام: {prompt_command}\n\n"
         prompt += "الهدف: تحليل محتوى الصور المرفوعة بدقة متناهية واستخراج بنك أسئلة شامل ومتدرج الصعوبة (سهل، متوسط، معقد)، مع ذكر الأسباب العلمية المباشرة والمركزة لكل إجابة.\n\n"
         prompt += "قواعد وأوامر صارمة وإجبارية لا تقبل الاستثناء أو الاختصار أبداً:\n"
         prompt += "1. قسم الاختيار من متعدد (MCQ): استخرج 4 أسئلة فقط متدرجة الصعوبة (سهل، متوسط، معقد). كل سؤال يحتوي على 4 اختيارات في options، والإجابة الصحيحة في a. في خانة reason اذكر السبب العلمي المباشر والمركز في سطرين كحد أقصى (لماذا هذه الإجابة صحيحة وباقي الاختيارات خطأ).\n"
