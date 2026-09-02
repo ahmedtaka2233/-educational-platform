@@ -1,0 +1,896 @@
+/* التصميم الهادئ والمريح للعين مع استجابة للشاشات */
+:root {
+    --primary-color: #0ea5e9;
+    --primary-dark: #0284c7;
+    --primary-light: #e0f2fe;
+    --bg-color: #f8fafc;
+    --card-bg: #ffffff;
+    --text-color: #334155;
+    --border-color: #e2e8f0;
+    --success-color: #10b981;
+    --accent-color: #f59e0b;
+}
+
+* {
+    box-sizing: border-box;
+    font-family: 'Cairo', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+body {
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    margin: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    padding: 20px;
+}
+
+.container {
+    background: var(--card-bg);
+    width: 100%;
+    max-width: 760px;
+    padding: 40px;
+    border-radius: 20px;
+    box-shadow: 0 10px 40px rgba(148, 163, 184, 0.2), 0 1px 3px rgba(0, 0, 0, 0.05);
+    position: relative;
+    overflow: hidden;
+}
+
+.container::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; height: 5px;
+    background: linear-gradient(90deg, var(--primary-light), var(--primary-color), var(--primary-light));
+}
+
+.fade-in-up { 
+    animation: fadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1); 
+}
+
+@keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.platform-logo-header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 15px;
+    margin-bottom: 30px;
+}
+
+.logo-icon-box {
+    width: 55px;
+    height: 55px;
+    background: linear-gradient(135deg, var(--primary-dark), var(--primary-color));
+    color: #ffffff;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.8rem;
+    box-shadow: 0 6px 16px rgba(14, 165, 233, 0.35);
+}
+
+.logo-text-box h1 {
+    margin: 0;
+    font-size: 2.1rem;
+    font-weight: bold;
+    color: #0f172a;
+    letter-spacing: 0.5px;
+}
+
+.logo-text-box span {
+    font-size: 0.9rem;
+    color: #64748b;
+    display: block;
+}
+
+.glow-text {
+    text-align: center;
+    color: var(--primary-dark);
+    user-select: none;
+}
+
+.form-group { 
+    margin-bottom: 20px; 
+    position: relative; 
+}
+
+label {
+    display: block; 
+    margin-bottom: 10px; 
+    font-weight: 600; 
+    font-size: 1rem; 
+    color: #475569;
+}
+
+label i { 
+    color: var(--primary-color); 
+    margin-left: 8px; 
+}
+
+select, input[type="text"], input[type="password"], input[type="email"], input[type="tel"], input[type="number"] {
+    width: 100%; 
+    padding: 14px 18px;
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    background-color: #f8fafc;
+    color: var(--text-color); 
+    font-size: 1rem;
+    transition: all 0.3s ease;
+    appearance: none;
+}
+
+select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%230ea5e9' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+    background-repeat: no-repeat; 
+    background-position: left 15px center; 
+    background-size: 18px;
+    padding-left: 45px; 
+    cursor: pointer;
+}
+
+select:focus, input:focus {
+    outline: none; 
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 4px rgba(14, 165, 233, 0.1);
+    background-color: #ffffff;
+}
+
+.search-box { 
+    position: relative; 
+}
+
+.magic-icon {
+    position: absolute; 
+    left: 18px; 
+    top: 50%; 
+    transform: translateY(-50%);
+    color: var(--primary-color); 
+    font-size: 1.2rem;
+}
+
+.search-results-list {
+    list-style: none; 
+    padding: 0; 
+    margin: 5px 0 0 0;
+    position: absolute; 
+    width: 100%;
+    background-color: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 10px; 
+    max-height: 200px; 
+    overflow-y: auto;
+    z-index: 100; 
+    display: none;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+}
+
+.search-results-list li {
+    padding: 12px 18px; 
+    cursor: pointer; 
+    border-bottom: 1px solid #f1f5f9;
+    color: var(--text-color); 
+    transition: all 0.2s;
+}
+
+.search-results-list li:hover {
+    background-color: var(--primary-light); 
+    color: var(--primary-dark);
+}
+
+.divider {
+    text-align: center; 
+    margin: 25px 0; 
+    color: #94a3b8; 
+    font-size: 0.9rem; 
+    position: relative;
+}
+
+.divider::before, .divider::after {
+    content: ""; 
+    position: absolute; 
+    top: 50%; 
+    width: 38%; 
+    height: 1px; 
+    background-color: var(--border-color);
+}
+
+.divider::before { left: 0; } 
+.divider::after { right: 0; }
+
+.section-divider { 
+    border: 0; 
+    height: 1px; 
+    background: var(--border-color); 
+    margin: 25px 0; 
+    opacity: 0.5; 
+}
+
+.audio-toggle {
+    display: flex; 
+    align-items: center; 
+    gap: 12px;
+    background: #ecfdf5;
+    padding: 16px; 
+    border-radius: 10px; 
+    border: 1px solid #a7f3d0;
+    cursor: pointer; 
+    transition: all 0.3s;
+}
+
+.audio-toggle:hover { 
+    border-color: var(--success-color); 
+    background: #d1fae5; 
+}
+
+.audio-toggle input[type="checkbox"] { 
+    width: 20px; 
+    height: 20px; 
+    accent-color: var(--success-color); 
+    cursor: pointer; 
+    flex-shrink: 0; 
+}
+
+.audio-toggle label { 
+    margin: 0; 
+    color: #065f46; 
+    cursor: pointer; 
+    font-weight: bold; 
+}
+
+.subscription-box {
+    background: #fffbeb;
+    border: 1px solid #fde68a; 
+    padding: 20px; 
+    border-radius: 10px;
+    margin-top: 15px; 
+    text-align: center; 
+    position: relative; 
+    overflow: hidden;
+}
+
+.vip-badge {
+    position: absolute; 
+    top: 12px; 
+    right: -30px; 
+    background: var(--accent-color);
+    color: #fff; 
+    font-weight: bold; 
+    font-size: 0.8rem; 
+    padding: 4px 35px;
+    transform: rotate(45deg);
+}
+
+.subscription-box p { 
+    color: #92400e; 
+    margin: 10px 0 15px 0; 
+    font-size: 0.95rem; 
+    line-height: 1.5; 
+    font-weight: 500;
+}
+
+.subscribe-btn {
+    background: var(--accent-color);
+    border: none; 
+    padding: 12px 20px; 
+    border-radius: 8px; 
+    color: white;
+    font-weight: bold; 
+    cursor: pointer; 
+    transition: all 0.3s; 
+    width: 100%;
+}
+
+.subscribe-btn:hover { 
+    background: #d97706; 
+}
+
+.action-btn {
+    width: 100%; 
+    padding: 16px; 
+    border: none; 
+    border-radius: 10px;
+    font-size: 1.1rem; 
+    font-weight: bold; 
+    cursor: pointer; 
+    transition: all 0.3s ease;
+    margin-top: 20px; 
+    display: flex; 
+    justify-content: center; 
+    align-items: center; 
+    gap: 10px;
+    background: var(--primary-color); 
+    color: white;
+    box-shadow: 0 4px 12px rgba(14, 165, 233, 0.3);
+}
+
+.action-btn:hover { 
+    transform: translateY(-2px); 
+    background: var(--primary-dark); 
+    box-shadow: 0 6px 15px rgba(14, 165, 233, 0.4); 
+}
+
+.action-btn.processing { 
+    background: #94a3b8; 
+    pointer-events: none; 
+}
+
+.hidden-section { 
+    display: none !important; 
+    opacity: 0; 
+}
+
+.show-anim { 
+    display: block; 
+    animation: fadeIn 0.4s forwards; 
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+#ai-output-container {
+    display: none; 
+    margin-top: 30px; 
+    padding: 25px;
+    background: #f8fafc; 
+    border: 1px solid var(--border-color); 
+    border-right: 4px solid var(--primary-color);
+    border-radius: 12px;
+}
+
+#ai-output-container h3 { 
+    color: var(--primary-dark); 
+    margin-top: 0; 
+    display: flex; 
+    align-items: center; 
+    gap: 10px; 
+}
+
+.ai-badge { 
+    background: #e0f2fe; 
+    color: #0369a1; 
+    padding: 6px 12px; 
+    border-radius: 6px; 
+    font-size: 0.85rem; 
+    margin-bottom: 15px; 
+    display: inline-block; 
+    font-weight: 600;
+}
+
+.download-pdf-btn {
+    background: var(--success-color); 
+    color: white; 
+    border: none;
+    padding: 14px 25px; 
+    border-radius: 8px; 
+    font-size: 1rem; 
+    font-weight: bold;
+    cursor: pointer; 
+    margin-top: 15px; 
+    display: inline-flex; 
+    align-items: center; 
+    gap: 8px;
+    transition: background 0.3s;
+    width: 100%; 
+    justify-content: center;
+}
+
+.download-pdf-btn:hover { 
+    background: #059669; 
+}
+
+@media (max-width: 768px) {
+    body { padding: 10px; }
+    .container { padding: 20px; border-radius: 15px; }
+    .logo-text-box h1 { font-size: 1.6rem; }
+    .logo-icon-box { width: 45px; height: 45px; font-size: 1.4rem; }
+    select, input[type="text"], input[type="password"], input[type="email"], input[type="tel"], input[type="number"] { padding: 12px 15px; font-size: 0.95rem; }
+    .audio-toggle { flex-direction: column; align-items: flex-start; gap: 8px; }
+    .action-btn { font-size: 1rem; padding: 14px; }
+    #ai-output-container { padding: 15px; }
+}
+
+#selected-path-display {
+    background-color: #e0f2fe;
+    color: #0369a1;
+    padding: 12px;
+    border-radius: 8px;
+    font-weight: bold;
+    font-size: 0.95rem;
+    margin-top: 10px;
+    border: 1px solid #bae6fd;
+    display: none;
+    text-align: center;
+}
+
+.ads-container {
+    background-color: #f8fafc;
+    border: 1px dashed #cbd5e1;
+    border-radius: 10px;
+    padding: 15px;
+    margin: 25px 0;
+    text-align: center;
+    position: relative;
+    overflow: hidden; 
+    min-height: 90px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);
+}
+
+.ads-label {
+    position: absolute;
+    top: 0;
+    right: 15px;
+    background-color: #e2e8f0;
+    color: #64748b;
+    font-size: 0.75rem;
+    padding: 2px 10px;
+    border-radius: 0 0 5px 5px;
+    font-weight: bold;
+    z-index: 2;
+}
+
+.ad-content {
+    width: 100%;
+    max-width: 100%;
+    overflow: hidden;
+    position: relative;
+    z-index: 1;
+}
+
+/* قواعد محرك الرسم لحماية الحروف العربية من التقطيع والقلب في الـ PDF */
+.pdf-question-block {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    overflow-wrap: break-word !important;
+    word-wrap: break-word !important;
+    direction: rtl !important;
+    text-align: right !important;
+    letter-spacing: normal !important;
+    unicode-bidi: normal !important;
+    font-family: 'Cairo', sans-serif !important;
+}
+
+#pdf-template {
+    position: relative;
+    overflow: hidden;
+    direction: rtl !important;
+    text-align: right !important;
+    font-family: 'Cairo', sans-serif !important;
+    letter-spacing: normal !important;
+    unicode-bidi: normal !important;
+}
+
+/* العلامة المائية في العرض العادي */
+#pdf-template::after {
+    content: "Educational platform" !important;
+    position: absolute;
+    top: 40%;
+    left: 10%;
+    font-size: 5rem;
+    font-weight: 900;
+    color: #0f172a;
+    opacity: 0.08;
+    transform: rotate(-35deg);
+    pointer-events: none;
+    z-index: 9999;
+    white-space: nowrap;
+}
+
+/* التنسيق الخاص بالطباعة الرسمية (المحرك الرسمي المضمون 100%) */
+@media print {
+    body * {
+        visibility: hidden !important;
+    }
+    #pdf-template, #pdf-template * {
+        visibility: visible !important;
+    }
+    #pdf-template {
+        position: absolute !important;
+        left: 0 !important;
+        top: 0 !important;
+        width: 100% !important;
+        display: block !important;
+        background: white !important;
+        color: black !important;
+        box-shadow: none !important;
+        border: none !important;
+        padding: 0 !important;
+        margin: 0 !important;
+    }
+    .pdf-question-block {
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+    }
+    /* إجبار تكرار العلامة المائية فوق الكلام على جميع صفحات الطباعة والـ PDF بلا استثناء */
+    #pdf-template::after {
+        content: "Educational platform" !important;
+        position: fixed !important;
+        top: 45% !important;
+        left: 10% !important;
+        font-size: 5rem !important;
+        font-weight: 900 !important;
+        color: #0f172a !important;
+        opacity: 0.08 !important;
+        transform: rotate(-35deg) !important;
+        pointer-events: none !important;
+        z-index: 9999 !important;
+        white-space: nowrap !important;
+        display: block !important;
+    }
+}
+
+/* ========================================================================== */
+/* تصميم نافذة المعلم الذكي الغامرة (Immersive AI Tutor) */
+/* ========================================================================== */
+
+#tutor-immersive-modal {
+    position: fixed;
+    top: 0; left: 0; width: 100%; height: 100%;
+    z-index: 9999999999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+#tutor-immersive-modal.active {
+    opacity: 1;
+    visibility: visible;
+}
+
+.tutor-immersive-overlay {
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(15, 23, 42, 0.95);
+    backdrop-filter: blur(15px);
+    z-index: 1;
+}
+
+.tutor-immersive-content {
+    position: relative;
+    z-index: 2;
+    width: 90%;
+    max-width: 1200px;
+    height: 85vh;
+    background: #ffffff;
+    border-radius: 24px;
+    box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    border: 1px solid #334155;
+    transform: scale(0.95);
+    transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+#tutor-immersive-modal.active .tutor-immersive-content {
+    transform: scale(1);
+}
+
+.tutor-close-btn {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    background: rgba(239, 68, 68, 0.1);
+    color: #ef4444;
+    border: none;
+    width: 40px; height: 40px;
+    border-radius: 50%;
+    font-size: 1.2rem;
+    cursor: pointer;
+    z-index: 10;
+    transition: 0.3s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.tutor-close-btn:hover {
+    background: #ef4444;
+    color: white;
+    transform: rotate(90deg);
+}
+
+.tutor-split-layout {
+    display: flex;
+    width: 100%;
+    height: 100%;
+    flex-direction: row;
+}
+
+.tutor-3d-section {
+    flex: 5;
+    background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-left: 2px solid #334155;
+    overflow: hidden;
+}
+
+#tutor-3d-canvas-container {
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    top: 0; left: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.tutor-3d-placeholder {
+    text-align: center;
+    color: #94a3b8;
+    font-family: 'Cairo', sans-serif;
+    animation: elegantFloat 3s infinite ease-in-out;
+}
+
+.tutor-chat-section {
+    flex: 5;
+    background: #f8fafc;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.tutor-chat-header {
+    padding: 20px;
+    background: #ffffff;
+    border-bottom: 1px solid #e2e8f0;
+    text-align: center;
+    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+}
+
+.tutor-chat-header h4 {
+    margin: 0; color: #0f172a; font-size: 1.2rem; font-weight: bold;
+}
+
+.tutor-chat-header span {
+    font-size: 0.85rem; color: #10b981; font-weight: bold;
+}
+
+.tutor-chat-messages {
+    flex: 1;
+    padding: 20px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    scroll-behavior: smooth;
+}
+
+.tutor-msg {
+    padding: 14px 18px;
+    border-radius: 15px;
+    font-size: 0.95rem;
+    line-height: 1.6;
+    max-width: 85%;
+    font-family: 'Cairo', sans-serif;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.02);
+    position: relative;
+}
+
+.bot-msg {
+    align-self: flex-start;
+    background: #ffffff;
+    color: #1e293b;
+    border: 1px solid #e2e8f0;
+    border-bottom-right-radius: 0;
+}
+
+.user-msg {
+    align-self: flex-end;
+    background: linear-gradient(135deg, #0ea5e9, #3b82f6);
+    color: white;
+    border-bottom-left-radius: 0;
+}
+
+.tutor-chat-input-area {
+    padding: 15px 20px;
+    background: #ffffff;
+    border-top: 1px solid #e2e8f0;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+#tutor-immersive-input {
+    flex: 1;
+    padding: 14px 20px;
+    border: 2px solid #cbd5e1;
+    border-radius: 25px;
+    font-size: 1rem;
+    outline: none;
+    transition: 0.3s;
+    font-family: 'Cairo', sans-serif;
+}
+
+#tutor-immersive-input:focus {
+    border-color: #0ea5e9;
+    box-shadow: 0 0 0 4px rgba(14, 165, 233, 0.1);
+}
+
+#tutor-immersive-send-btn {
+    background: linear-gradient(135deg, #0ea5e9, #3b82f6);
+    color: white;
+    border: none;
+    width: 50px; height: 50px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 1.2rem;
+    box-shadow: 0 4px 10px rgba(14, 165, 233, 0.3);
+    transition: 0.2s;
+    flex-shrink: 0;
+}
+
+#tutor-immersive-send-btn:hover {
+    transform: scale(1.05);
+}
+
+/* ========================================================================== */
+/* تصميمات وضع الامتحان التفاعلي (Premium Exam Simulation UI) */
+/* ========================================================================== */
+.interactive-q-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.02);
+    transition: 0.3s;
+}
+
+.interactive-q-card:hover {
+    border-color: #cbd5e1;
+    box-shadow: 0 10px 15px rgba(0,0,0,0.05);
+}
+
+.interactive-q-title {
+    font-size: 1.15rem;
+    color: #0f172a;
+    font-weight: bold;
+    margin-bottom: 15px;
+    border-bottom: 2px solid #f1f5f9;
+    padding-bottom: 10px;
+}
+
+.interactive-options {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.option-label {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 15px;
+    background: #f8fafc;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: 0.2s;
+    font-size: 1rem;
+    color: #334155;
+}
+
+.option-label:hover {
+    background: #f1f5f9;
+    border-color: #94a3b8;
+}
+
+.option-input {
+    accent-color: #0ea5e9;
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+}
+
+.option-label.selected-opt {
+    background: #e0f2fe;
+    border-color: #0ea5e9;
+    font-weight: bold;
+    color: #0284c7;
+}
+
+.result-feedback {
+    margin-top: 15px;
+    padding: 15px;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    display: none;
+    line-height: 1.6;
+}
+
+.result-feedback.correct {
+    background: #d1fae5;
+    color: #065f46;
+    border-left: 4px solid #10b981;
+    display: block;
+}
+
+.result-feedback.wrong {
+    background: #fee2e2;
+    color: #991b1b;
+    border-left: 4px solid #ef4444;
+    display: block;
+}
+
+/* الكلاس الخاص بتصميم مربع إجابة الأسئلة المقالية (Premium Look) */
+.essay-input {
+    width: 100%;
+    min-height: 120px;
+    padding: 15px 18px;
+    border: 2px solid #cbd5e1;
+    border-radius: 10px;
+    font-size: 1rem;
+    font-family: 'Cairo', sans-serif;
+    resize: vertical;
+    transition: all 0.3s ease;
+    background-color: #f8fafc;
+    color: #334155;
+    line-height: 1.6;
+}
+
+.essay-input:focus {
+    border-color: #0ea5e9;
+    box-shadow: 0 0 0 4px rgba(14, 165, 233, 0.1);
+    outline: none;
+    background-color: #ffffff;
+}
+
+@media (max-width: 768px) {
+    .tutor-immersive-content {
+        width: 100%;
+        height: 100vh;
+        height: 100dvh;
+        border-radius: 0;
+        border: none;
+    }
+    
+    .tutor-split-layout {
+        flex-direction: column;
+        overflow: hidden;
+    }
+    
+    .tutor-3d-section {
+        flex: none !important;
+        height: 25% !important;
+        min-height: 25%;
+        border-left: none;
+        border-bottom: 2px solid #334155;
+        order: 1;
+    }
+    
+    .tutor-chat-section {
+        flex: 1 !important;
+        height: 75% !important;
+        min-height: 75%;
+        order: 2;
+        overflow: hidden;
+    }
+    
+    .tutor-close-btn {
+        top: 15px; 
+        left: 15px;
+        background: rgba(255,255,255,0.2);
+        color: #ffffff;
+    }
+}
