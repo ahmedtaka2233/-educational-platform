@@ -26,9 +26,10 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     
-    <!-- الإضافات الجديدة: مكتبة Three.js للروبوت الـ 3D ومكتبة Chart.js للتحليلات -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
     <script type="application/ld+json">
     {
@@ -41,7 +42,6 @@
     </script>
 
     <style>
-        /* الأنيميشن العالمي والرايق للشاشة الافتتاحية */
         @keyframes elegantFloat {
             0% { transform: translateY(0px) scale(0.95); box-shadow: 0 10px 30px rgba(14, 165, 233, 0.2); }
             50% { transform: translateY(-12px) scale(1); box-shadow: 0 25px 50px rgba(14, 165, 233, 0.5); }
@@ -64,7 +64,6 @@
             transition: opacity 0.6s ease-out, visibility 0.6s;
         }
 
-        /* أنيميشن زر الروبوت */
         @keyframes robotFloat {
             0% { transform: translateY(0px); }
             50% { transform: translateY(-8px); box-shadow: 0 15px 25px rgba(139, 92, 246, 0.5); }
@@ -96,15 +95,15 @@
                 <span style="font-size: 1.15rem; color: #64748b; font-weight: bold; display: block; margin-top: 5px;">منصة الذكاء الاصطناعي التعليمية المتقدمة</span>
             </div>
             
-            <!-- إضافة أداة ترجمة جوجل لجميع لغات العالم -->
             <div id="google_translate_element" style="margin-top: 10px; min-height: 35px;"></div>
             <script type="text/javascript">
-                function googleTranslateElementInit() {
+                // تم التعديل لمنع تحذير Acode عبر ربط الدالة بالـ Window Object مباشرة
+                window.googleTranslateElementInit = function() {
                     new google.translate.TranslateElement({
                         pageLanguage: 'ar', 
                         layout: google.translate.TranslateElement.InlineLayout.SIMPLE
                     }, 'google_translate_element');
-                }
+                };
             </script>
             <script type="text/javascript" src="https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
         </div>
@@ -241,7 +240,6 @@
             <div id="interactive-exam-btn-container"></div>
         </div>
         
-        <!-- قسم الامتحان التفاعلي (مخفي افتراضياً) -->
         <div id="interactive-exam-container" class="hidden-section" style="margin-top: 30px; background: #ffffff; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); overflow: hidden; border: 1px solid #e2e8f0;">
             <div class="exam-header" style="background: linear-gradient(135deg, #0ea5e9, #3b82f6); padding: 20px; color: white; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 10;">
                 <div>
@@ -253,7 +251,6 @@
                 </div>
             </div>
             <div id="exam-questions-area" style="padding: 25px;">
-                <!-- الأسئلة سيتم حقنها هنا -->
             </div>
             <div style="padding: 20px; background: #f8fafc; border-top: 1px solid #e2e8f0; text-align: left;">
                 <button id="submit-interactive-exam-btn" style="background: #10b981; color: white; border: none; padding: 14px 30px; border-radius: 10px; font-weight: bold; font-size: 1.1rem; cursor: pointer; box-shadow: 0 4px 15px rgba(16,185,129,0.3); transition: 0.3s;"><i class="fas fa-check-double"></i> إنهاء وتسليم الامتحان</button>
@@ -275,33 +272,25 @@
         </div>
     </div>
 
-    <!-- نافذة المعلم الذكي الغامرة الجديدة (Immersive 3D AI Tutor Modal) -->
     <div id="tutor-immersive-modal" class="hidden-section">
         <div class="tutor-immersive-overlay"></div>
         <div class="tutor-immersive-content">
             <button id="close-immersive-btn" class="tutor-close-btn"><i class="fas fa-times"></i></button>
             <div class="tutor-split-layout">
                 
-                <!-- مساحة الـ 3D -->
+                <!-- مساحة الـ 3D لمعلم الذكاء الاصطناعي الحقيقي -->
                 <div class="tutor-3d-section">
-                    <div id="tutor-3d-canvas-container">
-                        <div class="tutor-3d-placeholder">
-                            <i class="fas fa-robot fa-4x" style="color: rgba(255,255,255,0.2); margin-bottom: 15px;"></i>
-                            <p style="color: #cbd5e1; font-weight: bold; margin: 0;">جاري تحميل المعلم الذكي 3D...</p>
-                            <span style="font-size: 0.8rem; color: #94a3b8;">يرجى الانتظار</span>
-                        </div>
-                    </div>
+                    <div id="tutor-3d-canvas-container"></div>
                 </div>
 
-                <!-- مساحة الشات والمحادثة -->
                 <div class="tutor-chat-section">
                     <div class="tutor-chat-header">
-                        <h4><i class="fas fa-chalkboard-teacher" style="color: #0ea5e9;"></i> المعلم الذكي (الإصدار التفاعلي)</h4>
+                        <h4><i class="fas fa-chalkboard-teacher" style="color: #0ea5e9;"></i> المعلم الذكي (الإصدار 3D التفاعلي)</h4>
                         <span>متصل ويستمع إليك</span>
                     </div>
                     <div id="tutor-immersive-messages" class="tutor-chat-messages">
                         <div class="tutor-msg bot-msg">
-                            أهلاً بك يا بطل! 🌟 أنا المعلم الذكي الخاص بك.<br>أنا جاهز للإجابة على أسئلتك وشرح أي نقطة في المنهج بصوت والصورة. كيف يمكنني مساعدتك اليوم؟ 😊
+                            أهلاً بك يا بطل! 🌟 أنا المعلم الذكي الخاص بك.<br>أنا جاهز للإجابة على أسئلتك وشرح أي نقطة في المنهج. كيف يمكنني مساعدتك اليوم؟ 😊
                         </div>
                     </div>
                     <div class="tutor-chat-input-area">
@@ -314,42 +303,13 @@
         </div>
     </div>
 
-    <!-- حاوية الشات القديمة -->
-    <div id="ai-tutor-container" style="position: fixed; bottom: 25px; left: 20px; z-index: 999999; display: flex; flex-direction: column; align-items: flex-start;">
-        
-        <div id="tutor-chat-window" style="width: 340px; height: 480px; max-width: 90vw; max-height: 70vh; background: #ffffff; border-radius: 20px; box-shadow: 0 15px 40px rgba(0,0,0,0.25); display: none; flex-direction: column; overflow: hidden; border: 1px solid #e2e8f0; transform: scale(0.8); opacity: 0; transform-origin: bottom left; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); margin-bottom: 15px;">
-            
-            <div style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); padding: 15px; color: white; display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #0ea5e9;">
-                <div style="display: flex; align-items: center; gap: 12px;">
-                    <div style="width: 42px; height: 42px; background: #3b82f6; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 1.3rem; box-shadow: 0 4px 10px rgba(0,0,0,0.3);">🤖</div>
-                    <div style="text-align: right; line-height: 1.2;">
-                        <h4 style="margin: 0; font-size: 1.1rem; font-family: 'Cairo', sans-serif;">مُعلمك الذكي</h4>
-                        <span style="font-size: 0.75rem; color: #10b981; font-weight: bold;">متصل الآن بذكاء الاصطناعي •</span>
-                    </div>
-                </div>
-                <button id="close-tutor-btn" style="background: rgba(255,255,255,0.1); border: none; color: white; width: 30px; height: 30px; border-radius: 50%; cursor: pointer; display: flex; justify-content: center; align-items: center; transition: 0.2s;"><i class="fas fa-times"></i></button>
-            </div>
-            
-            <div id="tutor-messages" style="flex: 1; padding: 15px; overflow-y: auto; background: #f8fafc; display: flex; flex-direction: column; gap: 12px; scroll-behavior: smooth;">
-                <div style="align-self: flex-start; background: #ffffff; padding: 14px 18px; border-radius: 15px 15px 15px 0; border: 1px solid #e2e8f0; max-width: 85%; box-shadow: 0 4px 6px rgba(0,0,0,0.02);">
-                    <p style="margin: 0; font-size: 0.95rem; color: #1e293b; line-height: 1.6; font-family: 'Cairo', sans-serif;">أهلاً بك يا بطل! 🌟 أنا المعلم الذكي الخاص بك.<br>هل يوجد جزء غير مفهوم في الدرس أو تود أن أشرح لك نقطة معينة بأسلوب مبسط ومختلف؟ أنا هنا من أجلك! 😊</p>
-                </div>
-            </div>
-            
-            <div style="padding: 12px 15px; background: white; border-top: 1px solid #e2e8f0; display: flex; gap: 10px; align-items: center;">
-                <input type="text" id="tutor-input" placeholder="اكتب سؤالك هنا..." style="flex: 1; padding: 12px 18px; border: 1px solid #cbd5e1; border-radius: 25px; font-size: 0.95rem; outline: none; transition: border 0.3s; font-family: 'Cairo', sans-serif;">
-                <button id="tutor-send-btn" style="background: linear-gradient(135deg, #0ea5e9, #3b82f6); color: white; border: none; width: 45px; height: 45px; border-radius: 50%; cursor: pointer; display: flex; justify-content: center; align-items: center; font-size: 1.1rem; box-shadow: 0 4px 10px rgba(14, 165, 233, 0.3); transition: transform 0.2s;"><i class="fas fa-paper-plane"></i></button>
-            </div>
-        </div>
-
-        <button id="tutor-fab-btn" style="width: 65px; height: 65px; border-radius: 50%; background: linear-gradient(135deg, #8b5cf6, #3b82f6); color: white; border: 3px solid #ffffff; font-size: 2rem; box-shadow: 0 10px 25px rgba(139, 92, 246, 0.4); cursor: pointer; animation: robotFloat 3s infinite ease-in-out; display: flex; align-items: center; justify-content: center; transition: transform 0.2s;">
-            <i class="fas fa-robot"></i>
-        </button>
-    </div>
+    <button id="tutor-fab-btn" style="width: 65px; height: 65px; border-radius: 50%; background: linear-gradient(135deg, #8b5cf6, #3b82f6); color: white; border: 3px solid #ffffff; font-size: 2rem; box-shadow: 0 10px 25px rgba(139, 92, 246, 0.4); cursor: pointer; position: fixed; bottom: 25px; left: 20px; z-index: 999999; animation: robotFloat 3s infinite ease-in-out; display: flex; align-items: center; justify-content: center; transition: transform 0.2s;">
+        <i class="fas fa-robot"></i>
+    </button>
 
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
-    <script src="java.js?v=148"></script>
+    <script src="java.js?v=128"></script>
 
     <script>
       if ('serviceWorker' in navigator) {
