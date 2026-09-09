@@ -1,27 +1,27 @@
 // @ts-nocheck
 // ============================================================================
 // ملف الجافاسكريبت الرئيسي (java.js) - منصة الذكاء الاصطناعي
-// النسخة الأصلية (100% كاملة) + التناسق UI + حماية الجلسة + المعلم 3D المدمج TTS + الدفع
+// النسخة الأصلية (100% كاملة) + ضبط التناسق UI + حماية الجلسة المطلقة + المعلم 3D المدمج + التصحيح الذكي
 // ============================================================================
 
 // --- زراعة كود لتنسيق وتحجيم العناصر برمجياً (Premium Compact UI) ---
 const premiumCompactStyle = document.createElement('style');
 premiumCompactStyle.innerHTML = `
-    /* Premium Compact UI Normalizer - تصميم منسق واحترافي غير ضخم */
+    /* Premium Compact UI Normalizer */
     body { padding: 10px !important; }
-    .container { max-width: 720px !important; padding: 25px !important; border-radius: 12px !important; }
-    .action-btn, .download-pdf-btn, .subscribe-btn { padding: 10px !important; font-size: 0.95rem !important; border-radius: 8px !important; }
+    .container { max-width: 720px !important; padding: 22px !important; border-radius: 16px !important; }
+    .action-btn, .download-pdf-btn, .subscribe-btn { padding: 12px !important; font-size: 0.95rem !important; border-radius: 8px !important; }
     .form-group label { font-size: 0.9rem !important; margin-bottom: 6px !important; }
-    select, input[type="text"], input[type="password"], input[type="tel"] { padding: 10px 12px !important; font-size: 0.9rem !important; border-radius: 6px !important; }
-    .logo-text-box h1 { font-size: 1.4rem !important; }
-    .logo-icon-box { width: 40px !important; height: 40px !important; font-size: 1.2rem !important; }
-    .interactive-q-card { padding: 15px !important; border-radius: 8px !important; margin-bottom: 15px !important; }
-    .interactive-q-title { font-size: 1rem !important; margin-bottom: 10px !important; }
-    .option-label { padding: 8px 10px !important; font-size: 0.85rem !important; gap: 8px !important; }
+    select, input[type="text"], input[type="password"], input[type="tel"] { padding: 10px 14px !important; font-size: 0.9rem !important; border-radius: 8px !important; }
+    .logo-text-box h1 { font-size: 1.5rem !important; }
+    .logo-icon-box { width: 45px !important; height: 45px !important; font-size: 1.4rem !important; }
+    .interactive-q-card { padding: 15px !important; border-radius: 10px !important; margin-bottom: 15px !important; }
+    .interactive-q-title { font-size: 1.05rem !important; margin-bottom: 10px !important; }
+    .option-label { padding: 10px 12px !important; font-size: 0.9rem !important; gap: 8px !important; }
     textarea.student-text-answer { font-size: 0.9rem !important; padding: 10px !important; }
     .pdf-question-block { padding: 12px !important; font-size: 0.95rem !important; margin-bottom: 15px !important; }
     #lesson-upload-box { padding: 15px !important; }
-    #lesson-upload-box i { font-size: 1.8rem !important; margin-bottom: 10px !important; }
+    #lesson-upload-box i { font-size: 2rem !important; margin-bottom: 10px !important; }
 `;
 document.head.appendChild(premiumCompactStyle);
 // ----------------------------------------------------------------------------
@@ -146,7 +146,6 @@ const MULTI_DEVICE_PHONES = ["01026336159", "01010482432", "01011974537", "01021
 let currentTeacherId = null;
 let isVIPLoggedIn = false; 
 let currentUserRole = "User";
-let userAuthToken = "";
 let selectedLessonFiles = []; 
 let filterSelectedSubject = "";
 let filterSelectedStage = "";
@@ -163,21 +162,6 @@ let interactiveExamTimeLeft = 0;
 let interactiveExamTotalTime = 0;
 let examStartTime = 0;
 
-// حساب أسعار الاشتراكات
-function getSubscriptionDetails(role, currentMonthsCount) {
-    let base = (role === 'Teacher' || role === 'Admin') ? 200 : 100;
-    let max = (role === 'Teacher' || role === 'Admin') ? 600 : 400;
-    let calc = base + (currentMonthsCount * 50);
-    let isDiscountApplied = false;
-    
-    if (calc >= max) {
-        calc = max;
-        calc = calc - (calc * 0.25); // خصم 25% بعد الوصول للحد الأقصى
-        isDiscountApplied = true;
-    }
-    return { price: calc, discounted: isDiscountApplied, originalMax: max };
-}
-
 // ============================================================================
 // نظام النوافذ المنبثقة الاحترافية
 // ============================================================================
@@ -192,7 +176,7 @@ function showCustomAlert(message, type = 'error') {
 
     const overlay = document.createElement('div');
     overlay.id = 'custom-alert-overlay';
-    overlay.style.cssText = 'position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(15, 23, 42, 0.8); z-index:99999999; display:flex; flex-direction:column; align-items:center; justify-content:center; direction:rtl; font-family: "Cairo", sans-serif; backdrop-filter: blur(5px); padding:15px; overflow-y:auto;';
+    overlay.style.cssText = 'position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(15, 23, 42, 0.8); z-index:99999999; display:flex; flex-direction:column; align-items:center; justify-content:flex-start; direction:rtl; font-family: "Cairo", sans-serif; backdrop-filter: blur(5px); padding:15px; overflow-y:auto;';
     
     overlay.innerHTML = `
         <div style="background:#ffffff; width:100%; max-width:350px; border-radius:12px; box-shadow:0 25px 50px -12px rgba(0,0,0,0.5); text-align:center; padding:20px 15px; border-top: 4px solid ${titleColor}; animation: scaleInAlert 0.3s ease; margin: auto; max-height: 95vh; overflow-y: auto;">
@@ -215,7 +199,7 @@ function showCustomConfirm(message, callback) {
 
     const overlay = document.createElement('div');
     overlay.id = 'custom-confirm-overlay';
-    overlay.style.cssText = 'position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(15, 23, 42, 0.8); z-index:99999999; display:flex; flex-direction:column; align-items:center; justify-content:center; direction:rtl; font-family: "Cairo", sans-serif; backdrop-filter: blur(5px); padding:15px; overflow-y:auto;';
+    overlay.style.cssText = 'position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(15, 23, 42, 0.8); z-index:99999999; display:flex; flex-direction:column; align-items:center; justify-content:flex-start; direction:rtl; font-family: "Cairo", sans-serif; backdrop-filter: blur(5px); padding:15px; overflow-y:auto;';
     
     overlay.innerHTML = `
         <div style="background:#ffffff; width:100%; max-width:350px; border-radius:12px; box-shadow:0 25px 50px -12px rgba(0,0,0,0.5); text-align:center; padding:20px 15px; border-top: 4px solid #f59e0b; animation: scaleInAlert 0.3s ease; margin: auto; max-height: 95vh; overflow-y: auto;">
@@ -240,41 +224,20 @@ function showCustomConfirm(message, callback) {
     };
 }
 
-function showSubjectPaymentModal(subjectKey) {
-    if (document.getElementById('subject-payment-overlay')) document.getElementById('subject-payment-overlay').remove();
-    const overlay = document.createElement('div');
-    overlay.id = 'subject-payment-overlay';
-    overlay.style.cssText = 'position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(15, 23, 42, 0.9); z-index:99999999; display:flex; flex-direction:column; align-items:center; justify-content:center; direction:rtl; font-family: "Cairo", sans-serif; backdrop-filter: blur(8px); padding:20px;';
-    
-    overlay.innerHTML = `
-        <div style="background:#ffffff; width:100%; max-width:350px; border-radius:16px; box-shadow:0 25px 50px -12px rgba(0,0,0,0.5); text-align:center; padding:25px; border-top: 4px solid #f59e0b; animation: scaleInAlert 0.3s ease;">
-            <i class="fas fa-lock" style="color:#f59e0b; font-size: 2.5rem; margin-bottom: 10px;"></i>
-            <h3 style="margin: 0 0 10px 0; color:#0f172a; font-size:1.1rem;">انتهت التجربة المجانية</h3>
-            <p style="color:#475569; font-size:0.9rem; line-height:1.6; margin-bottom:15px;">لقد استنفذت التجربة المجانية لمادة (${subjectKey.split('_')[0]}). لفتح المادة بالكامل، يرجى سداد الرسوم: <strong style="color:#ef4444; font-size:1.1rem;">50 ج.م</strong></p>
-            <div style="background:#f8fafc; border:1px solid #cbd5e1; border-radius:8px; padding:10px; margin-bottom:15px; font-size:0.8rem; text-align:right;">
-                الدفع متاح عبر إنستا باي (EduPlatform@Instapay) أو فودافون كاش (01026336159).
-            </div>
-            <button onclick="window.open('https://wa.me/201026336159?text=أريد الدفع لفتح مادة ${subjectKey}', '_blank')" style="width:100%; background:#10b981; color:white; border:none; padding:10px; border-radius:6px; font-weight:bold; cursor:pointer; margin-bottom:10px;">تأكيد الدفع عبر واتساب</button>
-            <button onclick="document.getElementById('subject-payment-overlay').remove()" style="width:100%; background:#f1f5f9; color:#475569; border:none; padding:10px; border-radius:6px; font-weight:bold; cursor:pointer;">إلغاء الرجوع</button>
-        </div>
-    `;
-    document.body.appendChild(overlay);
-}
-
 function stripParentheses(text) {
     if (!text) return "";
     return text.replace(/\s*\([^)]*\)/g, '').trim();
 }
 
 // ============================================================================
-// 1. نظام شاشة تسجيل الدخول الأمني وتفعيل إنستا باي
+// 1. نظام شاشة تسجيل الدخول الأمني
 // ============================================================================
 function createAuthScreen() {
     if (document.getElementById('auth-overlay')) return;
 
     const overlay = document.createElement('div');
     overlay.id = 'auth-overlay';
-    overlay.style.cssText = 'position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(15, 23, 42, 0.85); z-index:999999; display:none; flex-direction:column; align-items:center; justify-content:center; direction:rtl; overflow-y:auto; font-family: "Cairo", "Segoe UI", Tahoma, Geneva, Verdana, sans-serif; backdrop-filter: blur(8px); padding: 15px; box-sizing: border-box;';
+    overlay.style.cssText = 'position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(15, 23, 42, 0.85); z-index:999999; display:none; flex-direction:column; align-items:center; justify-content:flex-start; direction:rtl; overflow-y:auto; font-family: "Cairo", "Segoe UI", Tahoma, Geneva, Verdana, sans-serif; backdrop-filter: blur(8px); padding: 15px; box-sizing: border-box;';
     
     overlay.innerHTML = `
         <div style="width:100%; max-width:380px; background:#ffffff; border-radius:12px; box-shadow:0 25px 50px -12px rgba(0,0,0,0.5); border-top: 4px solid #0ea5e9; margin: auto; max-height: 95vh; overflow-y: auto;">
@@ -289,10 +252,6 @@ function createAuthScreen() {
                 
                 <input type="tel" id="auth-phone" autocomplete="off" placeholder="رقم الموبايل (مثال: 010xxxxxxxx)" style="width:100%; padding:12px; font-size:1rem; border:2px solid #e2e8f0; border-radius:8px; margin-bottom:10px; box-sizing:border-box; direction:rtl; text-align:center; font-weight:bold;">
                 <input type="password" id="auth-password" autocomplete="off" placeholder="الرقم السري للطالب (أنشئه إذا كانت أول مرة)" style="width:100%; padding:12px; font-size:1rem; border:2px solid #e2e8f0; border-radius:8px; margin-bottom:15px; box-sizing:border-box; direction:rtl; text-align:center; font-weight:bold;">
-                <select id="auth-role" style="width:100%; padding:10px; font-size:0.9rem; border:2px solid #e2e8f0; border-radius:8px; margin-bottom:15px; font-weight:bold;">
-                    <option value="User">تسجيل كطالب</option>
-                    <option value="Teacher">تسجيل كمعلم</option>
-                </select>
                 
                 <button id="auth-login-btn" style="width:100%; background:#0ea5e9; color:white; border:none; padding:12px; font-size:1rem; border-radius:8px; font-weight:bold; cursor:pointer; transition:0.3s; box-shadow:0 4px 12px rgba(14,165,233,0.3);"><i class="fas fa-sign-in-alt"></i> دخول المنصة</button>
                 <div style="border-bottom:1px solid #e2e8f0; margin:15px 0;"></div>
@@ -303,12 +262,8 @@ function createAuthScreen() {
                 <div style="width:45px; height:45px; background:#fef3c7; color:#b45309; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:1.2rem; margin-bottom:10px;"><i class="fas fa-crown"></i></div>
                 <h3 style="color:#1e293b; margin-top:0; margin-bottom:8px;">تفعيل عضوية VIP</h3>
                 <p style="color:#64748b; font-size:0.85rem; margin-bottom:15px;">الاشتراك المطلوب: <span id="auth-price-text" style="font-weight:bold; color:#1e293b; font-size:1.1rem;"></span> جنيه مصري</p>
-                <p id="discount-note" style="color:#10b981; font-size:0.8rem; font-weight:bold; display:none;">(شامل خصم 25% لبلوغ الحد الأقصى)</p>
-                
-                <div style="background:#f8fafc; border:1px solid #cbd5e1; border-radius:8px; padding:12px; margin-bottom:15px; font-size:0.85rem; line-height:1.6; color:#334155; text-align:right;">
-                    <strong>طرق الدفع المتاحة:</strong><br>
-                    1. إنستا باي (InstaPay): <span dir="ltr" style="color:#0ea5e9; font-weight:bold;">EduPlatform@Instapay</span><br>
-                    2. فودافون كاش: <span dir="ltr" style="color:#0ea5e9; font-weight:bold;">01026336159</span><br>
+                <div style="background:#f8fafc; border:1px solid #cbd5e1; border-radius:8px; padding:12px; margin-bottom:15px; font-size:0.85rem; line-height:1.6; color:#334155;">
+                    قم بالتحويل لفودافون كاش على الرقم <strong style="color:#0ea5e9; font-size:1rem;" dir="ltr">01026336159</strong><br>
                     وبعد إتمام التحويل، اضغط تأكيد وسنقوم بتوجيهك للواتس آب.
                 </div>
                 
@@ -544,7 +499,6 @@ function openAdminPasswordModal(callback) {
 async function handleUserLogin() {
     const phone = document.getElementById('auth-phone').value.trim();
     const password = document.getElementById('auth-password') ? document.getElementById('auth-password').value.trim() : "";
-    const roleSelect = document.getElementById('auth-role') ? document.getElementById('auth-role').value : "User";
 
     if (phone.length < 10 || password.length < 4) {
         showCustomAlert("برجاء إدخال رقم موبايل صحيح، ورقم سري لا يقل عن 4 خانات.", 'error');
@@ -560,23 +514,12 @@ async function handleUserLogin() {
     localStorage.setItem("device_fingerprint", deviceFingerprint);
 
     try {
-        // إنشاء توثيق مع Backend
-        const authRes = await fetch('/api/auth', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({phone: phone})
-        });
-        if(authRes.ok) {
-            const authData = await authRes.json();
-            userAuthToken = authData.token;
-        }
-
         const teacherRef = db.collection("teachers").doc(currentTeacherId);
         const doc = await teacherRef.get();
         let teacherData = {};
 
         let isAuthorizedAdmin = AUTHORIZED_ADMIN_PHONES.includes(phone);
-        let assignedRole = isAuthorizedAdmin ? "Admin" : roleSelect;
+        let assignedRole = isAuthorizedAdmin ? "Admin" : "User";
 
         if (doc.exists) {
             teacherData = doc.data();
@@ -722,12 +665,6 @@ async function finishLoginProcess(teacherRef, doc, teacherData, phone, password,
         let isExpired = await checkAndLockIfExpired(phone, teacherData);
         if (isExpired && !isAuthorizedAdmin) {
             showCustomAlert("انتهت مدة اشتراكك. يجب تجديد الاشتراك للمتابعة.", 'error');
-            
-            let monthsSubscribed = teacherData.monthsSubscribed || 0;
-            let subDetails = getSubscriptionDetails(teacherData.role, monthsSubscribed);
-            document.getElementById('auth-price-text').innerText = subDetails.price;
-            document.getElementById('discount-note').style.display = subDetails.discounted ? 'block' : 'none';
-
             document.getElementById('auth-user-card').style.display = 'none';
             document.getElementById('auth-payment-card').style.display = 'block';
             btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> دخول المنصة';
@@ -736,7 +673,7 @@ async function finishLoginProcess(teacherRef, doc, teacherData, phone, password,
 
     } else {
         teacherData = {
-            name: isAuthorizedAdmin ? ("Admin_" + phone) : (assignedRole + "_" + phone),
+            name: isAuthorizedAdmin ? ("Admin_" + phone) : ("Student_" + phone),
             phone: phone,
             studentPassword: isAuthorizedAdmin ? null : password, 
             registeredDeviceFingerprint: deviceFingerprint,
@@ -748,18 +685,6 @@ async function finishLoginProcess(teacherRef, doc, teacherData, phone, password,
             createdAt: new Date()
         };
         await teacherRef.set(teacherData);
-    }
-
-    if (teacherData.status === "Free" || teacherData.status === "Expired") {
-        let monthsSubscribed = teacherData.monthsSubscribed || 0;
-        let subDetails = getSubscriptionDetails(teacherData.role, monthsSubscribed);
-        document.getElementById('auth-price-text').innerText = subDetails.price;
-        document.getElementById('discount-note').style.display = subDetails.discounted ? 'block' : 'none';
-
-        document.getElementById('auth-user-card').style.display = 'none';
-        document.getElementById('auth-payment-card').style.display = 'block';
-        btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> دخول المنصة';
-        return;
     }
 
     await teacherRef.update({ lastKnownIP: currentIP, role: assignedRole });
@@ -782,20 +707,18 @@ async function handlePaymentRequest() {
 
     try {
         const teacherRef = db.collection("teachers").doc(currentTeacherId);
-        const doc = await teacherRef.get();
         let isAuthorizedAdmin = AUTHORIZED_ADMIN_PHONES.includes(currentTeacherId);
-        let currentMonths = (doc.exists && doc.data().monthsSubscribed) ? doc.data().monthsSubscribed : 0;
 
         await teacherRef.update({
             status: isAuthorizedAdmin ? "VIP_Active" : "Pending_Review",
             paymentRequestedAt: new Date(),
-            monthsSubscribed: currentMonths + 1
+            role: isAuthorizedAdmin ? "Admin" : "User"
         });
 
         showCustomAlert("تم إرسال طلب التفعيل بنجاح! سيتم توجيهك الآن للواتس آب لإرسال رسالة للإدارة.", 'success');
         
         let adminPhoneForWhatsapp = AUTHORIZED_ADMIN_PHONES[0]; 
-        let whatsappMsg = encodeURIComponent(`مرحباً.. لقد قمت بتحويل مبلغ الاشتراك للمنصة (سواء إنستا باي أو فودافون كاش).\nبرجاء تفعيل حسابي.\nرقم هاتفي المسجل هو: ${currentTeacherId}`);
+        let whatsappMsg = encodeURIComponent(`مرحباً.. لقد قمت بتحويل مبلغ الاشتراك للمنصة.\nبرجاء تفعيل حسابي.\nرقم هاتفي المسجل هو: ${currentTeacherId}`);
         setTimeout(() => {
             window.open(`https://wa.me/2${adminPhoneForWhatsapp}?text=${whatsappMsg}`, '_blank');
         }, 1500);
@@ -851,7 +774,6 @@ function logout() {
     isVIPLoggedIn = false;
     currentTeacherId = null;
     currentUserRole = "User";
-    userAuthToken = "";
     
     localStorage.removeItem('saved_user_phone');
     localStorage.removeItem('saved_user_role');
@@ -965,34 +887,7 @@ async function changeAdminPassword() {
 }
 
 function startTeacherRecordingAction() {
-    if (document.getElementById('teacher-record-modal')) return;
-    const overlay = document.createElement('div');
-    overlay.id = 'teacher-record-modal';
-    overlay.style.cssText = 'position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(15, 23, 42, 0.9); z-index:9999999; display:flex; justify-content:center; align-items:center; direction:rtl; font-family:"Cairo",sans-serif; padding:15px;';
-    
-    overlay.innerHTML = `
-        <div style="background:#fff; width:100%; max-width:400px; border-radius:12px; padding:20px; box-shadow:0 10px 25px rgba(0,0,0,0.5); text-align:center;">
-            <h3 style="margin-top:0;"><i class="fas fa-microphone-alt" style="color:#8b5cf6;"></i> تسجيل أسلوب المعلم</h3>
-            <p style="font-size:0.85rem; color:#64748b; margin-bottom:15px;">اكتب وصفاً لطريقة شرحك، المفردات التي تستخدمها، وكيف تحفز الطلاب ليقوم الذكاء الاصطناعي بمحاكاتها.</p>
-            <textarea id="teacher-style-text" style="width:100%; height:120px; padding:10px; border-radius:8px; border:1px solid #cbd5e1; font-size:0.9rem; resize:vertical;"></textarea>
-            <div style="display:flex; gap:10px; margin-top:15px;">
-                <button id="save-teacher-style" style="flex:1; background:#8b5cf6; color:white; border:none; padding:10px; border-radius:6px; font-weight:bold; cursor:pointer;">حفظ الأسلوب</button>
-                <button onclick="document.getElementById('teacher-record-modal').remove()" style="flex:1; background:#f1f5f9; color:#475569; border:none; padding:10px; border-radius:6px; font-weight:bold; cursor:pointer;">إلغاء</button>
-            </div>
-        </div>
-    `;
-    document.body.appendChild(overlay);
-    
-    document.getElementById('save-teacher-style').onclick = async () => {
-        const text = document.getElementById('teacher-style-text').value.trim();
-        if(!text) return;
-        try {
-            await db.collection("teacher_styles").doc(currentTeacherId).set({ styleText: text, createdAt: new Date() });
-            globalTeacherStyle = text;
-            showToast("تم حفظ أسلوبك بنجاح! سيتم تطبيقه في المحادثات.", "#8b5cf6");
-            overlay.remove();
-        } catch(e) { showCustomAlert("خطأ: " + e.message, "error"); }
-    };
+    showCustomAlert("أداة تسجيل أسلوب المعلم قيد التطوير حالياً، وسيتم تفعيلها قريباً جداً في التحديث القادم.", 'success');
 }
 
 function buildDynamicUserMenu(phone, role) {
@@ -1007,9 +902,7 @@ function buildDynamicUserMenu(phone, role) {
         <p style="color:#64748b; font-weight:bold; margin-bottom:15px;">رقم الحساب: <span dir="ltr">${phone}</span></p>
     `;
     
-    if (role === 'Teacher' || role === 'Admin') {
-        html += `<button id="btn-dyn-record" class="btn action-btn" style="background:#8b5cf6; margin-bottom:10px; width:100%;"><i class="fas fa-microphone-alt"></i> أداة تسجيل أسلوب المعلم</button>`;
-    }
+    html += `<button id="btn-dyn-record" class="btn action-btn" style="background:#8b5cf6; margin-bottom:10px; width:100%;"><i class="fas fa-microphone-alt"></i> أداة تسجيل أسلوب المعلم</button>`;
     
     if (role === 'Admin' || AUTHORIZED_ADMIN_PHONES.includes(phone)) {
         html += `<button id="btn-dyn-dash" class="btn action-btn" style="background:#0b194f; color:#ffffff; margin-bottom:10px; width:100%;"><i class="fas fa-chart-line"></i> لوحة التحكم والإدارة (Dashboard)</button>`;
@@ -1042,6 +935,7 @@ function buildDynamicUserMenu(phone, role) {
         }
     }
 }
+
 async function loadAndShowDashboard() {
     if (!AUTHORIZED_ADMIN_PHONES.includes(currentTeacherId) && currentUserRole !== 'Admin') {
         showCustomAlert("غير مصرح لك بالوصول إلى لوحة التحكم.", 'error');
@@ -1862,6 +1756,9 @@ window.toggleAdminAccess = function(phone, isCurrentlyAdmin) {
     });
 };
 
+// ============================================================================
+// 6. نظام المحاولات المجانية للزوار
+// ============================================================================
 function checkAttempts() {
     let attempts = parseInt(localStorage.getItem('user_attempts') || 0);
     if (attempts >= 3) {
@@ -1879,6 +1776,7 @@ function incrementAttempt() {
     let attempts = parseInt(localStorage.getItem('user_attempts') || 0) + 1;
     localStorage.setItem('user_attempts', attempts);
 }
+
 // ============================================================================
 // 7. تحميل الصفحة والأحداث
 // ============================================================================
@@ -2326,18 +2224,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            // فحص التجربة المجانية لمادة محددة، ثم المطالبة بالدفع لفتح المادة
-            let subjectKey = subject + "_" + yearText;
-            let trials = JSON.parse(localStorage.getItem('subject_trials') || '{}');
-            if (!trials[subjectKey]) {
-                trials[subjectKey] = 1;
-                localStorage.setItem('subject_trials', JSON.stringify(trials));
-                showToast("تنبيه: يتم الآن استخدام التجربة المجانية لهذه المادة لمرة واحدة فقط.", "#f59e0b");
-            } else {
-                showSubjectPaymentModal(subjectKey);
-                return;
-            }
-
             const btnText = document.getElementById('btn-text');
             processBtn.classList.add('processing');
             btnText.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري ضغط الصور ومعالجتها...';
@@ -2464,8 +2350,7 @@ ALL MCQs AND TRUE/FALSE MUST HAVE DETAILED REASONS. THE TONE MUST BE 100% IDENTI
                 const response = await fetch('/api/analyze', {
                     method: 'POST',
                     headers: { 
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${userAuthToken || 'bypass'}` 
+                        'Content-Type': 'application/json' 
                     },
                     body: JSON.stringify(serverPayload)
                 });
@@ -2845,7 +2730,7 @@ ALL MCQs AND TRUE/FALSE MUST HAVE DETAILED REASONS. THE TONE MUST BE 100% IDENTI
     }
 
     // ============================================================================
-    // نظام "المعلم التفاعلي" الأصلي والغامر مع مجسم الـ 3D والنطق الصوتي TTS
+    // نظام "المعلم التفاعلي" الأصلي والغامر مع مجسم الـ 3D
     // ============================================================================
     const tutorFabBtn = document.getElementById('tutor-fab-btn');
     const tutorImmersiveModal = document.getElementById('tutor-immersive-modal');
@@ -2869,26 +2754,7 @@ ALL MCQs AND TRUE/FALSE MUST HAVE DETAILED REASONS. THE TONE MUST BE 100% IDENTI
         closeImmersiveBtn.addEventListener('click', () => {
             tutorImmersiveModal.classList.remove('active');
             setTimeout(() => tutorImmersiveModal.classList.add('hidden-section'), 400);
-            if('speechSynthesis' in window) window.speechSynthesis.cancel();
         });
-    }
-
-    // دالة نطق الصوت الحقيقي
-    function speakText(text) {
-        if ('speechSynthesis' in window) {
-            window.speechSynthesis.cancel();
-            const utterance = new SpeechSynthesisUtterance(text);
-            utterance.lang = 'ar-SA';
-            utterance.rate = 1.0;
-            utterance.pitch = 1.2;
-            
-            utterance.onstart = () => isRobotTalking = true;
-            utterance.onend = () => isRobotTalking = false;
-            
-            window.speechSynthesis.speak(utterance);
-        } else {
-            startRobotTalking(text.length * 50);
-        }
     }
 
     function appendImmersiveMessage(text, sender) {
@@ -2935,10 +2801,7 @@ ALL MCQs AND TRUE/FALSE MUST HAVE DETAILED REASONS. THE TONE MUST BE 100% IDENTI
         try {
             const response = await fetch('/api/analyze', {
                 method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${userAuthToken || 'bypass'}`
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     action: 'chat',
                     message: text,
@@ -2954,8 +2817,8 @@ ALL MCQs AND TRUE/FALSE MUST HAVE DETAILED REASONS. THE TONE MUST BE 100% IDENTI
             let finalReply = data.answer || data.reply || data.message || "لا يوجد رد متاح.";
             appendImmersiveMessage(finalReply, 'bot');
             
-            // نطق الرد وتشغيل حركة الشفايف للمجسم المستقبلي
-            speakText(stripParentheses(finalReply));
+            // تشغيل حركة الشفايف للمجسم بعد الرد مباشرة
+            startRobotTalking(finalReply.length * 50);
             
         } catch (err) {
             if(document.getElementById(typingId)) document.getElementById(typingId).remove();
@@ -2971,7 +2834,7 @@ ALL MCQs AND TRUE/FALSE MUST HAVE DETAILED REASONS. THE TONE MUST BE 100% IDENTI
     }
 
     // ============================================================================
-    // دالة بناء وتفعيل المعلم ثلاثي الأبعاد المستقبلي والكروي المطور
+    // دالة بناء وتفعيل المعلم ثلاثي الأبعاد (بدون ملفات خارجية لضمان السرعة)
     // ============================================================================
     let robotHeadGroup = null;
     let robotJaw = null;
@@ -2986,74 +2849,73 @@ ALL MCQs AND TRUE/FALSE MUST HAVE DETAILED REASONS. THE TONE MUST BE 100% IDENTI
         if (container.innerHTML.includes('canvas')) return;
         container.innerHTML = ''; 
 
+        // إعداد المشهد والكاميرا
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 100);
-        camera.position.set(0, 0, 7);
+        camera.position.set(0, 0, 7); // زوم الكاميرا
 
         const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
         renderer.setSize(container.clientWidth, container.clientHeight);
-        renderer.setPixelRatio(window.devicePixelRatio);
+        renderer.setPixelRatio(window.devicePixelRatio); // جودة عالية
         container.appendChild(renderer.domElement);
 
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
+        // إضاءة المشهد
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
         scene.add(ambientLight);
-        const dirLight = new THREE.DirectionalLight(0xffffff, 1.0);
+        const dirLight = new THREE.DirectionalLight(0xffffff, 0.9);
         dirLight.position.set(2, 5, 5);
         scene.add(dirLight);
 
+        // الجروب الأساسي اللي بيجمع كل أجزاء الرأس
         robotHeadGroup = new THREE.Group();
 
-        // 1. رأس كروي مستقبلي (Sphere)
-        const headGeo = new THREE.SphereGeometry(1.6, 64, 64);
-        const headMat = new THREE.MeshStandardMaterial({ color: 0xf1f5f9, metalness: 0.3, roughness: 0.2 });
+        // 1. الرأس العلوي (الخوذة)
+        const headGeo = new THREE.BoxGeometry(2.4, 1.8, 2.2);
+        const headMat = new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.2, metalness: 0.5 });
         const upperHead = new THREE.Mesh(headGeo, headMat);
+        upperHead.position.set(0, 0.5, 0);
         robotHeadGroup.add(upperHead);
 
-        // 2. قناع زجاجي ناعم للعين (Visor)
-        const visorGeo = new THREE.CylinderGeometry(1.62, 1.62, 0.8, 64, 1, false, Math.PI / 3, Math.PI / 1.5);
-        const visorMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, metalness: 0.8, roughness: 0.1 });
+        // 2. الشاشة السوداء للعيون (Visor)
+        const visorGeo = new THREE.BoxGeometry(2.45, 0.7, 2.25);
+        const visorMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.1 });
         const visor = new THREE.Mesh(visorGeo, visorMat);
-        visor.rotation.y = Math.PI / 2;
-        visor.position.set(0, 0.3, 0);
+        visor.position.set(0, 0.6, 0);
         robotHeadGroup.add(visor);
 
-        // 3. عيون نيون متوهجة داخل الـ Visor
-        const eyeGeo = new THREE.CapsuleGeometry(0.12, 0.3, 4, 8);
-        const eyeMat = new THREE.MeshBasicMaterial({ color: 0x0ea5e9 });
-        const leftEye = new THREE.Mesh(eyeGeo, eyeMat); 
-        leftEye.position.set(-0.5, 0.3, 1.5); 
-        leftEye.rotation.z = Math.PI / 2; 
+        // 3. العيون المضيئة (متوهجة باللون السيان)
+        const eyeGeo = new THREE.CircleGeometry(0.18, 32);
+        const eyeMat = new THREE.MeshBasicMaterial({ color: 0x0ea5e9, side: THREE.DoubleSide });
+        
+        const leftEye = new THREE.Mesh(eyeGeo, eyeMat);
+        leftEye.position.set(-0.6, 0.6, 1.13);
         robotHeadGroup.add(leftEye);
-        const rightEye = new THREE.Mesh(eyeGeo, eyeMat); 
-        rightEye.position.set(0.5, 0.3, 1.5); 
-        rightEye.rotation.z = Math.PI / 2; 
+
+        const rightEye = new THREE.Mesh(eyeGeo, eyeMat);
+        rightEye.position.set(0.6, 0.6, 1.13);
         robotHeadGroup.add(rightEye);
 
-        // 4. هوائيات استشعار (Antennas)
-        const antGeo = new THREE.CylinderGeometry(0.05, 0.05, 0.5);
-        const antMat = new THREE.MeshStandardMaterial({ color: 0x94a3b8 });
-        const antLeft = new THREE.Mesh(antGeo, antMat); 
-        antLeft.position.set(-1.2, 1.4, 0); 
-        antLeft.rotation.z = Math.PI / 4; 
-        robotHeadGroup.add(antLeft);
-        const antRight = new THREE.Mesh(antGeo, antMat); 
-        antRight.position.set(1.2, 1.4, 0); 
-        antRight.rotation.z = -Math.PI / 4; 
-        robotHeadGroup.add(antRight);
-
-        // 5. الفك السفلي المتحرك
-        const jawGeo = new THREE.CylinderGeometry(1.5, 1.3, 0.6, 64, 1, false, Math.PI / 2, Math.PI);
+        // 4. الفك السفلي (المتحرك مع الكلام)
+        const jawGeo = new THREE.BoxGeometry(2.3, 0.7, 2.1);
         const jawMat = new THREE.MeshStandardMaterial({ color: 0xe2e8f0, roughness: 0.4 });
         robotJaw = new THREE.Mesh(jawGeo, jawMat);
-        robotJaw.rotation.y = Math.PI / 2;
-        robotJaw.position.set(0, -0.9, 0);
+        robotJaw.position.set(0, -0.8, 0);
         robotHeadGroup.add(robotJaw);
+
+        // 5. الفم من الداخل (يظهر عند فتح الفك)
+        const mouthGeo = new THREE.BoxGeometry(1.8, 0.9, 1.8);
+        const mouthMat = new THREE.MeshBasicMaterial({ color: 0x0284c7 }); // إضاءة زرقاء داخلية
+        const mouthCore = new THREE.Mesh(mouthGeo, mouthMat);
+        mouthCore.position.set(0, -0.4, 0);
+        robotHeadGroup.add(mouthCore);
 
         scene.add(robotHeadGroup);
 
+        // إخفاء رسالة التحميل لأن المجسم اترسم فوراً
         const placeholder = container.querySelector('.tutor-3d-placeholder');
         if (placeholder) placeholder.style.display = 'none';
 
+        // تتبع حركة الماوس لتدوير الرأس
         document.addEventListener('mousemove', (event) => {
             mouseX = (event.clientX / window.innerWidth) * 2 - 1;
             mouseY = -(event.clientY / window.innerHeight) * 2 + 1;
@@ -3066,17 +2928,19 @@ ALL MCQs AND TRUE/FALSE MUST HAVE DETAILED REASONS. THE TONE MUST BE 100% IDENTI
             const time = clock.getElapsedTime();
 
             if (robotHeadGroup) {
+                // دوران الرأس بنعومة تجاه الماوس
                 robotHeadGroup.rotation.y += (mouseX * 0.4 - robotHeadGroup.rotation.y) * 0.1;
                 robotHeadGroup.rotation.x += (-mouseY * 0.2 - robotHeadGroup.rotation.x) * 0.1;
 
+                // طفو المجسم في الهواء
                 robotHeadGroup.position.y = Math.sin(time * 2) * 0.1;
 
                 // حركة الشفايف (الأسنان/الفك ينزل ويطلع)
                 if (isRobotTalking && robotJaw) {
-                    const jawDrop = Math.abs(Math.sin(time * 20)) * 0.25; 
-                    robotJaw.position.y = -0.9 - jawDrop; 
+                    const jawDrop = Math.abs(Math.sin(time * 20)) * 0.25; // سرعة الكلام
+                    robotJaw.position.y = -0.8 - jawDrop; // يفتح الفم
                 } else if (robotJaw) {
-                    robotJaw.position.y = -0.9; 
+                    robotJaw.position.y = -0.8; // يقفل الفم لما يسكت
                 }
             }
             
@@ -3084,6 +2948,7 @@ ALL MCQs AND TRUE/FALSE MUST HAVE DETAILED REASONS. THE TONE MUST BE 100% IDENTI
         }
         animate();
 
+        // تجاوب الكاميرا مع تصغير أو تكبير الشاشة
         window.addEventListener('resize', () => {
             if (container.clientWidth > 0 && container.clientHeight > 0) {
                 camera.aspect = container.clientWidth / container.clientHeight;
@@ -3093,6 +2958,7 @@ ALL MCQs AND TRUE/FALSE MUST HAVE DETAILED REASONS. THE TONE MUST BE 100% IDENTI
         });
     }
 
+    // دالة لتشغيل حركة الكلام لمدة معينة (حسب طول النص)
     function startRobotTalking(durationMs) {
         isRobotTalking = true;
         setTimeout(() => {
