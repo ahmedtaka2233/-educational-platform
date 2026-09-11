@@ -34,7 +34,7 @@ def get_gemini_url():
     # تم تغيير الموديل لـ 1.5-flash لضمان استقرار بنسبة 99% وتفادي أخطاء الضغط 503
     return (
         "https://generativelanguage.googleapis.com/"
-        f"v1beta/models/gemini-1.5-flash:generateContent?key={key}"
+        f"v1beta/models/gemini-2.5-flash:generateContent?key={key}"
     )
 
 def verify_token(req):
