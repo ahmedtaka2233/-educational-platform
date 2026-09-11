@@ -31,7 +31,6 @@ static_db = load_static_db()
 def get_gemini_url():
     # جلب مفتاح الـ API من متغيرات البيئة في Vercel
     key = os.environ.get("GEMINI_API_KEY", "")
-    # تم تغيير الموديل لـ 1.5-flash لضمان استقرار بنسبة 99% وتفادي أخطاء الضغط 503
     return (
         "https://generativelanguage.googleapis.com/"
         f"v1beta/models/gemini-2.5-flash:generateContent?key={key}"
@@ -48,18 +47,20 @@ def verify_token(req):
     except Exception:
         return False, "invalid_token"
 
-# دالة ذكية للاتصال بجوجل مع آلية إعادة المحاولة عند الضغط (Exponential Backoff)
 def call_gemini_with_retry(payload, max_retries=3):
     url = get_gemini_url()
+    
+    if not os.environ.get("GEMINI_API_KEY"):
+         return {"error": {"message": "عذراً، مفتاح GEMINI_API_KEY غير موجود في إعدادات Vercel. يرجى إضافته وعمل Redeploy."}}
+
     for attempt in range(max_retries):
         try:
             response = requests.post(url, headers={'Content-Type': 'application/json'}, json=payload)
             response_data = response.json()
             
-            # إذا كان الخطأ 503 (High Demand)، ننتظر ونحاول تاني بدل ما نضرب إيرور للطالب
             if response.status_code == 503 or (isinstance(response_data, dict) and response_data.get('error', {}).get('code') == 503):
                 if attempt < max_retries - 1:
-                    time.sleep(2 * (attempt + 1)) # الانتظار ثانيتين، ثم 4 ثواني
+                    time.sleep(2 * (attempt + 1))
                     continue
             
             return response_data
@@ -95,7 +96,6 @@ def analyze():
     if request.method == 'OPTIONS':
         return jsonify({}), 200
 
-    # حماية المسار مع السماح للفرونت إند بتاعنا بالعبور عبر X-Bypass-Trial
     is_valid, token_data = verify_token(request)
     if not is_valid and request.headers.get('X-Bypass-Trial') != 'true':
         return jsonify({"error": "غير مصرح لك بالوصول. يرجى تسجيل الدخول أو تأكيد الدفع."}), 401
@@ -104,9 +104,6 @@ def analyze():
         data = request.get_json()
         action = data.get('action')
         
-        # --------------------------------------------------------
-        # 1. نظام المعلم التفاعلي (المحادثة الغامرة)
-        # --------------------------------------------------------
         if action == 'chat':
             message = data.get('message', '')
             context = data.get('context', '')
@@ -121,14 +118,12 @@ def analyze():
             response_data = call_gemini_with_retry(payload)
             
             if 'candidates' not in response_data:
-                 return jsonify({"error": f"خطأ من جوجل: {str(response_data)}"}), 500
+                 error_msg = response_data.get('error', {}).get('message', str(response_data))
+                 return jsonify({"error": f"خطأ من جوجل: {error_msg}"}), 500
                  
             ai_reply = response_data['candidates'][0]['content']['parts'][0]['text']
             return jsonify({"reply": ai_reply}), 200
 
-        # --------------------------------------------------------
-        # 2. نظام التصحيح المقالي بالذكاء الاصطناعي (Semantic Grading)
-        # --------------------------------------------------------
         if action == 'semantic_grade':
             question = data.get('question', '')
             model_answer = data.get('model_answer', '')
@@ -152,16 +147,14 @@ def analyze():
             response_data = call_gemini_with_retry(payload)
             
             if 'candidates' not in response_data:
-                 return jsonify({"error": "فشل التصحيح"}), 500
+                 error_msg = response_data.get('error', {}).get('message', str(response_data))
+                 return jsonify({"error": f"فشل التصحيح: {error_msg}"}), 500
                  
             ai_reply = response_data['candidates'][0]['content']['parts'][0]['text']
             clean_json = ai_reply.replace("```json", "").replace("```", "").strip()
             
             return jsonify({"reply": clean_json}), 200
 
-        # --------------------------------------------------------
-        # 3. نظام تحليل الدرس واستخراج بنك الأسئلة والمذكرات
-        # --------------------------------------------------------
         if action == 'analyze':
             images_base64 = data.get('images_base64', [])
             if not images_base64 and data.get('image_base64'):
@@ -172,7 +165,6 @@ def analyze():
             mime_type = data.get('mime_type', 'image/jpeg')
             prompt_command = data.get('strict_prompt_command', '')
 
-            # جلب الأسئلة من بنك الأسئلة الثابت
             extracted_qa = []
             if subject_title in static_db and grade_year in static_db[subject_title]:
                 extracted_qa = static_db[subject_title][grade_year].get('qa_data', [])
@@ -211,7 +203,8 @@ def analyze():
             response_data = call_gemini_with_retry(payload)
             
             if 'candidates' not in response_data:
-                 return jsonify({"error": f"خطأ من جوجل: {str(response_data)}"}), 500
+                 error_msg = response_data.get('error', {}).get('message', str(response_data))
+                 return jsonify({"error": f"خطأ من جوجل: {error_msg}"}), 500
                  
             ai_response_text = response_data['candidates'][0]['content']['parts'][0]['text']
             clean_json = ai_response_text.replace("```json", "").replace("```", "").strip()
