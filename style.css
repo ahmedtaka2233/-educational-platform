@@ -471,7 +471,6 @@ select:focus, input:focus {
     unicode-bidi: normal !important;
 }
 
-/* العلامة المائية في العرض العادي */
 #pdf-template::after {
     content: "Educational platform" !important;
     position: absolute;
@@ -485,6 +484,16 @@ select:focus, input:focus {
     pointer-events: none;
     z-index: 9999;
     white-space: nowrap;
+}
+
+/* تأثير النبض للميكروفون */
+@keyframes pulseMic {
+    0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+    70% { transform: scale(1.1); box-shadow: 0 0 0 15px rgba(239, 68, 68, 0); }
+    100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+}
+.pulse-anim {
+    animation: pulseMic 1.5s infinite;
 }
 
 /* التنسيق الخاص بالطباعة الرسمية (المحرك الرسمي المضمون 100%) */
@@ -512,7 +521,6 @@ select:focus, input:focus {
         page-break-inside: avoid !important;
         break-inside: avoid !important;
     }
-    /* إجبار تكرار العلامة المائية فوق الكلام على جميع صفحات الطباعة والـ PDF بلا استثناء */
     #pdf-template::after {
         content: "Educational platform" !important;
         position: fixed !important;
