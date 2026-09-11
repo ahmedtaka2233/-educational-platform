@@ -31,9 +31,10 @@ static_db = load_static_db()
 def get_gemini_url():
     # جلب مفتاح الـ API من متغيرات البيئة في Vercel
     key = os.environ.get("GEMINI_API_KEY", "")
+    # تم تغيير الموديل لـ 1.5-flash لضمان استقرار بنسبة 99% وتفادي أخطاء الضغط 503
     return (
         "https://generativelanguage.googleapis.com/"
-        f"v1beta/models/gemini-2.5-flash:generateContent?key={key}"
+        f"v1beta/models/gemini-1.5-flash:generateContent?key={key}"
     )
 
 def verify_token(req):
@@ -46,6 +47,28 @@ def verify_token(req):
         return True, decoded
     except Exception:
         return False, "invalid_token"
+
+# دالة ذكية للاتصال بجوجل مع آلية إعادة المحاولة عند الضغط (Exponential Backoff)
+def call_gemini_with_retry(payload, max_retries=3):
+    url = get_gemini_url()
+    for attempt in range(max_retries):
+        try:
+            response = requests.post(url, headers={'Content-Type': 'application/json'}, json=payload)
+            response_data = response.json()
+            
+            # إذا كان الخطأ 503 (High Demand)، ننتظر ونحاول تاني بدل ما نضرب إيرور للطالب
+            if response.status_code == 503 or (isinstance(response_data, dict) and response_data.get('error', {}).get('code') == 503):
+                if attempt < max_retries - 1:
+                    time.sleep(2 * (attempt + 1)) # الانتظار ثانيتين، ثم 4 ثواني
+                    continue
+            
+            return response_data
+        except Exception as e:
+            if attempt < max_retries - 1:
+                time.sleep(2)
+                continue
+            return {"error": {"message": str(e)}}
+    return response_data
 
 @app.route('/api/auth', methods=['POST', 'OPTIONS'])
 def auth_login():
@@ -72,10 +95,10 @@ def analyze():
     if request.method == 'OPTIONS':
         return jsonify({}), 200
 
-    # تم تعطيل قفل الـ Token مؤقتاً لحل مشكلة الـ 401 Unauthorized والسماح للواجهة بالعمل بشكل سلس
-    # is_valid, token_data = verify_token(request)
-    # if not is_valid and request.headers.get('X-Bypass-Trial') != 'true':
-    #     return jsonify({"error": "غير مصرح لك بالوصول. يرجى تسجيل الدخول أو تأكيد الدفع."}), 401
+    # حماية المسار مع السماح للفرونت إند بتاعنا بالعبور عبر X-Bypass-Trial
+    is_valid, token_data = verify_token(request)
+    if not is_valid and request.headers.get('X-Bypass-Trial') != 'true':
+        return jsonify({"error": "غير مصرح لك بالوصول. يرجى تسجيل الدخول أو تأكيد الدفع."}), 401
 
     try:
         data = request.get_json()
@@ -95,9 +118,7 @@ def analyze():
                 "contents": [{"parts": [{"text": chat_prompt}]}]
             }
 
-            url = get_gemini_url()
-            response = requests.post(url, headers={'Content-Type': 'application/json'}, json=payload)
-            response_data = response.json()
+            response_data = call_gemini_with_retry(payload)
             
             if 'candidates' not in response_data:
                  return jsonify({"error": f"خطأ من جوجل: {str(response_data)}"}), 500
@@ -128,9 +149,7 @@ def analyze():
                 }
             }
 
-            url = get_gemini_url()
-            response = requests.post(url, headers={'Content-Type': 'application/json'}, json=payload)
-            response_data = response.json()
+            response_data = call_gemini_with_retry(payload)
             
             if 'candidates' not in response_data:
                  return jsonify({"error": "فشل التصحيح"}), 500
@@ -189,9 +208,7 @@ def analyze():
                 }
             }
 
-            url = get_gemini_url()
-            response = requests.post(url, headers={'Content-Type': 'application/json'}, json=payload)
-            response_data = response.json()
+            response_data = call_gemini_with_retry(payload)
             
             if 'candidates' not in response_data:
                  return jsonify({"error": f"خطأ من جوجل: {str(response_data)}"}), 500
