@@ -1,7 +1,7 @@
 // @ts-nocheck
 // ============================================================================
 // ملف الجافاسكريبت الرئيسي (java.js) - منصة الذكاء الاصطناعي (الجزء الأول)
-// النسخة الأصلية المكتملة + حلول Autofill + تجهيز الصوت والـ PDF
+// النسخة الأصلية المكتملة + حلول Autofill
 // ============================================================================
 
 const premiumCompactStyle = document.createElement('style');
@@ -649,12 +649,12 @@ function loginSuccess(phone, role) {
     resetSessionTimer();
     
     // =========================================================
-    // كود حارس خانة البحث: بيمسح رقم التليفون أو الإيميل فوراً لو المتصفح حطه
+    // كود حارس خانة البحث القوي: يمنع الرقم من الظهور فيها تماماً
     // =========================================================
     let searchBoxElem = document.getElementById('stage-search');
     if (searchBoxElem) {
         searchBoxElem.value = '';
-        searchBoxElem.setAttribute('name', 'search-term-' + Date.now()); // تغيير الاسم برمجياً لخدع المتصفح
+        searchBoxElem.setAttribute('name', 'search-term-' + Date.now()); 
         searchBoxElem.setAttribute('autocomplete', 'new-password'); 
         
         let clearAttempts = 0;
@@ -871,846 +871,6 @@ function buildDynamicUserMenu(phone, role) {
             changePassBtn.addEventListener('click', changeAdminPassword);
         }
     }
-}
-// ==================== نهاية الجزء الأول ====================
-// ==================== بداية الجزء الثاني والأخير ====================
-
-async function loadAndShowDashboard() {
-    if (!AUTHORIZED_ADMIN_PHONES.includes(currentTeacherId) && currentUserRole !== 'Admin') {
-        showCustomAlert("غير مصرح لك بالوصول إلى لوحة التحكم.", 'error');
-        return;
-    }
-
-    let container = document.getElementById("custom-admin-dashboard-container");
-    if (container) container.remove();
-
-    const isMobile = window.innerWidth <= 768;
-
-    container = document.createElement('div');
-    container.id = "custom-admin-dashboard-container";
-    container.style.cssText = `
-        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-        background: #f8fafc; z-index: 9999999; display: flex;
-        direction: rtl; font-family: "Cairo", "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-    `;
-
-    container.innerHTML = `
-        <div id="dash-main-wrapper" style="width: 100%; height: 100%; display: flex; background: #f8fafc; position: relative;">
-            
-            <div id="dash-sidebar-panel" style="${isMobile ? 'position: fixed; top: 0; right: 0; width: 260px; height: 100%; z-index: 100000; transition: right 0.3s ease; box-shadow: -5px 0 25px rgba(0,0,0,0.5);' : 'width: 260px; background: linear-gradient(180deg, #0b194f 0%, #060e2b 100%); color: #ffffff; display: flex; flex-direction: column; flex-shrink: 0; box-shadow: -4px 0 15px rgba(0,0,0,0.2); position: static;'}">
-                
-                <div style="padding: 22px 18px; border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; align-items: center; gap: 12px;">
-                    <img src="1234.jpg" alt="Logo" style="width: 50px; height: 50px; border-radius: 12px; object-fit: cover; box-shadow: 0 4px 10px rgba(0,0,0,0.3);">
-                    <div>
-                        <h3 style="margin: 0; font-size: 1.1rem; font-weight: bold;">لوحة تحكم الإدارة</h3>
-                        <span style="font-size: 0.75rem; color: #94a3b8;">إدارة المنصة والاشتراكات</span>
-                    </div>
-                </div>
-
-                <div style="padding: 15px 10px; overflow-y: auto; flex: 1;">
-                    <div style="font-size: 0.75rem; color: #64748b; padding: 5px 15px; font-weight: bold;">القائمة الرئيسية</div>
-                    <a href="javascript:void(0)" onclick="switchDashTab('users')" id="nav-users" class="dash-nav-item active" style="display: flex; align-items: center; gap: 12px; padding: 12px 15px; color: #ffffff; text-decoration: none; border-radius: 8px; background: rgba(14, 165, 233, 0.25); border-right: 4px solid #0ea5e9; margin-bottom: 5px; font-weight: bold;"><i class="fas fa-users"></i> إدارة الحسابات والتفعيل</a>
-                    
-                    <div style="font-size: 0.75rem; color: #64748b; padding: 15px 15px 5px; font-weight: bold;">المالية والطلبات</div>
-                    <a href="javascript:void(0)" onclick="switchDashTab('orders')" id="nav-orders" class="dash-nav-item" style="display: flex; align-items: center; gap: 12px; padding: 12px 15px; color: #cbd5e1; text-decoration: none; border-radius: 8px; margin-bottom: 5px;"><i class="fas fa-shopping-cart"></i> الطلبات وإيصالات الدفع</a>
-                    <a href="javascript:void(0)" onclick="switchDashTab('reports')" id="nav-reports" class="dash-nav-item" style="display: flex; align-items: center; gap: 12px; padding: 12px 15px; color: #cbd5e1; text-decoration: none; border-radius: 8px; margin-bottom: 5px;"><i class="fas fa-wallet"></i> التقارير المالية</a>
-
-                    <div style="font-size: 0.75rem; color: #64748b; padding: 15px 15px 5px; font-weight: bold;">التحليلات الأكاديمية</div>
-                    <a href="javascript:void(0)" onclick="switchDashTab('analytics')" id="nav-analytics" class="dash-nav-item" style="display: flex; align-items: center; gap: 12px; padding: 12px 15px; color: #cbd5e1; text-decoration: none; border-radius: 8px; margin-bottom: 5px;"><i class="fas fa-chart-pie"></i> أداء الطلاب (Charts)</a>
-                </div>
-
-                <div style="padding: 15px; border-top: 1px solid rgba(255,255,255,0.1);">
-                    <button id="dash-close-full-btn" style="width: 100%; background: #ef4444; color: white; border: none; padding: 12px; border-radius: 8px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;"><i class="fas fa-times"></i> إغلاق لوحة التحكم</button>
-                </div>
-            </div>
-
-            <div style="flex: 1; display: flex; flex-direction: column; overflow-y: auto; background: #f8fafc; width: 100%;">
-                <div style="background: #ffffff; padding: 16px 20px; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
-                    <div style="display: flex; align-items: center; gap: 12px;">
-                        <button id="dash-sidebar-toggle-btn" style="${isMobile ? 'display: inline-flex;' : 'display: none;'} align-items: center; gap: 6px; background: #0b194f; color: white; border: none; padding: 10px 14px; border-radius: 8px; font-weight: bold; cursor: pointer;"><i class="fas fa-bars"></i> القائمة</button>
-                        <div>
-                            <h2 id="dash-header-title" style="margin: 0; color: #0f172a; font-size: 1.3rem; font-weight: bold;">إدارة الحسابات وطلبات تفعيل VIP</h2>
-                            <span id="dash-header-subtitle" style="color: #64748b; font-size: 0.8rem;">مراجعة طلبات التفعيل، أمان الأجهزة، وإضافة أرقام مجانية</span>
-                        </div>
-                    </div>
-                    <div style="display: flex; align-items: center; gap: 10px;">
-                        <button id="dash-refresh-btn" style="background: #e0f2fe; color: #0369a1; border: none; padding: 10px 15px; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.2s;"><i class="fas fa-sync-alt"></i> تحديث</button>
-                        <button id="dash-close-header-btn" style="background: #fee2e2; color: #991b1b; border: none; padding: 10px 15px; border-radius: 8px; font-weight: bold; cursor: pointer;"><i class="fas fa-times"></i> إغلاق</button>
-                    </div>
-                </div>
-
-                <div id="dash-tab-content" style="padding: 20px; flex: 1;">
-                </div>
-            </div>
-        </div>
-    `;
-
-    document.body.appendChild(container);
-
-    container.addEventListener('click', (e) => {
-        if (window.innerWidth <= 768) {
-            const sidebar = document.getElementById('dash-sidebar-panel');
-            const toggleBtn = document.getElementById('dash-sidebar-toggle-btn');
-            if (sidebar && !sidebar.contains(e.target) && (!toggleBtn || !toggleBtn.contains(e.target))) {
-                sidebar.style.right = '-320px';
-            }
-        }
-    });
-
-    const toggleBtn = document.getElementById('dash-sidebar-toggle-btn');
-    if (toggleBtn) {
-        toggleBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            const sidebar = document.getElementById('dash-sidebar-panel');
-            if (sidebar) {
-                sidebar.style.right = (sidebar.style.right === '0px' || !sidebar.style.right) ? '-320px' : '0px';
-            }
-        });
-    }
-
-    document.getElementById('dash-close-full-btn').addEventListener('click', () => {
-        container.remove();
-    });
-    document.getElementById('dash-close-header-btn').addEventListener('click', () => {
-        container.remove();
-    });
-
-    document.getElementById('dash-refresh-btn').addEventListener('click', () => {
-        showToast("جاري تحديث البيانات...", "#0ea5e9");
-        renderActiveDashTab();
-    });
-
-    currentActiveDashTab = "users";
-    renderActiveDashTab();
-}
-
-window.switchDashTab = function(tabName) {
-    currentActiveDashTab = tabName;
-    document.querySelectorAll('.dash-nav-item').forEach(item => {
-        item.style.background = "transparent";
-        item.style.borderRight = "none";
-        item.style.color = "#cbd5e1";
-    });
-
-    const activeNav = document.getElementById('nav-' + tabName);
-    if (activeNav) {
-        activeNav.style.background = "rgba(14, 165, 233, 0.25)";
-        activeNav.style.borderRight = "4px solid #0ea5e9";
-        activeNav.style.color = "#ffffff";
-    }
-
-    if (window.innerWidth <= 768) {
-        const sidebar = document.getElementById('dash-sidebar-panel');
-        if (sidebar) sidebar.style.right = '-320px';
-    }
-
-    renderActiveDashTab();
-};
-
-async function renderActiveDashTab() {
-    const tabContent = document.getElementById('dash-tab-content');
-    if (!tabContent) return;
-
-    if (currentActiveDashTab === "users") {
-        document.getElementById('dash-header-title').innerText = "إدارة الحسابات وطلبات تفعيل VIP";
-        document.getElementById('dash-header-subtitle').innerText = "مراجعة طلبات التفعيل، أمان الأجهزة، وإضافة أرقام مجانية";
-        
-        tabContent.innerHTML = `
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 18px; margin-bottom: 25px;">
-                <div style="background: #ffffff; padding: 20px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); border-right: 4px solid #0ea5e9; display: flex; justify-content: space-between; align-items: center;">
-                    <div>
-                        <div style="font-size: 0.85rem; color: #64748b; font-weight: bold;">إجمالي الحسابات</div>
-                        <div id="stat-total-users" style="font-size: 1.8rem; font-weight: bold; color: #0f172a; margin-top: 5px;">0</div>
-                    </div>
-                    <div style="width: 45px; height: 45px; background: #eff6ff; color: #0ea5e9; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.3rem;"><i class="fas fa-users"></i></div>
-                </div>
-
-                <div style="background: #ffffff; padding: 20px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); border-right: 4px solid #f59e0b; display: flex; justify-content: space-between; align-items: center;">
-                    <div>
-                        <div style="font-size: 0.85rem; color: #64748b; font-weight: bold;">طلبات تفعيل معلقة</div>
-                        <div id="stat-pending-users" style="font-size: 1.8rem; font-weight: bold; color: #b45309; margin-top: 5px;">0</div>
-                    </div>
-                    <div style="width: 45px; height: 45px; background: #fef3c7; color: #f59e0b; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.3rem;"><i class="fas fa-clock"></i></div>
-                </div>
-
-                <div style="background: #ffffff; padding: 20px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); border-right: 4px solid #10b981; display: flex; justify-content: space-between; align-items: center;">
-                    <div>
-                        <div style="font-size: 0.85rem; color: #64748b; font-weight: bold;">حسابات VIP نشطة</div>
-                        <div id="stat-active-users" style="font-size: 1.8rem; font-weight: bold; color: #065f46; margin-top: 5px;">0</div>
-                    </div>
-                    <div style="width: 45px; height: 45px; background: #d1fae5; color: #10b981; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.3rem;"><i class="fas fa-check-circle"></i></div>
-                </div>
-            </div>
-
-            <div style="background: #ffffff; padding: 20px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); margin-bottom: 25px; border: 2px solid #0ea5e9;">
-                <h4 style="margin: 0 0 12px 0; color: #0f172a; font-size: 1.1rem;"><i class="fas fa-user-plus" style="color: #0ea5e9;"></i> إضافة وتفعيل رقم VIP يدوياً (مجاناً):</h4>
-                <div style="display: flex; gap: 12px; flex-wrap: wrap; align-items: center;">
-                    <input type="tel" id="manual-add-phone" placeholder="أدخل رقم الموبايل (مثال: 010xxxxxxxx)" style="flex: 1; min-width: 220px; padding: 12px 15px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.95rem; direction: rtl; text-align: center; font-weight: bold;">
-                    <input type="text" id="manual-add-duration" value="0 يوم" placeholder="المدة (مثال: 365 يوم، ما لا نهاية)..." style="width: 200px; padding: 12px 15px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.95rem; text-align: center;">
-                    <button id="manual-add-btn" style="background: #0ea5e9; color: white; border: none; padding: 12px 24px; border-radius: 8px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 8px;"><i class="fas fa-plus-circle"></i> إضافة وتفعيل VIP</button>
-                </div>
-            </div>
-
-            <div style="background: #ffffff; padding: 18px 20px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); margin-bottom: 20px; display: flex; gap: 15px; flex-wrap: wrap; align-items: center;">
-                <div style="flex: 1; min-width: 250px; position: relative;">
-                    <input type="text" id="dash-search-input" placeholder="بحث برقم الموبايل أو اسم الحساب..." style="width: 100%; padding: 12px 15px 12px 40px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.95rem;">
-                    <i class="fas fa-search" style="position: absolute; left: 15px; top: 50%; transform: translateY(-50%); color: #94a3b8;"></i>
-                </div>
-                <select id="dash-filter-status" style="padding: 12px 18px; border: 1px solid #cbd5e1; border-radius: 8px; background: #ffffff; min-width: 180px; font-weight: bold;">
-                    <option value="ALL">كل حالات الحسابات</option>
-                    <option value="Pending_Review">معلق (بانتظار التفعيل)</option>
-                    <option value="VIP_Active">نشط (VIP Active)</option>
-                    <option value="Expired">منتهي الصلاحية (Expired)</option>
-                    <option value="Free">مجاني / غير نشط</option>
-                </select>
-            </div>
-
-            <div style="background: #ffffff; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); overflow-x: auto;">
-                <table style="width: 100%; border-collapse: collapse; text-align: right; min-width: 850px;">
-                    <thead>
-                        <tr style="background: #f1f5f9; color: #334155; border-bottom: 2px solid #e2e8f0;">
-                            <th style="padding: 15px 18px;">#</th>
-                            <th style="padding: 15px 18px;">رقم الموبايل</th>
-                            <th style="padding: 15px 18px;">الحالة الحالية</th>
-                            <th style="padding: 15px 18px;">مدة التفعيل (كتابة يدوية)</th>
-                            <th style="padding: 15px 18px;">أمان الجهاز</th>
-                            <th style="padding: 15px 18px;">إجراءات الإدارة</th>
-                        </tr>
-                    </thead>
-                    <tbody id="dash-table-body">
-                        <tr>
-                            <td colspan="6" style="padding: 40px; text-align: center; color: #64748b;">
-                                <i class="fas fa-spinner fa-spin fa-2x"></i><br>جاري جلب قائمة الحسابات...
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        `;
-
-        document.getElementById('dash-search-input').addEventListener('input', () => {
-            loadDashboardTableData();
-        });
-        document.getElementById('dash-filter-status').addEventListener('change', () => {
-            loadDashboardTableData();
-        });
-
-        document.getElementById('manual-add-btn').addEventListener('click', async () => {
-            let phoneVal = document.getElementById('manual-add-phone').value.trim();
-            let durationVal = document.getElementById('manual-add-duration').value.trim() || "0 يوم";
-            
-            if (phoneVal.length < 10) {
-                showCustomAlert("برجاء إدخال رقم موبايل صحيح أولاً.", 'error');
-                return;
-            }
-
-            let daysToAdd = 365;
-            let isLifetime = false;
-            if (durationVal.includes("ما لا نهاية") || durationVal.includes("دائم")) {
-                daysToAdd = 36500;
-                isLifetime = true;
-            } else if (durationVal.includes("365") || durationVal.includes("سنة") || durationVal.includes("عام")) {
-                daysToAdd = 365;
-            } else if (durationVal.includes("6") || durationVal.includes("ست")) {
-                daysToAdd = 180;
-            } else if (durationVal.includes("شهر") || durationVal.includes("30")) {
-                daysToAdd = 30;
-            } else if (durationVal.includes("0") || durationVal.includes("صفر")) {
-                daysToAdd = 0;
-            }
-
-            let endTimestamp = new Date(Date.now() + (daysToAdd * 24 * 60 * 60 * 1000));
-
-            try {
-                await db.collection("teachers").doc(phoneVal).set({
-                    name: "VIP_Free_" + phoneVal,
-                    phone: phoneVal,
-                    status: "VIP_Active",
-                    vipDurationText: durationVal,
-                    subscriptionEnd: endTimestamp,
-                    isLifetimeVIP: isLifetime,
-                    role: "User",
-                    subscriptionStart: new Date(),
-                    addedManuallyByAdmin: true,
-                    createdAt: new Date()
-                }, { merge: true });
-
-                showToast(`تم إضافة وتفعيل الرقم (${phoneVal}) في الـ VIP بنجاح!`);
-                document.getElementById('manual-add-phone').value = "";
-                document.getElementById('manual-add-duration').value = "0 يوم";
-                loadDashboardTableData();
-            } catch (e) {
-                showCustomAlert("حدث خطأ أثناء الإضافة: " + e.message, 'error');
-            }
-        });
-
-        loadDashboardTableData();
-    }
-    else if (currentActiveDashTab === "orders") {
-        document.getElementById('dash-header-title').innerText = "الطلبات وإيصالات الدفع (بانتظار التفعيل)";
-        document.getElementById('dash-header-subtitle').innerText = "جميع الأرقام التي حولت الفلوس ومنتظرة تفعيل العضوية";
-        
-        tabContent.innerHTML = `
-            <div style="background: #ffffff; padding: 20px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
-                <div>
-                    <h4 style="margin: 0; color: #0f172a; font-size: 1.1rem;"><i class="fas fa-file-invoice-dollar" style="color:#b45309;"></i> قائمة طلبات الدفع المعلقة (Pending Activation):</h4>
-                    <p style="margin: 5px 0 0 0; color: #64748b; font-size: 0.9rem;">يتم عرض الحسابات التي طلبت التفعيل (يرجى مطابقتها مع رسائل فودافون كاش)</p>
-                </div>
-                <button onclick="printOrdersReportPDF()" style="background: #10b981; color: white; border: none; padding: 12px 24px; border-radius: 8px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 8px;"><i class="fas fa-file-pdf"></i> تحميل تقرير الطلبات معلقة التفعيل (PDF)</button>
-            </div>
-
-            <div id="orders-report-print-area" style="background: #ffffff; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); overflow-x: auto; padding: 10px;">
-                <div style="text-align:center; padding: 15px; border-bottom: 2px solid #e2e8f0; margin-bottom: 10px;">
-                    <h3 style="margin: 0; color: #0f172a;">تقرير طلبات الدفع وإيصالات التحويل </h3>
-                    <span style="color: #64748b; font-size: 0.85rem;">تاريخ التقرير: ${new Date().toLocaleDateString('ar-EG')}</span>
-                </div>
-                <table style="width: 100%; border-collapse: collapse; text-align: right; min-width: 600px;">
-                    <thead>
-                        <tr style="background: #f1f5f9; color: #334155; border-bottom: 2px solid #e2e8f0;">
-                            <th style="padding: 14px 18px;">#</th>
-                            <th style="padding: 14px 18px;">رقم الموبايل</th>
-                            <th style="padding: 14px 18px;">إثبات الدفع</th>
-                            <th style="padding: 14px 18px;">تاريخ الطلب</th>
-                            <th style="padding: 14px 18px;">إجراء سريع</th>
-                        </tr>
-                    </thead>
-                    <tbody id="orders-table-body">
-                        <tr>
-                            <td colspan="5" style="padding: 40px; text-align: center; color: #64748b;">
-                                <i class="fas fa-spinner fa-spin fa-2x"></i><br>جاري جلب طلبات التفعيل المعلقة...
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        `;
-        loadOrdersTableData();
-    }
-    else if (currentActiveDashTab === "reports") {
-        document.getElementById('dash-header-title').innerText = "التقارير المالية الشاملة";
-        document.getElementById('dash-header-subtitle').innerText = "حساب إجمالي الدخل المالي وعدد المشتركين وطباعة التقرير كملف PDF";
-        
-        tabContent.innerHTML = `
-            <div style="background: #ffffff; padding: 20px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
-                <div>
-                    <h4 style="margin: 0; color: #0f172a; font-size: 1.1rem;"><i class="fas fa-coins" style="color:#059669;"></i> التقرير المالي لحسابات الـ VIP المدفوعة:</h4>
-                    <p style="margin: 5px 0 0 0; color: #64748b; font-size: 0.9rem;">إجمالي العائد المحسوب بناءً على اشتراكات المشتركين النشطة (مع استبعاد الإدارة والعائلة)</p>
-                </div>
-                <button onclick="printFinancialReportPDF()" style="background: #0ea5e9; color: white; border: none; padding: 12px 24px; border-radius: 8px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 8px;"><i class="fas fa-file-pdf"></i> تحميل التقرير المالي الشامل (PDF)</button>
-            </div>
-
-            <div id="financial-report-print-area" style="background: #ffffff; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); overflow-x: auto; padding: 20px;">
-                <div style="text-align:center; padding-bottom: 15px; border-bottom: 2px solid #e2e8f0; margin-bottom: 20px;">
-                    <h2 style="margin: 0; color: #0f172a;">التقرير المالي وإجمالي الدخل</h2>
-                    <span style="color: #64748b; font-size: 0.9rem;">تاريخ استخراج التقرير: ${new Date().toLocaleDateString('ar-EG')}</span>
-                </div>
-
-                <div style="display: flex; gap: 20px; margin-bottom: 25px; flex-wrap: wrap;">
-                    <div style="flex: 1; background: #ecfdf5; border: 1px solid #10b981; padding: 20px; border-radius: 10px; text-align: center;">
-                        <span style="color: #065f46; font-weight: bold; font-size: 0.95rem;">إجمالي العائد المالي المحسوب (جنيه)</span>
-                        <div id="report-total-revenue" style="font-size: 2.2rem; font-weight: bold; color: #047857; margin-top: 10px;">0 ج.م</div>
-                    </div>
-                    <div style="flex: 1; background: #eff6ff; border: 1px solid #0ea5e9; padding: 20px; border-radius: 10px; text-align: center;">
-                        <span style="color: #1e40af; font-weight: bold; font-size: 0.95rem;">عدد المشتركين الفعليين (VIP Active)</span>
-                        <div id="report-active-subscribers" style="font-size: 2.2rem; font-weight: bold; color: #1d4ed8; margin-top: 10px;">0</div>
-                    </div>
-                </div>
-
-                <h4 style="color: #0f172a; margin-bottom: 10px;">قائمة المشتركين النشطة التي دخلت في الحساب المالي:</h4>
-                <table style="width: 100%; border-collapse: collapse; text-align: right; min-width: 600px;">
-                    <thead>
-                        <tr style="background: #f1f5f9; color: #334155; border-bottom: 2px solid #e2e8f0;">
-                            <th style="padding: 12px 15px;">#</th>
-                            <th style="padding: 12px 15px;">رقم الموبايل</th>
-                            <th style="padding: 12px 15px;">المدة المشترك بها</th>
-                            <th style="padding: 12px 15px;">القيمة المحسوبة</th>
-                            <th style="padding: 12px 15px;">تاريخ التفعيل</th>
-                        </tr>
-                    </thead>
-                    <tbody id="reports-table-body">
-                        <tr>
-                            <td colspan="5" style="padding: 40px; text-align: center; color: #64748b;">
-                                <i class="fas fa-spinner fa-spin fa-2x"></i><br>جاري حساب الدخل المالي وتجهيز القائمة...
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        `;
-        loadFinancialReportData();
-    }
-    else if (currentActiveDashTab === "analytics") {
-        document.getElementById('dash-header-title').innerText = "التحليلات الأكاديمية العميقة";
-        document.getElementById('dash-header-subtitle').innerText = "مستويات الطلاب، نسب النجاح، والوقت المستغرق في الامتحانات التفاعلية";
-        
-        tabContent.innerHTML = `
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-bottom: 30px;">
-                <div style="background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); text-align:center;">
-                    <h4 style="color:#1e293b; margin-top:0;">متوسط درجات الطلاب (حسب المادة)</h4>
-                    <canvas id="scoresChart" height="250"></canvas>
-                </div>
-                <div style="background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); text-align:center;">
-                    <h4 style="color:#1e293b; margin-top:0;">معدل النجاح والرسوب العام</h4>
-                    <canvas id="completionChart" height="250"></canvas>
-                </div>
-            </div>
-            
-            <div style="background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.05);">
-                <h4 style="color:#1e293b; margin-top:0; border-bottom: 2px solid #e2e8f0; padding-bottom:10px;">سجل آخر امتحانات تفاعلية مسجلة</h4>
-                <table style="width: 100%; border-collapse: collapse; text-align: right; min-width: 600px;">
-                    <thead style="background:#f8fafc;">
-                        <tr>
-                            <th style="padding:12px; border-bottom: 2px solid #cbd5e1;">رقم الطالب</th>
-                            <th style="padding:12px; border-bottom: 2px solid #cbd5e1;">المادة الدراسية</th>
-                            <th style="padding:12px; border-bottom: 2px solid #cbd5e1;">النتيجة بالنسبة المئوية</th>
-                            <th style="padding:12px; border-bottom: 2px solid #cbd5e1;">الوقت المستغرق</th>
-                        </tr>
-                    </thead>
-                    <tbody id="analytics-table-body">
-                        <tr><td colspan="4" style="text-align:center; padding: 20px;"><i class="fas fa-spinner fa-spin"></i> جاري استدعاء التحليلات...</td></tr>
-                    </tbody>
-                </table>
-            </div>
-        `;
-        
-        loadDeepAnalyticsData();
-    }
-}
-
-async function loadDashboardTableData() {
-    const tableBody = document.getElementById('dash-table-body');
-    if (!tableBody) return;
-
-    const searchTerm = (document.getElementById('dash-search-input')?.value || "").trim().toLowerCase();
-    const filterStatus = document.getElementById('dash-filter-status')?.value || "ALL";
-
-    try {
-        const snapshot = await db.collection("teachers").get();
-        let rowsHtml = "";
-        let count = 0;
-        let totalUsers = 0;
-        let pendingUsers = 0;
-        let activeUsers = 0;
-
-        snapshot.forEach(doc => {
-            totalUsers++;
-            let data = doc.data();
-            let phone = doc.id;
-            let status = data.status || "Free";
-
-            if (status === "VIP_Active" && data.subscriptionEnd && !data.isLifetimeVIP) {
-                let endDate = data.subscriptionEnd.toDate ? data.subscriptionEnd.toDate().getTime() : new Date(data.subscriptionEnd).getTime();
-                if (Date.now() > endDate && !AUTHORIZED_ADMIN_PHONES.includes(phone) && !MULTI_DEVICE_PHONES.includes(phone)) {
-                    status = "Expired";
-                }
-            }
-
-            if (status === "Pending_Review") pendingUsers++;
-            if (status === "VIP_Active") activeUsers++;
-
-            if (searchTerm && !phone.includes(searchTerm) && !(data.name || "").toLowerCase().includes(searchTerm)) return;
-            if (filterStatus !== "ALL" && status !== filterStatus) return;
-
-            count++;
-            
-            let statusBadge = "";
-            if (AUTHORIZED_ADMIN_PHONES.includes(phone) || data.isLifetimeVIP || (data.vipDurationText && data.vipDurationText.includes("ما لا نهاية"))) {
-                statusBadge = `<span style="background: #ecfdf5; color: #047857; border: 1px solid #059669; padding: 6px 14px; border-radius: 20px; font-weight: bold; font-size: 0.85rem;"><i class="fas fa-crown"></i> نشط VIP - ما لا نهاية</span>`;
-            } else if (status === "VIP_Active") {
-                statusBadge = `<span style="background: #d1fae5; color: #065f46; padding: 6px 14px; border-radius: 20px; font-weight: bold; font-size: 0.85rem;">نشط VIP</span>`;
-            } else if (status === "Pending_Review") {
-                statusBadge = `<span style="background: #fef3c7; color: #b45309; padding: 6px 14px; border-radius: 20px; font-weight: bold; font-size: 0.85rem;"><i class="fas fa-clock"></i> معلق للمراجعة</span>`;
-            } else if (status === "Expired") {
-                statusBadge = `<span style="background: #fee2e2; color: #991b1b; padding: 6px 14px; border-radius: 20px; font-weight: bold; font-size: 0.85rem;"><i class="fas fa-exclamation-triangle"></i> منتهي (مغلق)</span>`;
-            } else {
-                statusBadge = `<span style="background: #f1f5f9; color: #475569; padding: 6px 14px; border-radius: 20px; font-weight: bold; font-size: 0.85rem;">مجاني</span>`;
-            }
-
-            let deviceBadge = data.registeredDeviceFingerprint 
-                ? `<span style="color: #059669; font-weight:bold; font-size:0.85rem;"><i class="fas fa-lock"></i> مرتبط بجهاز</span>`
-                : `<span style="color: #94a3b8; font-size:0.85rem;">غير مرتبط</span>`;
-
-            let currentDurationText = data.vipDurationText || "0 يوم";
-
-            let isAdminRole = data.role === 'Admin' || AUTHORIZED_ADMIN_PHONES.includes(phone);
-            let toggleAdminBtn = `<button onclick="toggleAdminAccess('${phone}', ${isAdminRole})" style="background: ${isAdminRole ? '#ef4444' : '#3b82f6'}; color: white; border: none; padding: 8px 10px; border-radius: 6px; cursor: pointer; font-size: 0.85rem; margin-left: 4px;" title="تفعيل/إلغاء لوحة التحكم"><i class="fas ${isAdminRole ? 'fa-user-times' : 'fa-user-shield'}"></i> ${isAdminRole ? 'إلغاء الإدارة' : 'ترقية لإدارة'}</button>`;
-
-            rowsHtml += `
-                <tr style="border-bottom: 1px solid #f1f5f9; transition: 0.2s;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='#ffffff'">
-                    <td style="padding: 16px 18px; color: #64748b;">${count}</td>
-                    <td style="padding: 16px 18px; font-family: monospace; font-size: 1.05rem; font-weight: bold; color: #0f172a;" dir="ltr">${phone}</td>
-                    <td style="padding: 16px 18px;">${statusBadge}</td>
-                    <td style="padding: 16px 18px;">
-                        <input type="text" id="duration_${phone}" value="${currentDurationText}" placeholder="مثال: 365 يوم، ما لا نهاية..." style="width: 170px; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.9rem;">
-                    </td>
-                    <td style="padding: 16px 18px;">${deviceBadge}</td>
-                    <td style="padding: 16px 18px; white-space: nowrap;">
-                        <button onclick="manualActivateVIP('${phone}')" style="background: #10b981; color: white; border: none; padding: 8px 14px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 0.85rem; margin-left: 4px;"><i class="fas fa-check"></i> تفعيل</button>
-                        <button onclick="resetUserDevice('${phone}')" style="background: #f59e0b; color: white; border: none; padding: 8px 10px; border-radius: 6px; cursor: pointer; font-size: 0.85rem; margin-left: 4px;" title="فك ارتباط الجهاز ليتمكن من الدخول بجهاز جديد"><i class="fas fa-mobile-alt"></i> فك الجهاز</button>
-                        <button onclick="deactivateUserVIP('${phone}')" style="background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; padding: 8px 10px; border-radius: 6px; cursor: pointer; font-size: 0.85rem; margin-left: 4px;">إلغاء</button>
-                        <button onclick="deleteUserAccount('${phone}')" style="background: #ef4444; color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 0.85rem; margin-left: 4px;" title="حذف الحساب نهائياً"><i class="fas fa-trash"></i></button>
-                        ${toggleAdminBtn}
-                    </td>
-                </tr>
-            `;
-        });
-
-        if (document.getElementById('stat-total-users')) document.getElementById('stat-total-users').innerText = totalUsers;
-        if (document.getElementById('stat-pending-users')) document.getElementById('stat-pending-users').innerText = pendingUsers;
-        if (document.getElementById('stat-active-users')) document.getElementById('stat-active-users').innerText = activeUsers;
-
-        if (count === 0) {
-            rowsHtml = `<tr><td colspan="6" style="padding: 30px; text-align: center; color: #64748b;">لا توجد حسابات مطابقة للفلاتر الحالية.</td></tr>`;
-        }
-
-        tableBody.innerHTML = rowsHtml;
-    } catch (e) {
-        tableBody.innerHTML = `<tr><td colspan="6" style="padding: 30px; text-align: center; color: red;">حدث خطأ أثناء جلب البيانات: ${e.message}</td></tr>`;
-    }
-}
-
-async function loadOrdersTableData() {
-    const tableBody = document.getElementById('orders-table-body');
-    if (!tableBody) return;
-
-    try {
-        const snapshot = await db.collection("teachers").where("status", "==", "Pending_Review").get();
-        let rowsHtml = "";
-        let count = 0;
-
-        snapshot.forEach(doc => {
-            count++;
-            let data = doc.data();
-            let phone = doc.id;
-            
-            let receiptHtml = `<span style="color: #b45309; font-weight: bold;"><i class="fas fa-mobile-alt"></i> راجع رسائل فودافون كاش</span>`;
-            
-            let uploadDate = data.paymentRequestedAt 
-                ? new Date(data.paymentRequestedAt.seconds * 1000 || data.paymentRequestedAt).toLocaleDateString('ar-EG')
-                : "---";
-
-            rowsHtml += `
-                <tr style="border-bottom: 1px solid #f1f5f9;">
-                    <td style="padding: 14px 18px;">${count}</td>
-                    <td style="padding: 14px 18px; font-weight: bold; font-family: monospace;" dir="ltr">${phone}</td>
-                    <td style="padding: 14px 18px;">${receiptHtml}</td>
-                    <td style="padding: 14px 18px; color:#64748b;">${uploadDate}</td>
-                    <td style="padding: 14px 18px;">
-                        <button onclick="manualActivateVIP('${phone}')" style="background: #10b981; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: bold;">تفعيل VIP الفوري</button>
-                    </td>
-                </tr>
-            `;
-        });
-
-        if (count === 0) {
-            rowsHtml = `<tr><td colspan="5" style="padding: 40px; text-align: center; color: #64748b;">لا توجد أي طلبات دفع معلقة في الوقت الحالي.</td></tr>`;
-        }
-        tableBody.innerHTML = rowsHtml;
-    } catch (e) {
-        tableBody.innerHTML = `<tr><td colspan="5" style="padding: 30px; text-align: center; color: red;">خطأ في جلب الطلبات: ${e.message}</td></tr>`;
-    }
-}
-
-async function loadFinancialReportData() {
-    const tableBody = document.getElementById('reports-table-body');
-    if (!tableBody) return;
-
-    try {
-        const snapshot = await db.collection("teachers").where("status", "==", "VIP_Active").get();
-        let rowsHtml = "";
-        let count = 0;
-        let totalIncome = 0;
-
-        snapshot.forEach(doc => {
-            let phone = doc.id;
-            let data = doc.data();
-            
-            let durationText = data.vipDurationText || "0 يوم";
-            let amountCalculated = 50; 
-
-            if (durationText.includes("مجاني") || 
-                durationText.includes("ما لا نهاية") || 
-                data.addedManuallyByAdmin || 
-                data.isLifetimeVIP ||
-                AUTHORIZED_ADMIN_PHONES.includes(phone) ||
-                MULTI_DEVICE_PHONES.includes(phone)) {
-                amountCalculated = 0;
-            } else if (durationText.includes("365") || durationText.includes("سنة") || durationText.includes("عام")) {
-                amountCalculated = 500;
-            } else if (durationText.includes("6") || durationText.includes("ست")) {
-                amountCalculated = 250;
-            }
-
-            totalIncome += amountCalculated;
-            count++;
-
-            let subDate = data.subscriptionStart 
-                ? new Date(data.subscriptionStart.seconds * 1000 || data.subscriptionStart).toLocaleDateString('ar-EG') 
-                : "---";
-
-            rowsHtml += `
-                <tr style="border-bottom: 1px solid #f1f5f9;">
-                    <td style="padding: 12px 15px;">${count}</td>
-                    <td style="padding: 12px 15px; font-family: monospace; font-weight: bold;" dir="ltr">${phone}</td>
-                    <td style="padding: 12px 15px;">${durationText}</td>
-                    <td style="padding: 12px 15px; font-weight: bold; color: #047857;">${amountCalculated} ج.م</td>
-                    <td style="padding: 12px 15px; color: #64748b;">${subDate}</td>
-                </tr>
-            `;
-        });
-
-        if (document.getElementById('report-total-revenue')) document.getElementById('report-total-revenue').innerText = totalIncome + " ج.م";
-        if (document.getElementById('report-active-subscribers')) document.getElementById('report-active-subscribers').innerText = count;
-
-        if (count === 0) {
-            rowsHtml = `<tr><td colspan="5" style="padding: 40px; text-align: center; color: #64748b;">لا توجد حسابات VIP نشطة حتى الآن.</td></tr>`;
-        }
-        tableBody.innerHTML = rowsHtml;
-    } catch (e) {
-        tableBody.innerHTML = `<tr><td colspan="5" style="padding: 30px; text-align: center; color: red;">خطأ في إعداد التقرير المالي: ${e.message}</td></tr>`;
-    }
-}
-
-async function loadDeepAnalyticsData() {
-    try {
-        const snapshot = await db.collection("exam_analytics").orderBy("timestamp", "desc").limit(50).get();
-        let tableHtml = "";
-        
-        let gradeScores = {}; 
-        let passed = 0; let failed = 0;
-
-        snapshot.forEach(doc => {
-            let data = doc.data();
-            let phone = data.studentId || "غير معروف";
-            let subject = data.subject || "غير محدد";
-            let score = data.score || 0;
-            let total = data.totalQuestions || 1;
-            let timeUsed = data.timeUsedSec || 0;
-            
-            let percentage = Math.round((score / total) * 100);
-            
-            if (percentage >= 50) passed++; else failed++;
-            
-            if (!gradeScores[subject]) gradeScores[subject] = [];
-            gradeScores[subject].push(percentage);
-
-            let timeStr = `${Math.floor(timeUsed / 60)} دقيقة و ${timeUsed % 60} ثانية`;
-            let color = percentage >= 85 ? "#10b981" : (percentage >= 50 ? "#f59e0b" : "#ef4444");
-
-            tableHtml += `
-                <tr style="border-bottom: 1px solid #f1f5f9;">
-                    <td style="padding:12px; font-weight:bold;" dir="ltr">${phone}</td>
-                    <td style="padding:12px;">${subject}</td>
-                    <td style="padding:12px; font-weight:bold; color:${color};">${score} / ${total} (${percentage}%)</td>
-                    <td style="padding:12px; color:#64748b;">${timeStr}</td>
-                </tr>
-            `;
-        });
-
-        if (snapshot.empty) {
-            tableHtml = `<tr><td colspan="4" style="text-align:center; padding:20px;">لا توجد بيانات امتحانات مسجلة بعد.</td></tr>`;
-        }
-        
-        document.getElementById('analytics-table-body').innerHTML = tableHtml;
-
-        if (!snapshot.empty && typeof Chart !== 'undefined') {
-            let labels = Object.keys(gradeScores);
-            let averages = labels.map(subj => {
-                let sum = gradeScores[subj].reduce((a, b) => a + b, 0);
-                return Math.round(sum / gradeScores[subj].length);
-            });
-
-            new Chart(document.getElementById('scoresChart'), {
-                type: 'bar',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        label: 'متوسط درجات الطلاب (%)',
-                        data: averages,
-                        backgroundColor: '#0ea5e9',
-                        borderRadius: 6
-                    }]
-                },
-                options: { responsive: true, maintainAspectRatio: false }
-            });
-
-            new Chart(document.getElementById('completionChart'), {
-                type: 'doughnut',
-                data: {
-                    labels: ['ناجح (فوق 50%)', 'راسب (أقل من 50%)'],
-                    datasets: [{
-                        data: [passed, failed],
-                        backgroundColor: ['#10b981', '#ef4444']
-                    }]
-                },
-                options: { responsive: true, maintainAspectRatio: false }
-            });
-        }
-        
-    } catch (e) {
-        document.getElementById('analytics-table-body').innerHTML = `<tr><td colspan="4" style="text-align:center; color:red;">خطأ: ${e.message}</td></tr>`;
-    }
-}
-
-window.printOrdersReportPDF = function() {
-    const elementToPrint = document.getElementById('orders-report-print-area');
-    if (!elementToPrint) return;
-
-    showToast("جاري تجهيز تقرير الطلبات PDF...");
-    const opt = {
-        margin: 0.5,
-        filename: 'Pending_Orders_' + Date.now() + '.pdf',
-        image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2, logging: false, useCORS: true },
-        jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
-    };
-    html2pdf().set(opt).from(elementToPrint).save();
-};
-
-window.printFinancialReportPDF = function() {
-    const elementToPrint = document.getElementById('financial-report-print-area');
-    if (!elementToPrint) return;
-
-    showToast("جاري تجهيز التقرير المالي الشامل PDF...");
-    const opt = {
-        margin: 0.5,
-        filename: 'Financial_Report_' + Date.now() + '.pdf',
-        image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2, logging: false, useCORS: true },
-        jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
-    };
-    html2pdf().set(opt).from(elementToPrint).save();
-};
-
-window.manualActivateVIP = async function(phone) {
-    if (!AUTHORIZED_ADMIN_PHONES.includes(currentTeacherId) && currentUserRole !== 'Admin') return;
-    
-    let durationInput = document.getElementById(`duration_${phone}`);
-    let customDurationText = durationInput ? durationInput.value.trim() : "0 يوم";
-    if (!customDurationText) customDurationText = "0 يوم";
-
-    let daysToAdd = 365;
-    let isLifetime = false;
-    if (customDurationText.includes("ما لا نهاية") || customDurationText.includes("دائم")) {
-        daysToAdd = 36500;
-        isLifetime = true;
-    } else if (customDurationText.includes("365") || customDurationText.includes("سنة") || customDurationText.includes("عام")) {
-        daysToAdd = 365;
-    } else if (customDurationText.includes("6") || customDurationText.includes("ست")) {
-        daysToAdd = 180;
-    } else if (customDurationText.includes("3") || customDurationText.includes("تلات")) {
-        daysToAdd = 90;
-    } else if (customDurationText.includes("شهر") || customDurationText.includes("30")) {
-        daysToAdd = 30;
-    } else if (customDurationText.includes("0") || customDurationText.includes("صفر")) {
-        daysToAdd = 0;
-    }
-
-    let endTimestamp = new Date(Date.now() + (daysToAdd * 24 * 60 * 60 * 1000));
-
-    try {
-        await db.collection("teachers").doc(phone).update({
-            status: "VIP_Active",
-            vipDurationText: customDurationText,
-            subscriptionStart: new Date(),
-            subscriptionEnd: endTimestamp,
-            isLifetimeVIP: isLifetime,
-            lastUpdatedByAdmin: new Date()
-        });
-        showToast(`تم تفعيل حساب ${phone} بنجاح لمدة (${customDurationText})`);
-        renderActiveDashTab();
-    } catch (e) {
-        showCustomAlert("خطأ أثناء التفعيل اليدوي: " + e.message, 'error');
-    }
-};
-
-window.resetUserDevice = function(phone) {
-    if (!AUTHORIZED_ADMIN_PHONES.includes(currentTeacherId) && currentUserRole !== 'Admin') return;
-    showCustomConfirm(`هل تريد فعلاً فك ارتباط جهاز الطالب (${phone}) ليتمكن من الدخول بهاتف جديد؟`, async (isYes) => {
-        if(!isYes) return;
-        try {
-            await db.collection("teachers").doc(phone).update({
-                registeredDeviceFingerprint: null
-            });
-            showToast(`تم فك ارتباط الجهاز للحساب (${phone}) بنجاح!`, "#f59e0b");
-            renderActiveDashTab();
-        } catch (e) {
-            showCustomAlert("خطأ: " + e.message, 'error');
-        }
-    });
-};
-
-window.deactivateUserVIP = function(phone) {
-    if (!AUTHORIZED_ADMIN_PHONES.includes(currentTeacherId) && currentUserRole !== 'Admin') return;
-    showCustomConfirm(`هل أنت متأكد من قفل وإلغاء تفعيل حساب الطالب (${phone})؟`, async (isYes) => {
-        if(!isYes) return;
-        try {
-            await db.collection("teachers").doc(phone).update({
-                status: "Expired",
-                isLifetimeVIP: false,
-                lastUpdatedByAdmin: new Date()
-            });
-            showToast(`تم قفل وإلغاء تفعيل الحساب: ${phone}`, "#ef4444");
-            renderActiveDashTab();
-        } catch (e) {
-            showCustomAlert("خطأ: " + e.message, 'error');
-        }
-    });
-};
-
-window.deleteUserAccount = function(phone) {
-    if (!AUTHORIZED_ADMIN_PHONES.includes(currentTeacherId) && currentUserRole !== 'Admin') return;
-    showCustomConfirm(`هل أنت متأكد من حذف الحساب رقم (${phone}) نهائياً من قاعدة البيانات؟ لا يمكن التراجع عن هذه الخطوة.`, async (isYes) => {
-        if(!isYes) return;
-        try {
-            await db.collection("teachers").doc(phone).delete();
-            showToast(`تم حذف الحساب (${phone}) نهائياً بنجاح!`, "#ef4444");
-            renderActiveDashTab();
-        } catch (e) {
-            showCustomAlert("خطأ أثناء الحذف: " + e.message, 'error');
-        }
-    });
-};
-
-window.toggleAdminAccess = function(phone, isCurrentlyAdmin) {
-    if (!AUTHORIZED_ADMIN_PHONES.includes(currentTeacherId) && currentUserRole !== 'Admin') return;
-    
-    let newRole = isCurrentlyAdmin ? 'User' : 'Admin';
-    let confirmMsg = isCurrentlyAdmin ? `هل أنت متأكد من سحب صلاحيات لوحة التحكم من الرقم (${phone}) وإرجاعه كطالب عادي؟` : `هل أنت متأكد من منح صلاحيات الإدارة للرقم (${phone})؟ (سيتم تعيين الباسورد الافتراضي 1234)`;
-    
-    showCustomConfirm(confirmMsg, async (isYes) => {
-        if(!isYes) return;
-        try {
-            let updates = { role: newRole };
-            if (newRole === 'Admin') {
-                updates.adminPassword = '1234'; 
-                updates.status = 'VIP_Active';
-            }
-            await db.collection("teachers").doc(phone).update(updates);
-            showToast(`تم تعديل صلاحيات الرقم (${phone}) إلى ${newRole === 'Admin' ? 'مدير' : 'طالب'} بنجاح!`, "#10b981");
-            renderActiveDashTab();
-        } catch (e) {
-            showCustomAlert("خطأ: " + e.message, 'error');
-        }
-    });
-};
-
-function checkAttempts() {
-    let attempts = parseInt(localStorage.getItem('user_attempts') || 0);
-    if (attempts >= 3) {
-        showCustomAlert("انتهت محاولاتك المجانية. يرجى الاشتراك في الـ VIP للمتابعة.", 'error');
-        showAuthScreen();
-        
-        document.getElementById('auth-user-card').style.display = 'none';
-        document.getElementById('auth-payment-card').style.display = 'block';
-        return false;
-    }
-    return true;
-}
-
-function incrementAttempt() {
-    let attempts = parseInt(localStorage.getItem('user_attempts') || 0) + 1;
-    localStorage.setItem('user_attempts', attempts);
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -2361,7 +1521,7 @@ ALL MCQs AND TRUE/FALSE MUST HAVE DETAILED REASONS. THE TONE MUST BE 100% IDENTI
         }
         
         // ============================================================================
-        // محرك PDF احترافي ثابت - يمنع خروج PDF فارغ (حل ChatGPT الجذري)
+        // محرك PDF النهائي (تأخير زمني + طباعة وهمية) لضمان عدم وجود ملفات بيضاء
         // ============================================================================
         document.getElementById('native-print-btn').addEventListener('click', async () => {
             const originalElement = document.getElementById('pdf-template');
@@ -2371,7 +1531,7 @@ ALL MCQs AND TRUE/FALSE MUST HAVE DETAILED REASONS. THE TONE MUST BE 100% IDENTI
             }
 
             try {
-                showToast("جاري تجهيز محتوى ملف PDF...", "#0ea5e9");
+                showToast("جاري تجهيز محتوى الـ PDF... برجاء الانتظار ثواني", "#f59e0b");
                 preparePDFDOM(serverData, subjectName);
 
                 const contentElement = document.getElementById('pdf-qa-content');
@@ -2379,20 +1539,23 @@ ALL MCQs AND TRUE/FALSE MUST HAVE DETAILED REASONS. THE TONE MUST BE 100% IDENTI
                     throw new Error("لم يتم العثور على محتوى داخل قالب PDF.");
                 }
 
+                // إنشاء نسخة مطابقة للقالب
                 const pdfClone = originalElement.cloneNode(true);
                 pdfClone.id = "pdf-template-render";
+                
+                // أهم جزء: لا نستخدم top: -9999 بل نجعله خلف الصفحة تماماً (z-index: -1000)
                 pdfClone.style.display = "block";
-                pdfClone.style.position = "fixed";
+                pdfClone.style.position = "absolute";
                 pdfClone.style.left = "0";
                 pdfClone.style.top = "0";
-                pdfClone.style.width = "794px";
+                pdfClone.style.width = "794px"; // عرض ورقة A4
                 pdfClone.style.minHeight = "1123px";
                 pdfClone.style.height = "auto";
                 pdfClone.style.margin = "0";
                 pdfClone.style.padding = "0";
                 pdfClone.style.background = "#ffffff";
                 pdfClone.style.color = "#000000";
-                pdfClone.style.zIndex = "-1000";
+                pdfClone.style.zIndex = "-1000"; // خلف الصفحة لكي يضطر المتصفح لرسمه
                 pdfClone.style.pointerEvents = "none";
                 pdfClone.style.overflow = "visible";
 
@@ -2407,6 +1570,7 @@ ALL MCQs AND TRUE/FALSE MUST HAVE DETAILED REASONS. THE TONE MUST BE 100% IDENTI
                     pdfInner.style.background = "#ffffff";
                 }
 
+                // العلامة المائية الحقيقية التي تظهر في الـ PDF
                 const oldWatermark = pdfClone.querySelector(".pdf-real-watermark");
                 if (oldWatermark) {
                     oldWatermark.remove();
@@ -2426,14 +1590,14 @@ ALL MCQs AND TRUE/FALSE MUST HAVE DETAILED REASONS. THE TONE MUST BE 100% IDENTI
                 watermark.style.opacity = "0.07";
                 watermark.style.whiteSpace = "nowrap";
                 watermark.style.pointerEvents = "none";
-                watermark.style.zIndex = "0";
+                watermark.style.zIndex = "0"; // خلف النصوص
 
                 pdfClone.insertBefore(watermark, pdfClone.firstChild);
 
                 const pdfContentWrapper = pdfClone.querySelector("#pdf-qa-content");
                 if (pdfContentWrapper) {
                     pdfContentWrapper.style.position = "relative";
-                    pdfContentWrapper.style.zIndex = "2";
+                    pdfContentWrapper.style.zIndex = "2"; // فوق العلامة المائية
                 }
 
                 pdfClone.querySelectorAll(".pdf-question-block").forEach(block => {
@@ -2444,6 +1608,7 @@ ALL MCQs AND TRUE/FALSE MUST HAVE DETAILED REASONS. THE TONE MUST BE 100% IDENTI
 
                 document.body.appendChild(pdfClone);
 
+                // التأكد من تحميل الخطوط
                 if (document.fonts && document.fonts.ready) {
                     await document.fonts.ready;
                 }
@@ -2457,11 +1622,10 @@ ALL MCQs AND TRUE/FALSE MUST HAVE DETAILED REASONS. THE TONE MUST BE 100% IDENTI
                     });
                 }));
 
-                await new Promise(resolve => {
-                    requestAnimationFrame(() => {
-                        requestAnimationFrame(resolve);
-                    });
-                });
+                // ------------------------------------------------------------
+                // تأخير زمني إجباري (2 ثانية) بناءً على طلبك لضمان عدم طباعة صفحات بيضاء
+                // ------------------------------------------------------------
+                await new Promise(resolve => setTimeout(resolve, 2000));
 
                 const finalContent = pdfClone.querySelector("#pdf-qa-content");
                 if (!finalContent || finalContent.innerText.trim().length === 0) {
@@ -2487,10 +1651,11 @@ ALL MCQs AND TRUE/FALSE MUST HAVE DETAILED REASONS. THE TONE MUST BE 100% IDENTI
                     jsPDF: { unit: "mm", format: "a4", orientation: "portrait", compress: true }
                 };
 
-                showToast("جاري تحويل المحتوى إلى PDF...", "#0ea5e9");
+                showToast("جاري تحويل وبناء ملف الـ PDF النهائي...", "#0ea5e9");
 
                 await html2pdf().set(opt).from(pdfClone).save();
 
+                // حذف النسخة المؤقتة بعد الطباعة
                 pdfClone.remove();
 
                 showToast("تم إنشاء ملف PDF بالكتابة والعلامة المائية بنجاح!", "#10b981");
@@ -2905,7 +2070,7 @@ ALL MCQs AND TRUE/FALSE MUST HAVE DETAILED REASONS. THE TONE MUST BE 100% IDENTI
         }
     }
 
-    // فلتر قوي لمسح الإيموشنات قبل النطق الصوتي
+    // فلتر قوي لمسح الإيموشنات قبل النطق الصوتي حتى لا يقرأها ككلمات
     function removeEmojisForTTS(text) {
         if (!text) return "";
         return text.replace(/([\u2700-\u27BF]|[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD10-\uDDFF])/g, '').trim();
@@ -2914,10 +2079,10 @@ ALL MCQs AND TRUE/FALSE MUST HAVE DETAILED REASONS. THE TONE MUST BE 100% IDENTI
     function speakText(text) {
         if ('speechSynthesis' in window) {
             window.speechSynthesis.cancel();
-            let cleanText = removeEmojisForTTS(text); // مسح الإيموشنات
+            let cleanText = removeEmojisForTTS(text); // مسح الإيموشنات بالفلتر
             let utterance = new SpeechSynthesisUtterance(cleanText);
-            utterance.lang = 'ar-EG'; // اللهجة المصرية
-            utterance.rate = 1.05; // سرعة طبيعية وسريعة
+            utterance.lang = 'ar-EG'; // النطق باللهجة المصرية
+            utterance.rate = 1.05; 
             window.speechSynthesis.speak(utterance);
         }
     }
