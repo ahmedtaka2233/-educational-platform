@@ -476,8 +476,7 @@ async function handleUserLoginFinal() {
     } catch (e) {
         console.error("LOGIN ERROR:", e);
         btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> دخول المنصة';
-        loginSuccess(phone, VIP_ADMIN_NUMBERS.includes(phone) ? "Admin" : "User");
-        showToast("تم الدخول وتجاوز أخطاء الشبكة المؤقتة", "#10b981");
+        showCustomAlert("حدث خطأ أثناء تسجيل الدخول:<br><br><strong>" + String(e.message || e) + "</strong>", 'error');
     }
 }
 
@@ -2525,7 +2524,7 @@ ALL MCQs AND TRUE/FALSE MUST HAVE DETAILED REASONS. THE TONE MUST BE 100% IDENTI
 
         const typingId = 'imm-typing-' + Date.now();
         const typingDiv = document.createElement('div');
-        typingDiv.id = typingId;
+        typingId = typingId;
         typingDiv.className = 'tutor-msg bot-msg';
         typingDiv.innerHTML = '<i class="fas fa-ellipsis-h fa-fade"></i> جاري التفكير...';
         immersiveMessagesArea.appendChild(typingDiv);
