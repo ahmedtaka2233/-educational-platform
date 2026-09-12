@@ -1,7 +1,7 @@
 // @ts-nocheck
 // ============================================================================
 // ملف الجافاسكريبت الرئيسي (java.js) - منصة الذكاء الاصطناعي (الجزء الأول)
-// النسخة المكتملة + واجهة Premium + حماية + المعلم 3D + Gamification + Voice
+// النسخة المكتملة + نظام تسجيل دخول ذكي + 5 دقائق Timeout + حل الـ PDF
 // ============================================================================
 
 const premiumCompactStyle = document.createElement('style');
@@ -23,7 +23,8 @@ premiumCompactStyle.innerHTML = `
 `;
 document.head.appendChild(premiumCompactStyle);
 
-const SESSION_TIMEOUT_MS = 10 * 60 * 1000;
+// تم تعديل وقت الخمول إلى 5 دقائق فقط بناءً على طلبك
+const SESSION_TIMEOUT_MS = 5 * 60 * 1000;
 
 function resetSessionTimer() {
     if (isVIPLoggedIn) {
@@ -36,7 +37,7 @@ function checkSessionTimeout() {
         const lastActivity = localStorage.getItem('last_activity_time');
         if (lastActivity && (Date.now() - parseInt(lastActivity) > SESSION_TIMEOUT_MS)) {
             logout();
-            showCustomAlert("تم إنهاء الجلسة التلقائي لحماية حسابك بسبب عدم التفاعل. يرجى تسجيل الدخول مجدداً.", 'error');
+            showCustomAlert("تم إنهاء الجلسة التلقائي لحماية حسابك بسبب عدم التفاعل لمدة 5 دقائق. يرجى تسجيل الدخول مجدداً.", 'error');
         }
     }
 }
@@ -133,6 +134,9 @@ const db = firebase.firestore();
 const AUTHORIZED_ADMIN_PHONES = ["01026336159"];
 const MULTI_DEVICE_PHONES = ["01026336159", "01010482432", "01011974537", "01021059077", "01022750575"];
 
+// قائمة الأرقام الخاصة (VIP أو من الداشبورد) اللي لازم يتعملها باسورد
+const VIP_ADMIN_NUMBERS = ["01021059077", "01026336159", "01063028258", "01558884868", "01010482432", "01011974537", "01022750575"];
+
 let currentTeacherId = null;
 let isVIPLoggedIn = false; 
 let currentUserRole = "User";
@@ -152,7 +156,6 @@ let interactiveExamTimeLeft = 0;
 let interactiveExamTotalTime = 0;
 let examStartTime = 0;
 
-// نظام النقاط والمكافآت (Gamification)
 function updateGamification(pointsToAdd) {
     let pts = parseInt(localStorage.getItem('user_points') || '0') + pointsToAdd;
     localStorage.setItem('user_points', pts);
@@ -245,6 +248,9 @@ function stripParentheses(text) {
     return text.replace(/\s*\([^)]*\)/g, '').trim();
 }
 
+// ============================================================================
+// نظام تسجيل الدخول الذكي الجديد (بدون إزعاج حفظ الباسورد)
+// ============================================================================
 function createAuthScreen() {
     if (document.getElementById('auth-overlay')) return;
 
@@ -261,20 +267,26 @@ function createAuthScreen() {
             
             <div id="auth-user-card" style="padding:20px 20px; text-align:center;">
                 <h3 style="color:#1e293b; margin-top:0; margin-bottom:8px; font-size:1.15rem;">تسجيل الدخول للمنصة</h3>
-                <p style="color:#64748b; font-size:0.85rem; margin-bottom:15px;">أدخل رقم الموبايل والرقم السري للوصول</p>
+                <p style="color:#64748b; font-size:0.85rem; margin-bottom:15px;" id="auth-instruction-text">أدخل رقم هاتفك للبدء</p>
                 
                 <input type="tel" id="auth-phone" autocomplete="off" placeholder="رقم الموبايل (مثال: 010xxxxxxxx)" style="width:100%; padding:12px; font-size:1rem; border:2px solid #e2e8f0; border-radius:8px; margin-bottom:10px; box-sizing:border-box; direction:rtl; text-align:center; font-weight:bold;">
-                <input type="password" id="auth-password" autocomplete="off" placeholder="الرقم السري للطالب (أنشئه إذا كانت أول مرة)" style="width:100%; padding:12px; font-size:1rem; border:2px solid #e2e8f0; border-radius:8px; margin-bottom:15px; box-sizing:border-box; direction:rtl; text-align:center; font-weight:bold;">
                 
-                <button id="auth-login-btn" style="width:100%; background:#0ea5e9; color:white; border:none; padding:12px; font-size:1rem; border-radius:8px; font-weight:bold; cursor:pointer; transition:0.3s; box-shadow:0 4px 12px rgba(14,165,233,0.3);"><i class="fas fa-sign-in-alt"></i> دخول المنصة</button>
+                <!-- مخفية في البداية عشان المتصفح ميزعجش الطالب -->
+                <div id="auth-password-container" style="display:none;">
+                    <input type="password" id="auth-password" autocomplete="new-password" placeholder="أدخل الرقم السري" style="width:100%; padding:12px; font-size:1rem; border:2px solid #e2e8f0; border-radius:8px; margin-bottom:15px; box-sizing:border-box; direction:rtl; text-align:center; font-weight:bold;">
+                </div>
+                
+                <button id="auth-next-btn" style="width:100%; background:#0ea5e9; color:white; border:none; padding:12px; font-size:1rem; border-radius:8px; font-weight:bold; cursor:pointer; transition:0.3s; box-shadow:0 4px 12px rgba(14,165,233,0.3);">التالي <i class="fas fa-arrow-left"></i></button>
+                <button id="auth-login-btn" style="display:none; width:100%; background:#10b981; color:white; border:none; padding:12px; font-size:1rem; border-radius:8px; font-weight:bold; cursor:pointer; transition:0.3s; box-shadow:0 4px 12px rgba(16,185,129,0.3);"><i class="fas fa-sign-in-alt"></i> دخول المنصة</button>
+                
                 <div style="border-bottom:1px solid #e2e8f0; margin:15px 0;"></div>
-                <button id="auth-close-btn" style="width:100%; background:#f1f5f9; color:#475569; border:none; padding:10px; font-size:0.85rem; border-radius:8px; font-weight:bold; cursor:pointer;">تصفح المنصة كزائر (محاولات محدودة)</button>
+                <button id="auth-close-btn" style="width:100%; background:#f1f5f9; color:#475569; border:none; padding:10px; font-size:0.85rem; border-radius:8px; font-weight:bold; cursor:pointer;">إغلاق النافذة</button>
             </div>
 
             <div id="auth-payment-card" style="padding:20px 20px; text-align:center; display:none;">
                 <div style="width:45px; height:45px; background:#fef3c7; color:#b45309; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:1.2rem; margin-bottom:10px;"><i class="fas fa-crown"></i></div>
                 <h3 style="color:#1e293b; margin-top:0; margin-bottom:8px;">تفعيل عضوية VIP</h3>
-                <p style="color:#64748b; font-size:0.85rem; margin-bottom:15px;">الاشتراك المطلوب: <span id="auth-price-text" style="font-weight:bold; color:#1e293b; font-size:1.1rem;"></span> جنيه مصري</p>
+                <p style="color:#64748b; font-size:0.85rem; margin-bottom:15px;">انتهت محاولاتك المجانية. للاستمرار يرجى الاشتراك.</p>
                 <div style="background:#f8fafc; border:1px solid #cbd5e1; border-radius:8px; padding:12px; margin-bottom:15px; font-size:0.85rem; line-height:1.6; color:#334155;">
                     قم بالتحويل لفودافون كاش على الرقم <strong style="color:#0ea5e9; font-size:1rem;" dir="ltr">01026336159</strong><br>
                     وبعد إتمام التحويل، اضغط تأكيد وسنقوم بتوجيهك للواتس آب.
@@ -296,20 +308,161 @@ function createAuthScreen() {
         document.getElementById('auth-user-card').style.display = 'block';
     });
 
-    document.getElementById('auth-login-btn').addEventListener('click', handleUserLogin);
+    document.getElementById('auth-next-btn').addEventListener('click', handleAuthNextStep);
+    document.getElementById('auth-login-btn').addEventListener('click', handleUserLoginFinal);
     document.getElementById('auth-request-btn').addEventListener('click', handlePaymentRequest);
 }
 
 function showAuthScreen() {
     createAuthScreen();
-    const phoneInput = document.getElementById('auth-phone');
-    const passInput = document.getElementById('auth-password');
-    if (phoneInput) phoneInput.value = '';
-    if (passInput) passInput.value = '';
+    document.getElementById('auth-phone').value = '';
+    document.getElementById('auth-phone').disabled = false;
+    document.getElementById('auth-password').value = '';
+    
+    document.getElementById('auth-password-container').style.display = 'none';
+    document.getElementById('auth-next-btn').style.display = 'block';
+    document.getElementById('auth-login-btn').style.display = 'none';
     
     document.getElementById('auth-user-card').style.display = 'block';
     document.getElementById('auth-payment-card').style.display = 'none';
     document.getElementById('auth-overlay').style.display = 'flex';
+}
+
+// الخطوة الأولى: فحص الرقم وتحديد مساره بذكاء
+async function handleAuthNextStep() {
+    let phone = document.getElementById('auth-phone').value.trim();
+    if (phone.length < 10) {
+        return showCustomAlert("برجاء إدخال رقم موبايل صحيح.", 'error');
+    }
+
+    let btn = document.getElementById('auth-next-btn');
+    let originalText = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري التحقق...';
+    btn.disabled = true;
+
+    try {
+        let isSpecialNumber = VIP_ADMIN_NUMBERS.includes(phone) || AUTHORIZED_ADMIN_PHONES.includes(phone);
+        let docSnap = await db.collection("teachers").doc(phone).get();
+
+        if (docSnap.exists) {
+            let data = docSnap.data();
+            if (data.status === "Free" && !isSpecialNumber) {
+                // رقم عادي مسجل كزائر، ندخله فوراً يكمل محاولاته المجانية
+                loginSuccess(phone, "User");
+            } else {
+                // رقم خاص أو حساب VIP، نظهر له الباسورد
+                document.getElementById('auth-password-container').style.display = 'block';
+                document.getElementById('auth-next-btn').style.display = 'none';
+                document.getElementById('auth-login-btn').style.display = 'block';
+                document.getElementById('auth-phone').disabled = true;
+                
+                if (!data.studentPassword && !data.adminPassword) {
+                    document.getElementById('auth-password').placeholder = "أنشئ رقماً سرياً جديداً لحسابك";
+                    document.getElementById('auth-instruction-text').innerText = "يرجى إنشاء رقم سري لحماية حسابك";
+                } else {
+                    document.getElementById('auth-instruction-text').innerText = "أدخل الرقم السري للمتابعة";
+                }
+            }
+        } else {
+            if (isSpecialNumber) {
+                // رقم من الداشبورد بس لسه متسجلش، نخليه يعمل باسورد
+                document.getElementById('auth-password-container').style.display = 'block';
+                document.getElementById('auth-next-btn').style.display = 'none';
+                document.getElementById('auth-login-btn').style.display = 'block';
+                document.getElementById('auth-phone').disabled = true;
+                document.getElementById('auth-password').placeholder = "أنشئ رقماً سرياً لحسابك المميز";
+                document.getElementById('auth-instruction-text').innerText = "قم بتعيين رقم سري جديد";
+            } else {
+                // رقم غريب وجديد تماماً: ندخله كفترة مجانية بدون باسورد
+                let deviceFingerprint = localStorage.getItem("device_fingerprint") || ("DEV_" + Math.random().toString(36).substring(2, 15));
+                await db.collection("teachers").doc(phone).set({
+                    name: "Student_" + phone,
+                    phone: phone,
+                    status: "Free",
+                    role: "User",
+                    registeredDeviceFingerprint: deviceFingerprint,
+                    createdAt: new Date()
+                });
+                loginSuccess(phone, "User");
+                setTimeout(() => checkFreeTrialAndAccess(), 800);
+            }
+        }
+    } catch (e) {
+        showCustomAlert("خطأ في الاتصال بالشبكة.", "error");
+    } finally {
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+    }
+}
+
+// الخطوة الثانية: تسجيل الدخول الفعلي (للأرقام اللي طلبنا منها باسورد)
+async function handleUserLoginFinal() {
+    const phone = document.getElementById('auth-phone').value.trim();
+    const password = document.getElementById('auth-password').value.trim();
+
+    if (password.length < 4) {
+        return showCustomAlert("الرقم السري يجب ألا يقل عن 4 خانات.", 'error');
+    }
+    
+    const btn = document.getElementById('auth-login-btn');
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> دخول...';
+    
+    currentTeacherId = phone;
+    let deviceFingerprint = localStorage.getItem("device_fingerprint") || ("DEV_" + Math.random().toString(36).substring(2, 15));
+    localStorage.setItem("device_fingerprint", deviceFingerprint);
+
+    try {
+        const teacherRef = db.collection("teachers").doc(currentTeacherId);
+        const doc = await teacherRef.get();
+        let teacherData = doc.data() || {};
+
+        let isAuthorizedAdmin = AUTHORIZED_ADMIN_PHONES.includes(phone);
+        let assignedRole = isAuthorizedAdmin ? "Admin" : teacherData.role || "User";
+
+        if (isAuthorizedAdmin) {
+            if (!teacherData.adminPassword) {
+                await teacherRef.update({ adminPassword: password, status: "VIP_Active", role: "Admin" });
+            } else if (teacherData.adminPassword !== password) {
+                btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> دخول المنصة';
+                return showCustomAlert("الرقم السري للإدارة غير صحيح!", 'error');
+            }
+        } else {
+            if (!teacherData.studentPassword) {
+                await teacherRef.update({ studentPassword: password });
+            } else if (teacherData.studentPassword !== password) {
+                btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> دخول المنصة';
+                return showCustomAlert("الرقم السري غير صحيح!", 'error');
+            }
+
+            let isExemptFromDeviceLock = MULTI_DEVICE_PHONES.includes(phone);
+            if (teacherData.registeredDeviceFingerprint && teacherData.registeredDeviceFingerprint !== deviceFingerprint && !isExemptFromDeviceLock) {
+                btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> دخول المنصة';
+                return showCustomAlert("هذا الحساب مرتبط بجهاز آخر لحمايتك.", 'error');
+            }
+            await teacherRef.update({ registeredDeviceFingerprint: deviceFingerprint });
+        }
+
+        if (teacherData.status === "Pending_Review") {
+            btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> دخول المنصة';
+            document.getElementById('auth-user-card').style.display = 'none';
+            document.getElementById('auth-payment-card').style.display = 'block';
+            return showCustomAlert("حسابك قيد المراجعة.", 'error');
+        }
+
+        let isExpired = await checkAndLockIfExpired(phone, teacherData);
+        if (isExpired && !isAuthorizedAdmin) {
+            btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> دخول المنصة';
+            document.getElementById('auth-user-card').style.display = 'none';
+            document.getElementById('auth-payment-card').style.display = 'block';
+            return showCustomAlert("انتهت مدة اشتراكك.", 'error');
+        }
+
+        loginSuccess(phone, assignedRole);
+        
+    } catch (e) {
+        btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> دخول المنصة';
+        showCustomAlert("خطأ تقني.", 'error');
+    }
 }
 
 function showAdminQuickActionToast(phone) {
@@ -361,9 +514,7 @@ async function notifyAdminSubscriptionExpired(expiredPhone, durationText) {
             createdAt: new Date(),
             read: false
         });
-    } catch (e) {
-        console.error("Error logging admin expiration notification:", e);
-    }
+    } catch (e) {}
 }
 
 async function checkAndLockIfExpired(phone, teacherData) {
@@ -385,211 +536,6 @@ async function checkAndLockIfExpired(phone, teacherData) {
         }
     }
     return (teacherData.status === "Expired");
-}
-
-async function fetchDeviceIP() {
-    try {
-        const res = await fetch('https://api.ipify.org?format=json');
-        const data = await res.json();
-        return data.ip;
-    } catch (error) {
-        return "IP_UNKNOWN";
-    }
-}
-
-function openAdminCreatePasswordModal(callback) {
-    if (document.getElementById('custom-admin-create-pass-modal')) return;
-
-    const modal = document.createElement('div');
-    modal.id = 'custom-admin-create-pass-modal';
-    modal.style.cssText = 'position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(15, 23, 42, 0.8); z-index:9999999; display:flex; flex-direction:column; align-items:center; justify-content:flex-start; direction:rtl; font-family: "Cairo", sans-serif; backdrop-filter: blur(6px); padding:20px; overflow-y:auto;';
-    
-    modal.innerHTML = `
-        <div style="background:#ffffff; width:100%; max-width:420px; border-radius:16px; box-shadow:0 25px 50px -12px rgba(0,0,0,0.4); border-top: 5px solid #10b981; animation: scaleInAlert 0.3s ease; margin: auto; max-height: 95vh; overflow-y: auto;">
-            <div style="padding:22px 20px; background:#f8fafc; border-bottom:1px solid #e2e8f0; display:flex; justify-content:space-between; align-items:center;">
-                <div style="display:flex; align-items:center; gap:10px;">
-                    <div style="width:38px; height:38px; background:#d1fae5; color:#10b981; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:1.1rem;"><i class="fas fa-lock"></i></div>
-                    <h3 style="margin:0; color:#0f172a; font-size:1.15rem; font-weight:bold;">إعداد الرقم السري للإدارة</h3>
-                </div>
-            </div>
-            <div style="padding:25px 20px;">
-                <p style="color:#64748b; font-size:0.92rem; margin-top:0; margin-bottom:18px; line-height:1.6;">مرحباً بك كمسؤول. يجب عليك إنشاء رقم سري جديد لحماية لوحة التحكم الخاصة بك.</p>
-                <div style="margin-bottom:15px;">
-                    <label style="display:block; font-size:0.9rem; color:#334155; margin-bottom:8px; font-weight:bold;">الرقم السري الجديد:</label>
-                    <input type="password" id="admin-new-pass-input" placeholder="أدخل الرقم السري..." style="width:100%; padding:14px; border:2px solid #cbd5e1; border-radius:10px; font-size:1.1rem; box-sizing:border-box; text-align:center; font-weight:bold; letter-spacing:2px;">
-                </div>
-                <div style="margin-bottom:20px;">
-                    <label style="display:block; font-size:0.9rem; color:#334155; margin-bottom:8px; font-weight:bold;">تأكيد الرقم السري:</label>
-                    <input type="password" id="admin-confirm-pass-input" placeholder="أعد إدخال الرقم السري..." style="width:100%; padding:14px; border:2px solid #cbd5e1; border-radius:10px; font-size:1.1rem; box-sizing:border-box; text-align:center; font-weight:bold; letter-spacing:2px;">
-                </div>
-                <div style="display:flex; gap:12px;">
-                    <button id="admin-create-pass-submit" style="flex:1; background:#10b981; color:white; border:none; padding:13px; border-radius:10px; font-weight:bold; cursor:pointer; font-size:1rem; box-shadow:0 4px 12px rgba(16,185,129,0.3);"><i class="fas fa-save"></i> حفظ ودخول</button>
-                    <button id="admin-create-pass-cancel" style="background:#f1f5f9; color:#475569; border:none; padding:13px 20px; border-radius:10px; font-weight:bold; cursor:pointer; font-size:1rem;">إلغاء</button>
-                </div>
-            </div>
-        </div>
-    `;
-    document.body.appendChild(modal);
-
-    const newPassInput = document.getElementById('admin-new-pass-input');
-    const confirmPassInput = document.getElementById('admin-confirm-pass-input');
-    newPassInput.focus();
-
-    document.getElementById('admin-create-pass-submit').addEventListener('click', () => {
-        let val1 = newPassInput.value.trim();
-        let val2 = confirmPassInput.value.trim();
-        if(val1.length < 4) {
-            showCustomAlert("يجب ألا يقل الرقم السري عن 4 خانات.", 'error');
-            return;
-        }
-        if(val1 !== val2) {
-            showCustomAlert("الرقم السري غير متطابق، برجاء التأكد.", 'error');
-            return;
-        }
-        modal.remove();
-        callback(val1);
-    });
-
-    document.getElementById('admin-create-pass-cancel').addEventListener('click', () => {
-        modal.remove();
-        callback(null);
-    });
-}
-
-function openAdminPasswordModal(callback) {
-    if (document.getElementById('custom-admin-pass-modal')) return;
-
-    const modal = document.createElement('div');
-    modal.id = 'custom-admin-pass-modal';
-    modal.style.cssText = 'position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(15, 23, 42, 0.8); z-index:9999999; display:flex; flex-direction:column; align-items:center; justify-content:flex-start; direction:rtl; font-family: "Cairo", sans-serif; backdrop-filter: blur(6px); padding:20px; overflow-y:auto;';
-    
-    modal.innerHTML = `
-        <div style="background:#ffffff; width:100%; max-width:420px; border-radius:16px; box-shadow:0 25px 50px -12px rgba(0,0,0,0.4); border-top: 5px solid #0ea5e9; animation: scaleInAlert 0.3s ease; margin: auto; max-height: 95vh; overflow-y: auto;">
-            <div style="padding:22px 20px; background:#f8fafc; border-bottom:1px solid #e2e8f0; display:flex; justify-content:space-between; align-items:center;">
-                <div style="display:flex; align-items:center; gap:10px;">
-                    <div style="width:38px; height:38px; background:#e0f2fe; color:#0ea5e9; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:1.1rem;"><i class="fas fa-shield-alt"></i></div>
-                    <h3 style="margin:0; color:#0f172a; font-size:1.15rem; font-weight:bold;">التحقق الأمني للإدارة</h3>
-                </div>
-            </div>
-            <div style="padding:25px 20px;">
-                <p style="color:#64748b; font-size:0.92rem; margin-top:0; margin-bottom:18px; line-height:1.6;">هذا الرقم مسجل ضمن صلاحيات الإدارة العليا. يجبر النظام إدخال الرقم السري للمتابعة.</p>
-                <div style="margin-bottom:20px;">
-                    <label style="display:block; font-size:0.9rem; color:#334155; margin-bottom:8px; font-weight:bold;">الرقم السري للإدارة:</label>
-                    <input type="password" id="admin-pass-input" placeholder="أدخل الرقم السري..." style="width:100%; padding:14px; border:2px solid #cbd5e1; border-radius:10px; font-size:1.1rem; box-sizing:border-box; text-align:center; font-weight:bold; letter-spacing:2px;">
-                </div>
-                <div style="display:flex; gap:12px;">
-                    <button id="admin-pass-submit" style="flex:1; background:#0ea5e9; color:white; border:none; padding:13px; border-radius:10px; font-weight:bold; cursor:pointer; font-size:1rem; box-shadow:0 4px 12px rgba(14,165,233,0.3);"><i class="fas fa-check-circle"></i> دخول</button>
-                    <button id="admin-pass-cancel" style="background:#f1f5f9; color:#475569; border:none; padding:13px 20px; border-radius:10px; font-weight:bold; cursor:pointer; font-size:1rem;">إلغاء</button>
-                </div>
-            </div>
-        </div>
-    `;
-    document.body.appendChild(modal);
-
-    const inputField = document.getElementById('admin-pass-input');
-    inputField.focus();
-
-    document.getElementById('admin-pass-submit').addEventListener('click', () => {
-        let val = inputField.value.trim();
-        modal.remove();
-        callback(val);
-    });
-
-    inputField.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') {
-            let val = inputField.value.trim();
-            modal.remove();
-            callback(val);
-        }
-    });
-
-    document.getElementById('admin-pass-cancel').addEventListener('click', () => {
-        modal.remove();
-        callback(null);
-    });
-}
-
-async function handleUserLogin() {
-    const phone = document.getElementById('auth-phone').value.trim();
-    const password = document.getElementById('auth-password') ? document.getElementById('auth-password').value.trim() : "";
-
-    if (phone.length < 10 || password.length < 4) {
-        showCustomAlert("برجاء إدخال رقم موبايل صحيح، ورقم سري لا يقل عن 4 خانات.", 'error');
-        return;
-    }
-    
-    const btn = document.getElementById('auth-login-btn');
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري التحقق...';
-    
-    currentTeacherId = phone;
-    const currentIP = await fetchDeviceIP(); 
-    let deviceFingerprint = localStorage.getItem("device_fingerprint") || ("DEV_" + Math.random().toString(36).substring(2, 15));
-    localStorage.setItem("device_fingerprint", deviceFingerprint);
-
-    try {
-        const teacherRef = db.collection("teachers").doc(currentTeacherId);
-        const doc = await teacherRef.get();
-        let teacherData = {};
-
-        let isAuthorizedAdmin = AUTHORIZED_ADMIN_PHONES.includes(phone);
-        let assignedRole = isAuthorizedAdmin ? "Admin" : "User";
-
-        if (doc.exists) {
-            teacherData = doc.data();
-            if (teacherData.role === "Admin") {
-                isAuthorizedAdmin = true;
-                assignedRole = "Admin";
-            }
-        }
-
-        if (isAuthorizedAdmin) {
-            let hasAdminPass = teacherData.adminPassword && teacherData.adminPassword !== "1234";
-
-            if (!hasAdminPass) {
-                openAdminCreatePasswordModal(async (newPassword) => {
-                    if (!newPassword) {
-                        btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> دخول المنصة';
-                        return;
-                    }
-                    await teacherRef.set({
-                        name: "Admin_" + phone,
-                        phone: phone,
-                        status: "VIP_Active",
-                        role: "Admin",
-                        adminPassword: newPassword,
-                        lastKnownIP: currentIP,
-                        createdAt: teacherData.createdAt || new Date()
-                    }, { merge: true });
-                    
-                    loginSuccess(phone, "Admin");
-                    btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> دخول المنصة';
-                });
-            } else {
-                let savedPassword = teacherData.adminPassword;
-                openAdminPasswordModal(async (enteredPassword) => {
-                    if (!enteredPassword) {
-                        btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> دخول المنصة';
-                        return; 
-                    }
-
-                    if (enteredPassword !== savedPassword) {
-                        showCustomAlert("الرقم السري للإدارة غير صحيح! تم رفض الدخول.", 'error');
-                        btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> دخول المنصة';
-                        return;
-                    }
-
-                    await finishLoginProcess(teacherRef, doc, teacherData, phone, password, currentIP, deviceFingerprint, isAuthorizedAdmin, assignedRole, btn);
-                });
-            }
-            return;
-        }
-
-        await finishLoginProcess(teacherRef, doc, teacherData, phone, password, currentIP, deviceFingerprint, isAuthorizedAdmin, assignedRole, btn);
-        
-    } catch (e) {
-        showCustomAlert("خطأ في الاتصال بقاعدة البيانات: " + e.message, 'error');
-        btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> دخول المنصة';
-    }
 }
 
 function showFreeTrialSelectionModal() {
@@ -636,79 +582,7 @@ function checkFreeTrialAndAccess() {
         setTimeout(() => { showAuthScreen(); }, 1500);
         return false;
     }
-
     return true; 
-}
-
-async function finishLoginProcess(teacherRef, doc, teacherData, phone, password, currentIP, deviceFingerprint, isAuthorizedAdmin, assignedRole, btn) {
-    if (doc.exists) {
-        if (!isAuthorizedAdmin) {
-            teacherData = doc.data();
-            
-            if (teacherData.studentPassword) {
-                if (teacherData.studentPassword !== password) {
-                    showCustomAlert("الرقم السري غير صحيح! تأكد من بياناتك.", 'error');
-                    btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> دخول المنصة';
-                    return;
-                }
-            } else {
-                await teacherRef.update({ studentPassword: password });
-            }
-
-            let isExemptFromDeviceLock = MULTI_DEVICE_PHONES.includes(phone) || isAuthorizedAdmin;
-
-            if (teacherData.registeredDeviceFingerprint) {
-                if (teacherData.registeredDeviceFingerprint !== deviceFingerprint && !isExemptFromDeviceLock) {
-                    showCustomAlert("عذراً، هذا الحساب مرتبط بجهاز آخر. لا يمكنك الدخول من هنا لحماية أمان حسابك.", 'error');
-                    btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> دخول المنصة';
-                    return;
-                }
-            }
-            await teacherRef.update({ registeredDeviceFingerprint: deviceFingerprint });
-        }
-
-        if (!isAuthorizedAdmin && teacherData.status === "Pending_Review") {
-            showCustomAlert("حسابك قيد المراجعة حالياً. يرجى الانتظار حتى يتم تأكيد التحويل وتفعيل اشتراكك من قبل الإدارة.", 'error');
-            document.getElementById('auth-user-card').style.display = 'none';
-            document.getElementById('auth-payment-card').style.display = 'block';
-            btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> دخول المنصة';
-            return; 
-        }
-
-        let isExpired = await checkAndLockIfExpired(phone, teacherData);
-        if (isExpired && !isAuthorizedAdmin) {
-            showCustomAlert("انتهت مدة اشتراكك. يجب تجديد الاشتراك للمتابعة.", 'error');
-            document.getElementById('auth-user-card').style.display = 'none';
-            document.getElementById('auth-payment-card').style.display = 'block';
-            btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> دخول المنصة';
-            return;
-        }
-
-    } else {
-        teacherData = {
-            name: isAuthorizedAdmin ? ("Admin_" + phone) : ("Student_" + phone),
-            phone: phone,
-            studentPassword: isAuthorizedAdmin ? null : password, 
-            registeredDeviceFingerprint: deviceFingerprint,
-            monthsSubscribed: 0,
-            status: isAuthorizedAdmin ? "VIP_Active" : "Free",
-            role: assignedRole,
-            adminPassword: isAuthorizedAdmin ? "1234" : null,
-            lastKnownIP: currentIP,
-            createdAt: new Date()
-        };
-        await teacherRef.set(teacherData);
-    }
-
-    await teacherRef.update({ lastKnownIP: currentIP, role: assignedRole });
-    loginSuccess(phone, assignedRole);
-    btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> دخول المنصة';
-
-    if (teacherData.status === "Free" && !isAuthorizedAdmin) {
-        setTimeout(() => {
-            checkFreeTrialAndAccess();
-        }, 800);
-    }
 }
 
 async function handlePaymentRequest() {
@@ -966,6 +840,7 @@ function buildDynamicUserMenu(phone, role) {
         }
     }
 }
+// ==================== بداية الجزء الثاني والأخير ====================
 
 async function loadAndShowDashboard() {
     if (!AUTHORIZED_ADMIN_PHONES.includes(currentTeacherId) && currentUserRole !== 'Admin') {
@@ -1790,7 +1665,7 @@ window.toggleAdminAccess = function(phone, isCurrentlyAdmin) {
 function checkAttempts() {
     let attempts = parseInt(localStorage.getItem('user_attempts') || 0);
     if (attempts >= 3) {
-        showCustomAlert("انتهت محاولاتك المجانية. يرجى تسجيل الدخول والاشتراك في الـ VIP للمتابعة.", 'error');
+        showCustomAlert("انتهت محاولاتك المجانية. يرجى الاشتراك في الـ VIP للمتابعة.", 'error');
         showAuthScreen();
         
         document.getElementById('auth-user-card').style.display = 'none';
@@ -1804,8 +1679,7 @@ function incrementAttempt() {
     let attempts = parseInt(localStorage.getItem('user_attempts') || 0) + 1;
     localStorage.setItem('user_attempts', attempts);
 }
-// ==================== نهاية الجزء الأول ====================
-// ==================== بداية الجزء الثاني ====================
+
 document.addEventListener('DOMContentLoaded', () => {
     
     createAuthScreen();
@@ -1840,15 +1714,15 @@ document.addEventListener('DOMContentLoaded', () => {
         primary_azhar: ["القرآن الكريم", "التربية الإسلامية", "اللغة العربية", "الرياضيات", "اللغة الإنجليزية", "العلوم", "الدراسات الاجتماعية"],
         prep_general: ["اللغة العربية", "الرياضيات (جبر وإحصاء)", "الرياضيات (هندسة)", "العلوم", "الدراسات الاجتماعية", "اللغة الإنجليزية", "اللغة الفرنسية"],
         prep_azhar: ["القرآن الكريم", "الفقه", "أصول الدين", "النحو", "الصرف", "الرياضيات", "العلوم", "الدراسات الاجتماعية", "اللغة الإنجليزية"],
-        high_general_sci_biology: ["اللغة العربية", "اللغة الإنجليزية", "الفيزياء", "الكيمياء", "الأحياء", "الجيولوجيا", "اللغة الأجنبية الثانية"],
-        high_general_sci_math: ["اللغة العربية", "اللغة الإنجليزية", "الفيزياء", "الكيمياء", "الرياضيات البحتة", "الرياضيات التطبيقية", "اللغة الأجنبية الثانية"],
-        high_general_lit: ["اللغة العربية", "اللغة الإنجليزية", "التاريخ", "الجغرافيا", "علم النفس", "الفلسفة والمنطق", "اللغة الأجنبية الثانية"],
-        high_azhar_sci: ["القرآن الكريم", "الفقه", "الحديث", "النحو", "الصرف", "الفيزياء", "الكيمياء", "الأحياء", "الرياضيات", "اللغة الإنجليزية"],
-        high_azhar_lit: ["القرآن الكريم", "الفقه", "الحديث", "النحو", "الصرف", "التاريخ", "الجغرافيا", "المنطق", "اللغة الإنجليزية"],
+        high_general_sci_biology: ["اللغة العربية", "اللغة الإنجليزية", "الفيزياء", "الكيمياء", "الأحياء", "الجيولوجيا", "اللغة الأجنبية الثانية", "اللغة الفرنسية", "اللغة الألمانية", "اللغة الإيطالية"],
+        high_general_sci_math: ["اللغة العربية", "اللغة الإنجليزية", "الفيزياء", "الكيمياء", "الرياضيات البحتة", "الرياضيات التطبيقية", "اللغة الأجنبية الثانية", "اللغة الفرنسية", "اللغة الألمانية", "اللغة الإيطالية"],
+        high_general_lit: ["اللغة العربية", "اللغة الإنجليزية", "التاريخ", "الجغرافيا", "علم النفس", "الفلسفة والمنطق", "اللغة الأجنبية الثانية", "اللغة الفرنسية", "اللغة الألمانية", "اللغة الإيطالية"],
+        high_azhar_sci: ["القرآن الكريم", "الفقه", "الحديث", "النحو", "الصرف", "الفيزياء", "الكيمياء", "الأحياء", "الرياضيات", "اللغة الإنجليزية", "اللغة الفرنسية"],
+        high_azhar_lit: ["القرآن الكريم", "الفقه", "الحديث", "النحو", "الصرف", "التاريخ", "الجغرافيا", "المنطق", "اللغة الإنجليزية", "اللغة الفرنسية"],
         diploma_industrial: ["اللغة العربية", "اللغة الإنجليزية", "الرياضيات", "الفيزياء العامة", "تخصصات صناعية متعددة"],
         diploma_commercial: ["اللغة العربية", "اللغة الإنجليزية", "إدارة أعمال", "محاسبة مالية", "سكرتارية", "اقتصاد وإحصاء"],
         diploma_agricultural: ["اللغة العربية", "اللغة الإنجليزية", "الرياضيات", "محاصيل الحقل", "أمراض النبات", "صناعات زراعية"],
-        diploma_tourism: ["اللغة العربية", "اللغة الإنجليزية", "أصول فن الطهو", "خدمة المطاعم", "شركات السياحة", "محاسبة فندقية"]
+        diploma_tourism: ["اللغة العربية", "اللغة الإنجليزية", "أصول فن الطهو", "خدمة المطاعم", "شركات السياحة", "محاسبة فندقية", "اللغة الفرنسية"]
     };
 
     function getOrdinal(i) {
@@ -1975,19 +1849,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    function selectFilterType(type) {
-        filterSelectedType = type;
-        ui.filterGrade.innerHTML = '';
-        ui.filterTitle.innerHTML = 'اختر الصف الدراسي:';
-        
-        let startGrade = 1;
-        let endGrade = (filterSelectedStage === 'primary') ? 6 : 3;
-        
-        for (let i = startGrade; i <= endGrade; i++) {
-            ui.filterGrade.appendChild(createFilterButton('الصف ' + getOrdinal(i), () => finishFiltering(i)));
-        }
-    }
-
     function finishFiltering(grade) {
         filterSelectedGrade = grade;
         hideElement(ui.filterContainer);
@@ -2002,6 +1863,19 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         
         autoFillDropdowns(finalPath, filterSelectedGrade, filterSelectedSubject);
+    }
+
+    function selectFilterType(type) {
+        filterSelectedType = type;
+        ui.filterGrade.innerHTML = '';
+        ui.filterTitle.innerHTML = 'اختر الصف الدراسي:';
+        
+        let startGrade = 1;
+        let endGrade = (filterSelectedStage === 'primary') ? 6 : 3;
+        
+        for (let i = startGrade; i <= endGrade; i++) {
+            ui.filterGrade.appendChild(createFilterButton('الصف ' + getOrdinal(i), () => finishFiltering(i)));
+        }
     }
 
     function updatePathDisplay() {
@@ -2254,27 +2128,9 @@ document.addEventListener('DOMContentLoaded', () => {
             btnText.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري ضغط الصور ومعالجتها...';
             
             try {
+                const newImageHash = await generateFileHash(selectedLessonFiles[0]) + "_" + selectedLessonFiles.length;
                 let summaryIdStr = subject + '_' + yearText;
                 const summaryDocId = summaryIdStr.replace(/\s+/g, '_');
-                
-                const styleRef = db.collection("teacher_styles").doc(summaryDocId);
-                const styleSnap = await styleRef.get();
-                
-                if (styleSnap.exists) {
-                    let sData = styleSnap.data();
-                    let sTime = sData.createdAt.toDate ? sData.createdAt.toDate().getTime() : sData.createdAt;
-                    
-                    if (Date.now() - sTime > (6 * 30 * 24 * 60 * 60 * 1000)) {
-                        await styleRef.delete(); 
-                        globalTeacherStyle = "";
-                    } else {
-                        globalTeacherStyle = sData.styleText;
-                    }
-                } else {
-                    globalTeacherStyle = "";
-                }
-
-                const newImageHash = await generateFileHash(selectedLessonFiles[0]) + "_" + selectedLessonFiles.length;
                 const summaryRef = db.collection("summaries").doc(summaryDocId);
                 const docSnap = await summaryRef.get();
 
@@ -2335,7 +2191,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 const isExamMode = (selectedFormat === 'exam-focus');
                 const isSummaryMode = (selectedFormat === 'summary');
 
+                // نظام التعرف الذكي على لغة المادة لتصدير الـ PDF والمحتوى باللغة الصحيحة
+                const foreignLanguages = ["اللغة الإنجليزية", "اللغة الفرنسية", "اللغة الألمانية", "اللغة الإيطالية", "english", "french", "german", "italian"];
+                const isForeignLang = foreignLanguages.some(lang => subject.toLowerCase().includes(lang));
+                const targetLang = isForeignLang ? "the EXACT specific foreign language of the subject (e.g., English, French, German, or Italian)" : "Arabic";
+
                 let aiPrompt = `MANDATORY_STRICT_INSTRUCTION: YOU ARE THE CHIEF EXAM CREATOR FOR THE EGYPTIAN MINISTRY OF EDUCATION (2026). YOU MUST GENERATE CONTENT THAT EXACTLY MATCHES THE EGYPTIAN NATIONAL CURRICULUM EXAM STANDARDS FOR "${yearText}" IN SUBJECT "${subject}".
+CRITICAL LANGUAGE INSTRUCTION: The output language MUST BE STRICTLY in ${targetLang}. If the subject is a foreign language, ALL questions, answers, and explanations MUST be written in that foreign language. Do not use Arabic unless it is a standard translation question explicitly required by the Egyptian Ministry.
+
 OUTPUT FORMAT: You MUST return a JSON object containing an array named 'qa_data'. Each item in 'qa_data' must have: 'q' (the question or section title), 'a' (the answer or full explanation), 'reason' (detailed scientific/logical justification), 'type' (MCQ, TF, or ESSAY), and 'options' (array of 4 choices if MCQ).
 
 MINISTRY SPECS BY SUBJECT:
@@ -2376,7 +2239,7 @@ ALL MCQs AND TRUE/FALSE MUST HAVE DETAILED REASONS. THE TONE MUST BE 100% IDENTI
                     method: 'POST',
                     headers: { 
                         'Content-Type': 'application/json',
-                        'X-Bypass-Trial': 'true' // إرسال تصريح العبور للسيرفر لتجاوز مشكلة 401
+                        'X-Bypass-Trial': 'true' 
                     },
                     body: JSON.stringify(serverPayload)
                 });
@@ -2406,7 +2269,7 @@ ALL MCQs AND TRUE/FALSE MUST HAVE DETAILED REASONS. THE TONE MUST BE 100% IDENTI
                 showOutput(finalServerResponse, subject);
                 
                 if (isVIPLoggedIn) {
-                    updateGamification(50); // مكافأة للطالب عند استخراج ملخص بنجاح
+                    updateGamification(50); 
                 } else {
                     incrementAttempt();
                 }
@@ -2424,592 +2287,613 @@ ALL MCQs AND TRUE/FALSE MUST HAVE DETAILED REASONS. THE TONE MUST BE 100% IDENTI
         });
     }
 
-    function showOutput(serverData, subjectName) {
-        document.getElementById('ai-output-container').style.display = 'block';
-        
-        const selectedFormat = document.getElementById('study-material-format')?.value || 'pdf-qa';
-        const isSummaryMode = (selectedFormat === 'summary');
-        
-        let creationDateObj = new Date(serverData.lastUpdated || Date.now());
-        document.getElementById('ai-meta-info').innerHTML = '<i class="fas fa-cloud-download-alt"></i> تاريخ الإنشاء: ' + creationDateObj.toLocaleDateString('ar-EG') + ' | المادة: ' + stripParentheses(serverData.subjectTitle || subjectName);
-        
-        let resultHtml = '<div style="background: #ffffff; padding: 25px; border-radius: 12px; border: 1px solid #e2e8f0; margin-top: 15px; text-align: center;">';
-        resultHtml += '<h4 style="color: #0f172a; margin-top: 0; border-bottom: 2px solid #0ea5e9; display: inline-block; padding-bottom: 5px;">تمت المعالجة بنجاح للمادة: ' + stripParentheses(serverData.grade || "") + ' - ' + stripParentheses(subjectName) + '</h4>';
-        
-        if (isSummaryMode) {
-            resultHtml += '<p style="color: #059669; line-height: 1.8; font-weight: bold; font-size: 1.1rem;">تم إنشاء مذكرة شاملة وتلخيص وافي للمنهج بنجاح طبقاً لمواصفات الوزارة.</p>';
-            resultHtml += '<p style="color: #64748b; font-size: 0.95rem; margin-bottom: 20px;">الملخص الجاهز للطباعة يحتوي على المقارنات، الأسباب، وأهم النقاط.</p>';
-            resultHtml += '<button id="native-print-btn" class="download-pdf-btn" style="background:#0ea5e9; margin-bottom: 10px;"><i class="fas fa-file-pdf"></i> تحميل / حفظ المذكرة كملف PDF</button></div>';
-        } else {
-            resultHtml += '<p style="color: #059669; line-height: 1.8; font-weight: bold; font-size: 1.1rem;">تم تلخيص الصور واستخراج بنك الأسئلة طبقاً للورقة الامتحانية المصرية بنجاح.</p>';
-            resultHtml += '<p style="color: #64748b; font-size: 0.95rem; margin-bottom: 20px;">الأسئلة جاهزة الآن للطباعة أو التحميل كملف PDF.</p>';
-            resultHtml += '<button id="native-print-btn" class="download-pdf-btn" style="background:#0ea5e9; margin-bottom: 10px;"><i class="fas fa-file-pdf"></i> تحميل / حفظ الأسئلة كملف PDF</button></div>';
-        }
-
-        document.getElementById('ai-response-text').innerHTML = resultHtml;
-        globalLessonContext = JSON.stringify(serverData.qa_data);
-        
-        let btnContainer = document.getElementById('interactive-exam-btn-container');
-        if (btnContainer) {
-            btnContainer.innerHTML = '';
-            if (!isSummaryMode) {
-                interactiveExamData = serverData.qa_data.filter(q => q.type === "MCQ" || q.type === "TF" || q.type === "ESSAY");
-                if (interactiveExamData.length > 0) {
-                    btnContainer.innerHTML = `<button id="start-interactive-exam-btn" class="action-btn" style="background:#8b5cf6; margin-top:15px; width:100%;"><i class="fas fa-stopwatch"></i> بدء الامتحان التفاعلي أونلاين الآن</button>`;
-                    document.getElementById('start-interactive-exam-btn').addEventListener('click', () => {
-                        startInteractiveExam(subjectName);
-                    });
-                }
-            }
-        }
-        
-        // --- الحل الجذري لمشكلة الـ PDF ---
-        document.getElementById('native-print-btn').addEventListener('click', () => {
-            preparePDFDOM(serverData, subjectName);
+// ==================== نهاية الجزء الأول ====================
+        function showOutput(serverData, subjectName) {
+            document.getElementById('ai-output-container').style.display = 'block';
             
-            const element = document.getElementById('pdf-template');
-            element.style.display = 'block'; 
-            element.style.position = 'absolute'; 
-            element.style.top = '-9999px'; 
-
-            const opt = {
-                margin:       0.3,
-                filename:     'EduPlatform_' + subjectName + '.pdf',
-                image:        { type: 'jpeg', quality: 0.98 },
-                html2canvas:  { scale: 2, useCORS: true, logging: false },
-                jsPDF:        { unit: 'in', format: 'a4', orientation: 'portrait' }
-            };
-
-            showToast("جاري تجهيز وتحميل ملف الـ PDF باحترافية...", "#0ea5e9");
-
-            html2pdf().set(opt).from(element).save().then(() => {
-                element.style.display = 'none'; 
-                element.style.position = 'static'; 
-                showToast("تم تحميل الملزمة بنجاح!", "#10b981");
-            });
-        });
-        
-        document.getElementById('ai-output-container').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    }
-
-    function preparePDFDOM(serverData, subjectName) {
-        const selectedFormat = document.getElementById('study-material-format')?.value || 'pdf-qa';
-        const isExamMode = (selectedFormat === 'exam-focus');
-        const isSummaryMode = (selectedFormat === 'summary');
-
-        let qaHtml = '';
-        let questionCount = 0;
-        
-        serverData.qa_data.forEach((item, index) => {
-            questionCount++;
-            let cleanQuestion = stripParentheses(item.q);
+            const selectedFormat = document.getElementById('study-material-format')?.value || 'pdf-qa';
+            const isSummaryMode = (selectedFormat === 'summary');
             
-            let typeTitle = "";
-            if (!isSummaryMode) {
-                if (item.type === "MCQ") typeTitle = " [اختيار من متعدد]";
-                else if (item.type === "TF") typeTitle = " [صح أو خطأ]";
-                else if (item.type === "ESSAY") typeTitle = " [سؤال مقالي]";
-            }
-
-            qaHtml += '<div class="pdf-question-block" style="margin-bottom: 20px; background: #f8fafc; padding: 16px; border-radius: 8px; border-right: 4px solid #10b981; direction: rtl; text-align: right; position: relative; z-index: 1; page-break-inside: avoid !important; break-inside: avoid !important;">';
+            let creationDateObj = new Date(serverData.lastUpdated || Date.now());
+            document.getElementById('ai-meta-info').innerHTML = '<i class="fas fa-cloud-download-alt"></i> تاريخ الإنشاء: ' + creationDateObj.toLocaleDateString('ar-EG') + ' | المادة: ' + stripParentheses(serverData.subjectTitle || subjectName);
+            
+            let resultHtml = '<div style="background: #ffffff; padding: 25px; border-radius: 12px; border: 1px solid #e2e8f0; margin-top: 15px; text-align: center;">';
+            resultHtml += '<h4 style="color: #0f172a; margin-top: 0; border-bottom: 2px solid #0ea5e9; display: inline-block; padding-bottom: 5px;">تمت المعالجة بنجاح للمادة: ' + stripParentheses(serverData.grade || "") + ' - ' + stripParentheses(subjectName) + '</h4>';
             
             if (isSummaryMode) {
-                qaHtml += '<p style="color: #0f172a; margin: 0 0 12px 0; font-size: 16px; border-bottom: 2px solid #cbd5e1; padding-bottom: 8px;"><strong><i class="fas fa-star" style="color:#f59e0b;"></i> ' + cleanQuestion + '</strong></p>';
-                qaHtml += '<div style="margin: 10px 0 0 0; line-height: 1.9; font-size: 15px; color: #1e293b;">' + (item.a ? item.a.replace(/\n/g, '<br>') : '') + '</div>';
-                if (item.reason) {
-                    qaHtml += '<div style="margin: 10px 0 0 0; line-height: 1.9; font-size: 14px; color: #059669; font-weight: bold;">' + item.reason.replace(/\n/g, '<br>') + '</div>';
-                }
+                resultHtml += '<p style="color: #059669; line-height: 1.8; font-weight: bold; font-size: 1.1rem;">تم إنشاء مذكرة شاملة وتلخيص وافي للمنهج بنجاح طبقاً لمواصفات الوزارة.</p>';
+                resultHtml += '<p style="color: #64748b; font-size: 0.95rem; margin-bottom: 20px;">الملخص الجاهز للطباعة يحتوي على المقارنات، الأسباب، وأهم النقاط.</p>';
+                resultHtml += '<button id="native-print-btn" class="download-pdf-btn" style="background:#0ea5e9; margin-bottom: 10px;"><i class="fas fa-file-pdf"></i> تحميل / حفظ المذكرة كملف PDF</button></div>';
             } else {
-                qaHtml += '<p style="color: #0f172a; margin: 0 0 8px 0; font-size: 15px;"><strong>س ' + questionCount + ': ' + cleanQuestion + typeTitle + '</strong></p>';
+                resultHtml += '<p style="color: #059669; line-height: 1.8; font-weight: bold; font-size: 1.1rem;">تم تلخيص الصور واستخراج بنك الأسئلة طبقاً للورقة الامتحانية المصرية بنجاح.</p>';
+                resultHtml += '<p style="color: #64748b; font-size: 0.95rem; margin-bottom: 20px;">الأسئلة جاهزة الآن للطباعة أو التحميل كملف PDF.</p>';
+                resultHtml += '<button id="native-print-btn" class="download-pdf-btn" style="background:#0ea5e9; margin-bottom: 10px;"><i class="fas fa-file-pdf"></i> تحميل / حفظ الأسئلة كملف PDF</button></div>';
+            }
+
+            document.getElementById('ai-response-text').innerHTML = resultHtml;
+            globalLessonContext = JSON.stringify(serverData.qa_data);
+            
+            let btnContainer = document.getElementById('interactive-exam-btn-container');
+            if (btnContainer) {
+                btnContainer.innerHTML = '';
+                if (!isSummaryMode) {
+                    interactiveExamData = serverData.qa_data.filter(q => q.type === "MCQ" || q.type === "TF" || q.type === "ESSAY");
+                    if (interactiveExamData.length > 0) {
+                        btnContainer.innerHTML = `<button id="start-interactive-exam-btn" class="action-btn" style="background:#8b5cf6; margin-top:15px; width:100%;"><i class="fas fa-stopwatch"></i> بدء الامتحان التفاعلي أونلاين الآن</button>`;
+                        document.getElementById('start-interactive-exam-btn').addEventListener('click', () => {
+                            startInteractiveExam(subjectName);
+                        });
+                    }
+                }
+            }
+            
+            // --- الحل الجذري لمشكلة الـ PDF ---
+            document.getElementById('native-print-btn').addEventListener('click', () => {
+                preparePDFDOM(serverData, subjectName);
                 
-                if (item.options && Array.isArray(item.options) && item.options.length > 0) {
-                    qaHtml += '<div style="margin: 10px 0; padding: 10px; background: #ffffff; border-radius: 6px; border: 1px solid #cbd5e1;">';
-                    item.options.forEach((opt) => {
-                        let cleanOpt = stripParentheses(opt);
-                        let isThisCorrect = (!isExamMode && item.a && (item.a.includes(cleanOpt) || cleanOpt.includes(item.a)));
-                        let mark = isThisCorrect ? " <strong style='color:#059669;'>(✓ الإجابة الصحيحة)</strong>" : "";
-                        qaHtml += '<div style="margin-bottom: 6px; color: #1e293b; font-size: 14px;">• ' + cleanOpt + mark + '</div>';
-                    });
-                    qaHtml += '</div>';
-                }
+                const element = document.getElementById('pdf-template');
+                element.style.display = 'block'; 
+                element.style.position = 'absolute'; 
+                element.style.top = '-9999px'; 
 
-                if (!isExamMode) {
-                    if (item.type === "TF") {
-                        let isTrueAns = (item.a && (item.a.includes("صح") || item.a.includes("true") || item.a.includes("✓")));
-                        let symbolMark = isTrueAns ? "[ ✓ ]" : "[ ✕ ]";
-                        let colorMark = isTrueAns ? "#059669" : "#b45309";
-                        qaHtml += `<p style="margin: 10px 0 0 0; font-size: 14px; font-weight: bold; color: ${colorMark};">${symbolMark}</p>`;
-                        if (item.reason) {
-                            qaHtml += '<p style="margin: 6px 0 0 0; line-height: 1.8; font-size: 13px; color: #334155;"><strong>السبب العلمي:</strong><br>' + item.reason.replace(/\n/g, '<br>') + '</p>';
-                        }
-                    } else {
-                        qaHtml += '<p style="margin: 10px 0 0 0; line-height: 1.8; font-size: 13px; color: #059669;"><strong>الإجابة النموذجية: </strong><br>' + item.a.replace(/\n/g, '<br>') + '</p>';
-                        if (item.reason) {
-                            qaHtml += '<p style="margin: 8px 0 0 0; line-height: 1.8; font-size: 13px; color: #b45309;"><strong>السبب والتفسير العلمي الوافي:</strong><br>' + item.reason.replace(/\n/g, '<br>') + '</p>';
-                        }
-                    }
-                } else {
-                    qaHtml += '<div style="margin-top: 15px; border-bottom: 1px dashed #cbd5e1; height: 25px;"></div>';
-                }
-            }
-            
-            qaHtml += '</div>';
-        });
+                const opt = {
+                    margin:       0.3,
+                    filename:     'EduPlatform_' + subjectName + '.pdf',
+                    image:        { type: 'jpeg', quality: 0.98 },
+                    html2canvas:  { scale: 2, useCORS: true, logging: false },
+                    jsPDF:        { unit: 'in', format: 'a4', orientation: 'portrait' }
+                };
 
-        document.getElementById('pdf-qa-content').innerHTML = qaHtml;
-        document.getElementById('pdf-header-title').innerText = (isSummaryMode ? 'مذكرة ملخص | ' : 'ملف أسئلة | ') + stripParentheses(serverData.subjectTitle || subjectName) + ' | ' + stripParentheses(serverData.grade || "");
-        
-        let pdfCreationDate = new Date(serverData.lastUpdated || Date.now()).toLocaleDateString('ar-EG');
-        let footerElement = document.querySelector('#pdf-template > div > div:last-child');
-        
-        if (footerElement) {
-            footerElement.innerHTML = 'تاريخ الإنشاء: ' + pdfCreationDate + (isSummaryMode ? ' | عدد الأقسام المستخرجة: ' : ' | عدد الأسئلة المستخرجة: ') + questionCount + '<br>تم التوليد بواسطة منصة الذكاء الاصطناعي 2026';
-        }
-    }
+                showToast("جاري تجهيز وتحميل ملف الـ PDF باحترافية...", "#0ea5e9");
 
-    function startInteractiveExam(subjectName) {
-        document.getElementById('ai-output-container').classList.add('hidden-section');
-        const examContainer = document.getElementById('interactive-exam-container');
-        examContainer.classList.remove('hidden-section');
-        
-        document.getElementById('exam-subject-title').innerText = subjectName;
-        
-        const questionsArea = document.getElementById('exam-questions-area');
-        questionsArea.innerHTML = '';
-        
-        interactiveExamTotalTime = interactiveExamData.length * 120;
-        interactiveExamTimeLeft = interactiveExamTotalTime;
-        examStartTime = Date.now();
-        
-        updateTimerDisplay();
-        interactiveExamTimer = setInterval(() => {
-            interactiveExamTimeLeft--;
-            updateTimerDisplay();
-            if (interactiveExamTimeLeft <= 0) {
-                clearInterval(interactiveExamTimer);
-                submitInteractiveExam(true);
-            }
-        }, 1000);
-
-        interactiveExamData.forEach((q, index) => {
-            let qDiv = document.createElement('div');
-            qDiv.className = 'interactive-q-card';
-            
-            let qTitle = `<div class="interactive-q-title">س ${index + 1}: ${stripParentheses(q.q)}</div>`;
-            let optionsHtml = '<div class="interactive-options">';
-            
-            if (q.type === "MCQ" && q.options && q.options.length > 0) {
-                q.options.forEach((opt, optIndex) => {
-                    let cleanOpt = stripParentheses(opt);
-                    let inputId = `q_${index}_opt_${optIndex}`;
-                    optionsHtml += `
-                        <label class="option-label" for="${inputId}">
-                            <input type="radio" name="q_${index}" id="${inputId}" value="${cleanOpt}" class="option-input">
-                            <span>${cleanOpt}</span>
-                        </label>
-                    `;
-                });
-                optionsHtml += `<textarea id="q_${index}_text" class="student-text-answer" placeholder="اكتب إجابتك هنا..." style="width:100%; margin-top:15px; padding:12px; border-radius:8px; border:2px solid #cbd5e1; font-family: 'Cairo', sans-serif; resize:vertical; font-weight:bold;"></textarea>`;
-            } else if (q.type === "TF") {
-                optionsHtml += `
-                    <label class="option-label" for="q_${index}_true">
-                        <input type="radio" name="q_${index}" id="q_${index}_true" value="صح" class="option-input">
-                        <span>صواب (صح)</span>
-                    </label>
-                    <label class="option-label" for="q_${index}_false">
-                        <input type="radio" name="q_${index}" id="q_${index}_false" value="خطأ" class="option-input">
-                        <span>خطأ</span>
-                    </label>
-                `;
-                optionsHtml += `<textarea id="q_${index}_text" class="student-text-answer" placeholder="اكتب إجابتك هنا..." style="width:100%; margin-top:15px; padding:12px; border-radius:8px; border:2px solid #cbd5e1; font-family: 'Cairo', sans-serif; resize:vertical; font-weight:bold;"></textarea>`;
-            } else if (q.type === "ESSAY") {
-                optionsHtml += `<textarea id="q_${index}_text" class="student-text-answer" placeholder="اكتب إجابتك هنا..." style="width:100%; margin-top:10px; padding:12px; border-radius:8px; border:2px solid #0ea5e9; font-family: 'Cairo', sans-serif; min-height:100px; resize:vertical; font-weight:bold; font-size:1.05rem;"></textarea>`;
-            }
-            
-            optionsHtml += '</div>';
-            optionsHtml += `<div id="feedback_${index}" class="result-feedback"></div>`;
-            
-            qDiv.innerHTML = qTitle + optionsHtml;
-            questionsArea.appendChild(qDiv);
-            
-            let radios = qDiv.querySelectorAll('input[type="radio"]');
-            radios.forEach(radio => {
-                radio.addEventListener('change', function() {
-                    let labels = qDiv.querySelectorAll('.option-label');
-                    labels.forEach(l => l.classList.remove('selected-opt'));
-                    if(this.checked) {
-                        this.parentElement.classList.add('selected-opt');
-                    }
+                html2pdf().set(opt).from(element).save().then(() => {
+                    element.style.display = 'none'; 
+                    element.style.position = 'static'; 
+                    showToast("تم تحميل الملزمة بنجاح!", "#10b981");
                 });
             });
-        });
-
-        const submitBtn = document.getElementById('submit-interactive-exam-btn');
-        submitBtn.style.display = 'inline-block';
-        submitBtn.onclick = () => submitInteractiveExam(false);
-        
-        examContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-
-    function updateTimerDisplay() {
-        let m = Math.floor(interactiveExamTimeLeft / 60);
-        let s = interactiveExamTimeLeft % 60;
-        document.getElementById('exam-time-display').innerText = `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-        if (interactiveExamTimeLeft < 60) {
-            document.getElementById('exam-time-display').style.color = '#ef4444';
+            
+            document.getElementById('ai-output-container').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         }
-    }
 
-    async function submitInteractiveExam(isTimeOut = false) {
-        clearInterval(interactiveExamTimer);
-        
-        let score = 0;
-        let total = interactiveExamData.length;
-        let timeUsedSec = interactiveExamTotalTime - interactiveExamTimeLeft;
-        
-        const submitBtn = document.getElementById('submit-interactive-exam-btn');
-        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري التصحيح بالذكاء الاصطناعي...';
-        submitBtn.style.pointerEvents = 'none';
+        function preparePDFDOM(serverData, subjectName) {
+            const selectedFormat = document.getElementById('study-material-format')?.value || 'pdf-qa';
+            const isExamMode = (selectedFormat === 'exam-focus');
+            const isSummaryMode = (selectedFormat === 'summary');
 
-        for (let index = 0; index < interactiveExamData.length; index++) {
-            let q = interactiveExamData[index];
-            let selectedRadio = document.querySelector(`input[name="q_${index}"]:checked`);
-            let studentRadioAnswer = selectedRadio ? selectedRadio.value : null;
-            let textInput = document.getElementById(`q_${index}_text`);
-            let studentTextAnswer = textInput ? textInput.value.trim() : "";
+            let qaHtml = '';
+            let questionCount = 0;
             
-            let feedbackDiv = document.getElementById(`feedback_${index}`);
-            feedbackDiv.style.display = 'block';
-            feedbackDiv.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري تقييم وفحص الإجابة...';
+            // تحديد اتجاه النص بناءً على لغة المادة لضمان التنسيق السليم في الـ PDF
+            const foreignLanguages = ["اللغة الإنجليزية", "اللغة الفرنسية", "اللغة الألمانية", "اللغة الإيطالية", "english", "french", "german", "italian"];
+            const isForeignLang = foreignLanguages.some(lang => subjectName.toLowerCase().includes(lang));
+            const textDirection = isForeignLang ? 'ltr' : 'rtl';
+            const textAlign = isForeignLang ? 'left' : 'right';
             
-            let isCorrect = false;
-            let aiFeedbackMsg = "";
-
-            if (q.type === "MCQ" || q.type === "TF") {
-                if (q.type === "MCQ") {
-                    isCorrect = studentRadioAnswer && (q.a.includes(studentRadioAnswer) || studentRadioAnswer.includes(q.a));
-                } else if (q.type === "TF") {
-                    let correctAnswerStr = q.a.includes("صح") || q.a.includes("true") || q.a.includes("✓") ? "صح" : "خطأ";
-                    isCorrect = studentRadioAnswer === correctAnswerStr;
-                }
+            serverData.qa_data.forEach((item, index) => {
+                questionCount++;
+                let cleanQuestion = stripParentheses(item.q);
                 
-                if (isCorrect) score++;
+                let typeTitle = "";
+                if (!isSummaryMode) {
+                    if (item.type === "MCQ") typeTitle = isForeignLang ? " [MCQ]" : " [اختيار من متعدد]";
+                    else if (item.type === "TF") typeTitle = isForeignLang ? " [True/False]" : " [صح أو خطأ]";
+                    else if (item.type === "ESSAY") typeTitle = isForeignLang ? " [Essay]" : " [سؤال مقالي]";
+                }
 
-                aiFeedbackMsg = `
-                    <div style="font-size: 1.1rem; margin-bottom: 5px;"><strong>${isCorrect ? 'إجابة صحيحة ✓ (أنت ممتاز!)' : 'إجابة خاطئة ✕'}</strong></div>
-                    ${!isCorrect ? `<div style="color: #0f172a; margin-bottom: 5px;"><strong>الإجابة العلمية المنطقية النصية بتقول:</strong> ${q.a}</div>` : ''}
-                    <div style="margin-top:8px; font-size:0.95rem; color:#b45309;"><strong>السبب العلمي (ليه صح أو غلط):</strong> ${q.reason || 'لا يوجد تفسير إضافي'}</div>
-                    ${studentTextAnswer ? `<div style="margin-top:8px; font-size:0.9rem; color:#64748b;"><strong>ملاحظاتك المكتوبة:</strong> ${studentTextAnswer}</div>` : ''}
-                `;
-                feedbackDiv.classList.add(isCorrect ? 'correct' : 'wrong');
-                feedbackDiv.innerHTML = aiFeedbackMsg;
-
-            } else if (q.type === "ESSAY") {
-                if (!studentTextAnswer || studentTextAnswer.length < 2) {
-                    isCorrect = false;
-                    aiFeedbackMsg = `
-                        <div style="font-size: 1.1rem; margin-bottom: 5px;"><strong>إجابة خاطئة ✕ (لم تقم بكتابة إجابة كافية)</strong></div>
-                        <div style="color: #0f172a; margin-bottom: 5px;"><strong>الإجابة العلمية المنطقية النصية بتقول:</strong> ${q.a}</div>
-                        <div style="margin-top:8px; font-size:0.95rem; color:#b45309;"><strong>السبب العلمي:</strong> ${q.reason || 'لا يوجد تفاصيل إضافية'}</div>
-                    `;
-                    feedbackDiv.classList.add('wrong');
-                    feedbackDiv.innerHTML = aiFeedbackMsg;
+                qaHtml += `<div class="pdf-question-block" style="margin-bottom: 20px; background: #f8fafc; padding: 16px; border-radius: 8px; border-${isForeignLang ? 'left' : 'right'}: 4px solid #10b981; direction: ${textDirection}; text-align: ${textAlign}; position: relative; z-index: 1; page-break-inside: avoid !important; break-inside: avoid !important;">`;
+                
+                if (isSummaryMode) {
+                    qaHtml += '<p style="color: #0f172a; margin: 0 0 12px 0; font-size: 16px; border-bottom: 2px solid #cbd5e1; padding-bottom: 8px;"><strong><i class="fas fa-star" style="color:#f59e0b;"></i> ' + cleanQuestion + '</strong></p>';
+                    qaHtml += '<div style="margin: 10px 0 0 0; line-height: 1.9; font-size: 15px; color: #1e293b;">' + (item.a ? item.a.replace(/\n/g, '<br>') : '') + '</div>';
+                    if (item.reason) {
+                        qaHtml += '<div style="margin: 10px 0 0 0; line-height: 1.9; font-size: 14px; color: #059669; font-weight: bold;">' + item.reason.replace(/\n/g, '<br>') + '</div>';
+                    }
                 } else {
-                    try {
-                        const response = await fetch('/api/analyze', {
-                            method: 'POST',
-                            headers: { 
-                                'Content-Type': 'application/json',
-                                'X-Bypass-Trial': 'true'
-                            },
-                            body: JSON.stringify({
-                                action: 'semantic_grade',
-                                question: q.q,
-                                model_answer: q.a,
-                                student_answer: studentTextAnswer
-                            })
+                    let qPrefix = isForeignLang ? 'Q ' : 'س ';
+                    qaHtml += '<p style="color: #0f172a; margin: 0 0 8px 0; font-size: 15px;"><strong>' + qPrefix + questionCount + ': ' + cleanQuestion + typeTitle + '</strong></p>';
+                    
+                    if (item.options && Array.isArray(item.options) && item.options.length > 0) {
+                        qaHtml += '<div style="margin: 10px 0; padding: 10px; background: #ffffff; border-radius: 6px; border: 1px solid #cbd5e1;">';
+                        item.options.forEach((opt) => {
+                            let cleanOpt = stripParentheses(opt);
+                            let isThisCorrect = (!isExamMode && item.a && (item.a.includes(cleanOpt) || cleanOpt.includes(item.a)));
+                            let correctMarkText = isForeignLang ? "(✓ Correct)" : "(✓ الإجابة الصحيحة)";
+                            let mark = isThisCorrect ? ` <strong style='color:#059669;'>${correctMarkText}</strong>` : "";
+                            qaHtml += '<div style="margin-bottom: 6px; color: #1e293b; font-size: 14px;">• ' + cleanOpt + mark + '</div>';
                         });
-                        
-                        const data = await response.json();
-                        let replyText = data.reply || "{}";
-                        let aiEval = JSON.parse(replyText);
-                        
-                        isCorrect = aiEval.isCorrect === true || aiEval.isCorrect === "true";
-                        
-                    } catch (e) {
-                        console.error("AI Semantic Grading Failed:", e);
-                        isCorrect = studentTextAnswer.length > 5; 
+                        qaHtml += '</div>';
                     }
 
+                    if (!isExamMode) {
+                        let trueWords = ["صح", "true", "vrai", "richtig", "vero", "✓"];
+                        if (item.type === "TF") {
+                            let isTrueAns = item.a && trueWords.some(w => item.a.toLowerCase().includes(w));
+                            let symbolMark = isTrueAns ? "[ ✓ ]" : "[ ✕ ]";
+                            let colorMark = isTrueAns ? "#059669" : "#b45309";
+                            let reasonLabel = isForeignLang ? "Scientific Reason:" : "السبب العلمي:";
+                            qaHtml += `<p style="margin: 10px 0 0 0; font-size: 14px; font-weight: bold; color: ${colorMark};">${symbolMark}</p>`;
+                            if (item.reason) {
+                                qaHtml += '<p style="margin: 6px 0 0 0; line-height: 1.8; font-size: 13px; color: #334155;"><strong>' + reasonLabel + '</strong><br>' + item.reason.replace(/\n/g, '<br>') + '</p>';
+                            }
+                        } else {
+                            let answerLabel = isForeignLang ? "Model Answer:" : "الإجابة النموذجية:";
+                            let detailLabel = isForeignLang ? "Detailed Explanation:" : "السبب والتفسير العلمي الوافي:";
+                            qaHtml += '<p style="margin: 10px 0 0 0; line-height: 1.8; font-size: 13px; color: #059669;"><strong>' + answerLabel + ' </strong><br>' + item.a.replace(/\n/g, '<br>') + '</p>';
+                            if (item.reason) {
+                                qaHtml += '<p style="margin: 8px 0 0 0; line-height: 1.8; font-size: 13px; color: #b45309;"><strong>' + detailLabel + '</strong><br>' + item.reason.replace(/\n/g, '<br>') + '</p>';
+                            }
+                        }
+                    } else {
+                        qaHtml += '<div style="margin-top: 15px; border-bottom: 1px dashed #cbd5e1; height: 25px;"></div>';
+                    }
+                }
+                
+                qaHtml += '</div>';
+            });
+
+            document.getElementById('pdf-qa-content').innerHTML = qaHtml;
+            // تطبيق الاتجاه الصحيح على حاوية الـ PDF بالكامل بناء على المادة
+            document.getElementById('pdf-qa-content').style.direction = textDirection;
+            document.getElementById('pdf-qa-content').style.textAlign = textAlign;
+            
+            let headerPrefix = isSummaryMode ? (isForeignLang ? 'Summary | ' : 'مذكرة ملخص | ') : (isForeignLang ? 'Questions | ' : 'ملف أسئلة | ');
+            document.getElementById('pdf-header-title').innerText = headerPrefix + stripParentheses(serverData.subjectTitle || subjectName) + ' | ' + stripParentheses(serverData.grade || "");
+            
+            let pdfCreationDate = new Date(serverData.lastUpdated || Date.now()).toLocaleDateString('ar-EG');
+            let footerElement = document.querySelector('#pdf-template > div > div:last-child');
+            
+            if (footerElement) {
+                let sectionsLabel = isSummaryMode ? (isForeignLang ? ' | Generated Sections: ' : ' | عدد الأقسام المستخرجة: ') : (isForeignLang ? ' | Generated Questions: ' : ' | عدد الأسئلة المستخرجة: ');
+                let watermarkText = isForeignLang ? '<br>Generated by AI Educational Platform 2026' : '<br>تم التوليد بواسطة منصة الذكاء الاصطناعي 2026';
+                let dateLabel = isForeignLang ? 'Creation Date: ' : 'تاريخ الإنشاء: ';
+                footerElement.innerHTML = dateLabel + pdfCreationDate + sectionsLabel + questionCount + watermarkText;
+            }
+        }
+
+        function startInteractiveExam(subjectName) {
+            document.getElementById('ai-output-container').classList.add('hidden-section');
+            const examContainer = document.getElementById('interactive-exam-container');
+            examContainer.classList.remove('hidden-section');
+            
+            document.getElementById('exam-subject-title').innerText = subjectName;
+            
+            const questionsArea = document.getElementById('exam-questions-area');
+            questionsArea.innerHTML = '';
+            
+            interactiveExamTotalTime = interactiveExamData.length * 120;
+            interactiveExamTimeLeft = interactiveExamTotalTime;
+            examStartTime = Date.now();
+            
+            updateTimerDisplay();
+            interactiveExamTimer = setInterval(() => {
+                interactiveExamTimeLeft--;
+                updateTimerDisplay();
+                if (interactiveExamTimeLeft <= 0) {
+                    clearInterval(interactiveExamTimer);
+                    submitInteractiveExam(true);
+                }
+            }, 1000);
+
+            interactiveExamData.forEach((q, index) => {
+                let qDiv = document.createElement('div');
+                qDiv.className = 'interactive-q-card';
+                
+                let qTitle = `<div class="interactive-q-title">س ${index + 1}: ${stripParentheses(q.q)}</div>`;
+                let optionsHtml = '<div class="interactive-options">';
+                
+                if (q.type === "MCQ" && q.options && q.options.length > 0) {
+                    q.options.forEach((opt, optIndex) => {
+                        let cleanOpt = stripParentheses(opt);
+                        let inputId = `q_${index}_opt_${optIndex}`;
+                        optionsHtml += `
+                            <label class="option-label" for="${inputId}">
+                                <input type="radio" name="q_${index}" id="${inputId}" value="${cleanOpt}" class="option-input">
+                                <span>${cleanOpt}</span>
+                            </label>
+                        `;
+                    });
+                    optionsHtml += `<textarea id="q_${index}_text" class="student-text-answer" placeholder="اكتب إجابتك هنا..." style="width:100%; margin-top:15px; padding:12px; border-radius:8px; border:2px solid #cbd5e1; font-family: 'Cairo', sans-serif; resize:vertical; font-weight:bold;"></textarea>`;
+                } else if (q.type === "TF") {
+                    optionsHtml += `
+                        <label class="option-label" for="q_${index}_true">
+                            <input type="radio" name="q_${index}" id="q_${index}_true" value="صح" class="option-input">
+                            <span>صواب (صح)</span>
+                        </label>
+                        <label class="option-label" for="q_${index}_false">
+                            <input type="radio" name="q_${index}" id="q_${index}_false" value="خطأ" class="option-input">
+                            <span>خطأ</span>
+                        </label>
+                    `;
+                    optionsHtml += `<textarea id="q_${index}_text" class="student-text-answer" placeholder="اكتب إجابتك هنا..." style="width:100%; margin-top:15px; padding:12px; border-radius:8px; border:2px solid #cbd5e1; font-family: 'Cairo', sans-serif; resize:vertical; font-weight:bold;"></textarea>`;
+                } else if (q.type === "ESSAY") {
+                    optionsHtml += `<textarea id="q_${index}_text" class="student-text-answer" placeholder="اكتب إجابتك هنا..." style="width:100%; margin-top:10px; padding:12px; border-radius:8px; border:2px solid #0ea5e9; font-family: 'Cairo', sans-serif; min-height:100px; resize:vertical; font-weight:bold; font-size:1.05rem;"></textarea>`;
+                }
+                
+                optionsHtml += '</div>';
+                optionsHtml += `<div id="feedback_${index}" class="result-feedback"></div>`;
+                
+                qDiv.innerHTML = qTitle + optionsHtml;
+                questionsArea.appendChild(qDiv);
+                
+                let radios = qDiv.querySelectorAll('input[type="radio"]');
+                radios.forEach(radio => {
+                    radio.addEventListener('change', function() {
+                        let labels = qDiv.querySelectorAll('.option-label');
+                        labels.forEach(l => l.classList.remove('selected-opt'));
+                        if(this.checked) {
+                            this.parentElement.classList.add('selected-opt');
+                        }
+                    });
+                });
+            });
+
+            const submitBtn = document.getElementById('submit-interactive-exam-btn');
+            submitBtn.style.display = 'inline-block';
+            submitBtn.onclick = () => submitInteractiveExam(false);
+            
+            examContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        function updateTimerDisplay() {
+            let m = Math.floor(interactiveExamTimeLeft / 60);
+            let s = interactiveExamTimeLeft % 60;
+            document.getElementById('exam-time-display').innerText = `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+            if (interactiveExamTimeLeft < 60) {
+                document.getElementById('exam-time-display').style.color = '#ef4444';
+            }
+        }
+
+        async function submitInteractiveExam(isTimeOut = false) {
+            clearInterval(interactiveExamTimer);
+            
+            let score = 0;
+            let total = interactiveExamData.length;
+            let timeUsedSec = interactiveExamTotalTime - interactiveExamTimeLeft;
+            
+            const submitBtn = document.getElementById('submit-interactive-exam-btn');
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري التصحيح بالذكاء الاصطناعي...';
+            submitBtn.style.pointerEvents = 'none';
+
+            for (let index = 0; index < interactiveExamData.length; index++) {
+                let q = interactiveExamData[index];
+                let selectedRadio = document.querySelector(`input[name="q_${index}"]:checked`);
+                let studentRadioAnswer = selectedRadio ? selectedRadio.value : null;
+                let textInput = document.getElementById(`q_${index}_text`);
+                let studentTextAnswer = textInput ? textInput.value.trim() : "";
+                
+                let feedbackDiv = document.getElementById(`feedback_${index}`);
+                feedbackDiv.style.display = 'block';
+                feedbackDiv.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري تقييم وفحص الإجابة...';
+                
+                let isCorrect = false;
+                let aiFeedbackMsg = "";
+
+                if (q.type === "MCQ" || q.type === "TF") {
+                    if (q.type === "MCQ") {
+                        isCorrect = studentRadioAnswer && (q.a.includes(studentRadioAnswer) || studentRadioAnswer.includes(q.a));
+                    } else if (q.type === "TF") {
+                        let correctAnswerStr = q.a.includes("صح") || q.a.includes("true") || q.a.includes("✓") ? "صح" : "خطأ";
+                        isCorrect = studentRadioAnswer === correctAnswerStr;
+                    }
+                    
                     if (isCorrect) score++;
 
                     aiFeedbackMsg = `
-                        <div style="font-size: 1.1rem; margin-bottom: 5px;"><strong>${isCorrect ? 'إجابة صحيحة ✓ (أنت ممتاز!)' : 'إجابة خاطئة ✕ (حاول التركيز أكثر)'}</strong></div>
-                        <div style="color: #0f172a; margin-bottom: 5px;"><strong>الإجابة العلمية المنطقية النصية بتقول كذا كذا:</strong><br>${q.a}</div>
-                        <div style="margin-top:8px; font-size:0.95rem; color:#b45309;"><strong>السبب والتفسير العلمي:</strong><br>${q.reason || 'لا توجد تفاصيل أخرى'}</div>
+                        <div style="font-size: 1.1rem; margin-bottom: 5px;"><strong>${isCorrect ? 'إجابة صحيحة ✓ (أنت ممتاز!)' : 'إجابة خاطئة ✕'}</strong></div>
+                        ${!isCorrect ? `<div style="color: #0f172a; margin-bottom: 5px;"><strong>الإجابة العلمية المنطقية النصية بتقول:</strong> ${q.a}</div>` : ''}
+                        <div style="margin-top:8px; font-size:0.95rem; color:#b45309;"><strong>السبب العلمي (ليه صح أو غلط):</strong> ${q.reason || 'لا يوجد تفسير إضافي'}</div>
+                        ${studentTextAnswer ? `<div style="margin-top:8px; font-size:0.9rem; color:#64748b;"><strong>ملاحظاتك المكتوبة:</strong> ${studentTextAnswer}</div>` : ''}
                     `;
                     feedbackDiv.classList.add(isCorrect ? 'correct' : 'wrong');
                     feedbackDiv.innerHTML = aiFeedbackMsg;
+
+                } else if (q.type === "ESSAY") {
+                    if (!studentTextAnswer || studentTextAnswer.length < 2) {
+                        isCorrect = false;
+                        aiFeedbackMsg = `
+                            <div style="font-size: 1.1rem; margin-bottom: 5px;"><strong>إجابة خاطئة ✕ (لم تقم بكتابة إجابة كافية)</strong></div>
+                            <div style="color: #0f172a; margin-bottom: 5px;"><strong>الإجابة العلمية المنطقية النصية بتقول:</strong> ${q.a}</div>
+                            <div style="margin-top:8px; font-size:0.95rem; color:#b45309;"><strong>السبب العلمي:</strong> ${q.reason || 'لا يوجد تفاصيل إضافية'}</div>
+                        `;
+                        feedbackDiv.classList.add('wrong');
+                        feedbackDiv.innerHTML = aiFeedbackMsg;
+                    } else {
+                        try {
+                            const response = await fetch('/api/analyze', {
+                                method: 'POST',
+                                headers: { 
+                                    'Content-Type': 'application/json',
+                                    'X-Bypass-Trial': 'true'
+                                },
+                                body: JSON.stringify({
+                                    action: 'semantic_grade',
+                                    question: q.q,
+                                    model_answer: q.a,
+                                    student_answer: studentTextAnswer
+                                })
+                            });
+                            
+                            const data = await response.json();
+                            let replyText = data.reply || "{}";
+                            let aiEval = JSON.parse(replyText);
+                            
+                            isCorrect = aiEval.isCorrect === true || aiEval.isCorrect === "true";
+                            
+                        } catch (e) {
+                            console.error("AI Semantic Grading Failed:", e);
+                            isCorrect = studentTextAnswer.length > 5; 
+                        }
+
+                        if (isCorrect) score++;
+
+                        aiFeedbackMsg = `
+                            <div style="font-size: 1.1rem; margin-bottom: 5px;"><strong>${isCorrect ? 'إجابة صحيحة ✓ (أنت ممتاز!)' : 'إجابة خاطئة ✕ (حاول التركيز أكثر)'}</strong></div>
+                            <div style="color: #0f172a; margin-bottom: 5px;"><strong>الإجابة العلمية المنطقية النصية بتقول كذا كذا:</strong><br>${q.a}</div>
+                            <div style="margin-top:8px; font-size:0.95rem; color:#b45309;"><strong>السبب والتفسير العلمي:</strong><br>${q.reason || 'لا توجد تفاصيل أخرى'}</div>
+                        `;
+                        feedbackDiv.classList.add(isCorrect ? 'correct' : 'wrong');
+                        feedbackDiv.innerHTML = aiFeedbackMsg;
+                    }
                 }
             }
-        }
 
-        let percentage = Math.round((score / total) * 100);
-        let resultMsg = isTimeOut ? "انتهى الوقت! " : "تم التصحيح والتسليم بنجاح! ";
-        resultMsg += `نتيجتك النهائية: ${score} من ${total} (${percentage}%)`;
-        
-        showCustomAlert(resultMsg, percentage >= 50 ? 'success' : 'error');
-        submitBtn.style.display = 'none';
+            let percentage = Math.round((score / total) * 100);
+            let resultMsg = isTimeOut ? "انتهى الوقت! " : "تم التصحيح والتسليم بنجاح! ";
+            resultMsg += `نتيجتك النهائية: ${score} من ${total} (${percentage}%)`;
+            
+            showCustomAlert(resultMsg, percentage >= 50 ? 'success' : 'error');
+            submitBtn.style.display = 'none';
 
-        if (isVIPLoggedIn && score > 0) {
-            updateGamification(score * 10);
-            showToast(`ألف مبروك! كسبت ${score * 10} نقطة ذهبية جديدة`, "#f59e0b");
-        }
+            if (isVIPLoggedIn && score > 0) {
+                updateGamification(score * 10);
+                showToast(`ألف مبروك! كسبت ${score * 10} نقطة ذهبية جديدة`, "#f59e0b");
+            }
 
-        let analyticsRecord = {
-            studentId: currentTeacherId || "زائر_غير_مسجل",
-            subject: document.getElementById('exam-subject-title').innerText,
-            score: score,
-            totalQuestions: total,
-            timeUsedSec: timeUsedSec,
-            timestamp: Date.now()
-        };
+            let analyticsRecord = {
+                studentId: currentTeacherId || "زائر_غير_مسجل",
+                subject: document.getElementById('exam-subject-title').innerText,
+                score: score,
+                totalQuestions: total,
+                timeUsedSec: timeUsedSec,
+                timestamp: Date.now()
+            };
 
-        if (navigator.onLine) {
-            try {
-                await db.collection("exam_analytics").add(analyticsRecord);
-            } catch (e) {
+            if (navigator.onLine) {
+                try {
+                    await db.collection("exam_analytics").add(analyticsRecord);
+                } catch (e) {
+                    await localDBHelper.saveAnalyticsLocally(analyticsRecord);
+                }
+            } else {
                 await localDBHelper.saveAnalyticsLocally(analyticsRecord);
             }
-        } else {
-            await localDBHelper.saveAnalyticsLocally(analyticsRecord);
-        }
-    }
-
-    const tutorFabBtn = document.getElementById('tutor-fab-btn');
-    const tutorImmersiveModal = document.getElementById('tutor-immersive-modal');
-    const closeImmersiveBtn = document.getElementById('close-immersive-btn');
-    const immersiveInput = document.getElementById('tutor-immersive-input');
-    const immersiveSendBtn = document.getElementById('tutor-immersive-send-btn');
-    const immersiveMessagesArea = document.getElementById('tutor-immersive-messages');
-    
-    const chatInputArea = document.querySelector('.tutor-chat-input-area');
-    if (chatInputArea && !document.getElementById('voice-ai-btn')) {
-        const voiceBtn = document.createElement('button');
-        voiceBtn.id = 'voice-ai-btn';
-        voiceBtn.innerHTML = '<i class="fas fa-microphone"></i>';
-        voiceBtn.style.cssText = 'background: #f59e0b; color: white; border: none; width: 50px; height: 50px; border-radius: 50%; cursor: pointer; display: flex; justify-content: center; align-items: center; font-size: 1.2rem; box-shadow: 0 4px 10px rgba(245, 158, 11, 0.3); transition: 0.2s; margin-left: 10px; flex-shrink: 0;';
-        voiceBtn.onclick = () => {
-            showCustomAlert("أداة التحدث الصوتي للمنصة قيد التطوير وسيتم تفعيلها في التحديث القادم لتعمل بشكل مثالي!", 'success');
-        };
-        chatInputArea.insertBefore(voiceBtn, document.getElementById('tutor-immersive-input'));
-    }
-
-    if (tutorFabBtn && tutorImmersiveModal) {
-        tutorFabBtn.onclick = (e) => {
-            e.preventDefault();
-            tutorImmersiveModal.classList.remove('hidden-section');
-            tutorImmersiveModal.classList.add('active');
-            init3DRobot();
-        };
-    }
-
-    if (closeImmersiveBtn) {
-        closeImmersiveBtn.addEventListener('click', () => {
-            tutorImmersiveModal.classList.remove('active');
-            setTimeout(() => tutorImmersiveModal.classList.add('hidden-section'), 400);
-        });
-    }
-
-    function appendImmersiveMessage(text, sender) {
-        if (!immersiveMessagesArea) return;
-        const msgDiv = document.createElement('div');
-        msgDiv.className = sender === 'user' ? 'tutor-msg user-msg' : 'tutor-msg bot-msg';
-        msgDiv.innerHTML = text.replace(/\n/g, '<br>');
-        immersiveMessagesArea.appendChild(msgDiv);
-        immersiveMessagesArea.scrollTop = immersiveMessagesArea.scrollHeight;
-    }
-
-    async function sendImmersiveQuestion() {
-        const text = immersiveInput.value.trim();
-        if (!text) return;
-        
-        appendImmersiveMessage(text, 'user');
-        immersiveInput.value = '';
-
-        const typingId = 'imm-typing-' + Date.now();
-        const typingDiv = document.createElement('div');
-        typingDiv.id = typingId;
-        typingDiv.className = 'tutor-msg bot-msg';
-        typingDiv.innerHTML = '<i class="fas fa-ellipsis-h fa-fade"></i> جاري التفكير...';
-        immersiveMessagesArea.appendChild(typingDiv);
-        immersiveMessagesArea.scrollTop = immersiveMessagesArea.scrollHeight;
-
-        let currentYear = document.getElementById('year-stage')?.options[document.getElementById('year-stage')?.selectedIndex]?.text || "غير محدد";
-        let mainStageVal = document.getElementById('main-stage')?.value || "";
-        
-        let customPrompt = "MANDATORY_STRICT_INSTRUCTION: YOU ARE A FRIENDLY, HUMAN-LIKE EXPERT EGYPTIAN TEACHER. ";
-        customPrompt += "CRITICAL RULE 1: YOU MUST STRICTLY ADHERE TO THE UPLOADED LESSON CONTENT ONLY. NEVER ADD EXTERNAL INFORMATION OUTSIDE THE UPLOADED IMAGES OR CURRICULUM. ";
-        customPrompt += "CRITICAL RULE 2: IF THE SUBJECT IS ENGLISH, FRENCH, GERMAN, OR ITALIAN, YOU MUST EXPLAIN IN THAT SPECIFIC LANGUAGE FIRST. HOWEVER, IF THE STUDENT DOES NOT UNDERSTAND OR ASKS TO EXPLAIN IN ARABIC, YOU MUST EXPLAIN IN CLEAR ARABIC. FOR ALL OTHER SUBJECTS, SPEAK ARABIC BY DEFAULT. ";
-        
-        if (mainStageVal.includes('primary')) {
-            customPrompt += "THE STUDENT IS IN PRIMARY SCHOOL (" + currentYear + "). EXPLAIN IN A VERY SIMPLE, CLEAR, AND ENGAGING WAY SUITABLE FOR CHILDREN.";
-        } else if (mainStageVal.includes('prep')) {
-            customPrompt += "THE STUDENT IS IN PREPARATORY SCHOOL (" + currentYear + "). EXPLAIN SIMPLY BUT PROVIDE A COMPREHENSIVE AND STRUCTURED EXPLANATION FOR THE QUESTION.";
-        } else if (mainStageVal.includes('high') || mainStageVal.includes('diploma')) {
-            customPrompt += "THE STUDENT IS IN SECONDARY SCHOOL/DIPLOMA (" + currentYear + "). EXPLAIN USING ALL AVAILABLE METHODS, PROVIDE DEEP ACADEMIC ANALYSIS, EXAMPLES, AND THOROUGH DETAILS.";
-        } else {
-            customPrompt += "ADAPT YOUR EXPLANATION TO THE STUDENT'S LEVEL.";
         }
 
-        try {
-            const response = await fetch('/api/analyze', {
-                method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/json',
-                    'X-Bypass-Trial': 'true'
-                },
-                body: JSON.stringify({
-                    action: 'chat',
-                    message: text,
-                    context: globalLessonContext,
-                    strict_prompt_command: customPrompt
-                })
+        const tutorFabBtn = document.getElementById('tutor-fab-btn');
+        const tutorImmersiveModal = document.getElementById('tutor-immersive-modal');
+        const closeImmersiveBtn = document.getElementById('close-immersive-btn');
+        const immersiveInput = document.getElementById('tutor-immersive-input');
+        const immersiveSendBtn = document.getElementById('tutor-immersive-send-btn');
+        const immersiveMessagesArea = document.getElementById('tutor-immersive-messages');
+        
+        const chatInputArea = document.querySelector('.tutor-chat-input-area');
+        if (chatInputArea && !document.getElementById('voice-ai-btn')) {
+            const voiceBtn = document.createElement('button');
+            voiceBtn.id = 'voice-ai-btn';
+            voiceBtn.innerHTML = '<i class="fas fa-microphone"></i>';
+            voiceBtn.style.cssText = 'background: #f59e0b; color: white; border: none; width: 50px; height: 50px; border-radius: 50%; cursor: pointer; display: flex; justify-content: center; align-items: center; font-size: 1.2rem; box-shadow: 0 4px 10px rgba(245, 158, 11, 0.3); transition: 0.2s; margin-left: 10px; flex-shrink: 0;';
+            voiceBtn.onclick = () => {
+                showCustomAlert("أداة التحدث الصوتي للمنصة قيد التطوير وسيتم تفعيلها في التحديث القادم لتعمل بشكل مثالي!", 'success');
+            };
+            chatInputArea.insertBefore(voiceBtn, document.getElementById('tutor-immersive-input'));
+        }
+
+        if (tutorFabBtn && tutorImmersiveModal) {
+            tutorFabBtn.onclick = (e) => {
+                e.preventDefault();
+                tutorImmersiveModal.classList.remove('hidden-section');
+                tutorImmersiveModal.classList.add('active');
+                init3DRobot();
+            };
+        }
+
+        if (closeImmersiveBtn) {
+            closeImmersiveBtn.addEventListener('click', () => {
+                tutorImmersiveModal.classList.remove('active');
+                setTimeout(() => tutorImmersiveModal.classList.add('hidden-section'), 400);
+            });
+        }
+
+        function appendImmersiveMessage(text, sender) {
+            if (!immersiveMessagesArea) return;
+            const msgDiv = document.createElement('div');
+            msgDiv.className = sender === 'user' ? 'tutor-msg user-msg' : 'tutor-msg bot-msg';
+            msgDiv.innerHTML = text.replace(/\n/g, '<br>');
+            immersiveMessagesArea.appendChild(msgDiv);
+            immersiveMessagesArea.scrollTop = immersiveMessagesArea.scrollHeight;
+        }
+
+        async function sendImmersiveQuestion() {
+            const text = immersiveInput.value.trim();
+            if (!text) return;
+            
+            appendImmersiveMessage(text, 'user');
+            immersiveInput.value = '';
+
+            const typingId = 'imm-typing-' + Date.now();
+            const typingDiv = document.createElement('div');
+            typingDiv.id = typingId;
+            typingDiv.className = 'tutor-msg bot-msg';
+            typingDiv.innerHTML = '<i class="fas fa-ellipsis-h fa-fade"></i> جاري التفكير...';
+            immersiveMessagesArea.appendChild(typingDiv);
+            immersiveMessagesArea.scrollTop = immersiveMessagesArea.scrollHeight;
+
+            let currentYear = document.getElementById('year-stage')?.options[document.getElementById('year-stage')?.selectedIndex]?.text || "غير محدد";
+            let mainStageVal = document.getElementById('main-stage')?.value || "";
+            
+            let customPrompt = "MANDATORY_STRICT_INSTRUCTION: YOU ARE A FRIENDLY, HUMAN-LIKE EXPERT EGYPTIAN TEACHER. ";
+            customPrompt += "CRITICAL RULE 1: YOU MUST STRICTLY ADHERE TO THE UPLOADED LESSON CONTENT ONLY. NEVER ADD EXTERNAL INFORMATION OUTSIDE THE UPLOADED IMAGES OR CURRICULUM. ";
+            customPrompt += "CRITICAL RULE 2: IF THE SUBJECT IS ENGLISH, FRENCH, GERMAN, OR ITALIAN, YOU MUST EXPLAIN IN THAT SPECIFIC LANGUAGE FIRST. HOWEVER, IF THE STUDENT DOES NOT UNDERSTAND OR ASKS TO EXPLAIN IN ARABIC, YOU MUST EXPLAIN IN CLEAR ARABIC. FOR ALL OTHER SUBJECTS, SPEAK ARABIC BY DEFAULT. ";
+            
+            if (mainStageVal.includes('primary')) {
+                customPrompt += "THE STUDENT IS IN PRIMARY SCHOOL (" + currentYear + "). EXPLAIN IN A VERY SIMPLE, CLEAR, AND ENGAGING WAY SUITABLE FOR CHILDREN.";
+            } else if (mainStageVal.includes('prep')) {
+                customPrompt += "THE STUDENT IS IN PREPARATORY SCHOOL (" + currentYear + "). EXPLAIN SIMPLY BUT PROVIDE A COMPREHENSIVE AND STRUCTURED EXPLANATION FOR THE QUESTION.";
+            } else if (mainStageVal.includes('high') || mainStageVal.includes('diploma')) {
+                customPrompt += "THE STUDENT IS IN SECONDARY SCHOOL/DIPLOMA (" + currentYear + "). EXPLAIN USING ALL AVAILABLE METHODS, PROVIDE DEEP ACADEMIC ANALYSIS, EXAMPLES, AND THOROUGH DETAILS.";
+            } else {
+                customPrompt += "ADAPT YOUR EXPLANATION TO THE STUDENT'S LEVEL.";
+            }
+
+            try {
+                const response = await fetch('/api/analyze', {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'X-Bypass-Trial': 'true'
+                    },
+                    body: JSON.stringify({
+                        action: 'chat',
+                        message: text,
+                        context: globalLessonContext,
+                        strict_prompt_command: customPrompt
+                    })
+                });
+
+                if (!response.ok) throw new Error("Server error");
+                const data = await response.json();
+                
+                document.getElementById(typingId).remove();
+                let finalReply = data.answer || data.reply || data.message || "لا يوجد رد متاح.";
+                appendImmersiveMessage(finalReply, 'bot');
+                
+                startRobotTalking(finalReply.length * 50);
+                
+            } catch (err) {
+                if(document.getElementById(typingId)) document.getElementById(typingId).remove();
+                appendImmersiveMessage("عذراً، حدث خطأ في الاتصال. 🤖", 'bot');
+            }
+        }
+
+        if (immersiveSendBtn && immersiveInput) {
+            immersiveSendBtn.addEventListener('click', sendImmersiveQuestion);
+            immersiveInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') sendImmersiveQuestion();
+            });
+        }
+
+        let robotHeadGroup = null;
+        let robotJaw = null;
+        let isRobotTalking = false;
+        let mouseX = 0;
+        let mouseY = 0;
+
+        function init3DRobot() {
+            const container = document.getElementById('tutor-3d-canvas-container');
+            if (!container || typeof THREE === 'undefined') return;
+            
+            if (container.innerHTML.includes('canvas')) return;
+            container.innerHTML = ''; 
+
+            const scene = new THREE.Scene();
+            const camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 100);
+            camera.position.set(0, 0, 7); 
+
+            const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            renderer.setPixelRatio(window.devicePixelRatio); 
+            container.appendChild(renderer.domElement);
+
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+            scene.add(ambientLight);
+            const dirLight = new THREE.DirectionalLight(0xffffff, 0.9);
+            dirLight.position.set(2, 5, 5);
+            scene.add(dirLight);
+
+            robotHeadGroup = new THREE.Group();
+
+            const headGeo = new THREE.BoxGeometry(2.4, 1.8, 2.2);
+            const headMat = new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.2, metalness: 0.5 });
+            const upperHead = new THREE.Mesh(headGeo, headMat);
+            upperHead.position.set(0, 0.5, 0);
+            robotHeadGroup.add(upperHead);
+
+            const visorGeo = new THREE.BoxGeometry(2.45, 0.7, 2.25);
+            const visorMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.1 });
+            const visor = new THREE.Mesh(visorGeo, visorMat);
+            visor.position.set(0, 0.6, 0);
+            robotHeadGroup.add(visor);
+
+            const eyeGeo = new THREE.CircleGeometry(0.18, 32);
+            const eyeMat = new THREE.MeshBasicMaterial({ color: 0x0ea5e9, side: THREE.DoubleSide });
+            
+            const leftEye = new THREE.Mesh(eyeGeo, eyeMat);
+            leftEye.position.set(-0.6, 0.6, 1.13);
+            robotHeadGroup.add(leftEye);
+
+            const rightEye = new THREE.Mesh(eyeGeo, eyeMat);
+            rightEye.position.set(0.6, 0.6, 1.13);
+            robotHeadGroup.add(rightEye);
+
+            const jawGeo = new THREE.BoxGeometry(2.3, 0.7, 2.1);
+            const jawMat = new THREE.MeshStandardMaterial({ color: 0xe2e8f0, roughness: 0.4 });
+            robotJaw = new Mesh(jawGeo, jawMat);
+            robotJaw.position.set(0, -0.8, 0);
+            robotHeadGroup.add(robotJaw);
+
+            const mouthGeo = new THREE.BoxGeometry(1.8, 0.9, 1.8);
+            const mouthMat = new THREE.MeshBasicMaterial({ color: 0x0284c7 }); 
+            const mouthCore = new THREE.Mesh(mouthGeo, mouthMat);
+            mouthCore.position.set(0, -0.4, 0);
+            robotHeadGroup.add(mouthCore);
+
+            scene.add(robotHeadGroup);
+
+            const placeholder = container.querySelector('.tutor-3d-placeholder');
+            if (placeholder) placeholder.style.display = 'none';
+
+            document.addEventListener('mousemove', (event) => {
+                mouseX = (event.clientX / window.innerWidth) * 2 - 1;
+                mouseY = -(event.clientY / window.innerHeight) * 2 + 1;
             });
 
-            if (!response.ok) throw new Error("Server error");
-            const data = await response.json();
+            const clock = new THREE.Clock();
             
-            document.getElementById(typingId).remove();
-            let finalReply = data.answer || data.reply || data.message || "لا يوجد رد متاح.";
-            appendImmersiveMessage(finalReply, 'bot');
-            
-            startRobotTalking(finalReply.length * 50);
-            
-        } catch (err) {
-            if(document.getElementById(typingId)) document.getElementById(typingId).remove();
-            appendImmersiveMessage("عذراً، حدث خطأ في الاتصال. 🤖", 'bot');
-        }
-    }
+            function animate() {
+                requestAnimationFrame(animate);
+                const time = clock.getElapsedTime();
 
-    if (immersiveSendBtn && immersiveInput) {
-        immersiveSendBtn.addEventListener('click', sendImmersiveQuestion);
-        immersiveInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') sendImmersiveQuestion();
-        });
-    }
+                if (robotHeadGroup) {
+                    robotHeadGroup.rotation.y += (mouseX * 0.4 - robotHeadGroup.rotation.y) * 0.1;
+                    robotHeadGroup.rotation.x += (-mouseY * 0.2 - robotHeadGroup.rotation.x) * 0.1;
+                    robotHeadGroup.position.y = Math.sin(time * 2) * 0.1;
 
-    let robotHeadGroup = null;
-    let robotJaw = null;
-    let isRobotTalking = false;
-    let mouseX = 0;
-    let mouseY = 0;
-
-    function init3DRobot() {
-        const container = document.getElementById('tutor-3d-canvas-container');
-        if (!container || typeof THREE === 'undefined') return;
-        
-        if (container.innerHTML.includes('canvas')) return;
-        container.innerHTML = ''; 
-
-        const scene = new THREE.Scene();
-        const camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 100);
-        camera.position.set(0, 0, 7); 
-
-        const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
-        renderer.setSize(container.clientWidth, container.clientHeight);
-        renderer.setPixelRatio(window.devicePixelRatio); 
-        container.appendChild(renderer.domElement);
-
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
-        scene.add(ambientLight);
-        const dirLight = new THREE.DirectionalLight(0xffffff, 0.9);
-        dirLight.position.set(2, 5, 5);
-        scene.add(dirLight);
-
-        robotHeadGroup = new THREE.Group();
-
-        const headGeo = new THREE.BoxGeometry(2.4, 1.8, 2.2);
-        const headMat = new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.2, metalness: 0.5 });
-        const upperHead = new THREE.Mesh(headGeo, headMat);
-        upperHead.position.set(0, 0.5, 0);
-        robotHeadGroup.add(upperHead);
-
-        const visorGeo = new THREE.BoxGeometry(2.45, 0.7, 2.25);
-        const visorMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.1 });
-        const visor = new THREE.Mesh(visorGeo, visorMat);
-        visor.position.set(0, 0.6, 0);
-        robotHeadGroup.add(visor);
-
-        const eyeGeo = new THREE.CircleGeometry(0.18, 32);
-        const eyeMat = new THREE.MeshBasicMaterial({ color: 0x0ea5e9, side: THREE.DoubleSide });
-        
-        const leftEye = new THREE.Mesh(eyeGeo, eyeMat);
-        leftEye.position.set(-0.6, 0.6, 1.13);
-        robotHeadGroup.add(leftEye);
-
-        const rightEye = new THREE.Mesh(eyeGeo, eyeMat);
-        rightEye.position.set(0.6, 0.6, 1.13);
-        robotHeadGroup.add(rightEye);
-
-        const jawGeo = new THREE.BoxGeometry(2.3, 0.7, 2.1);
-        const jawMat = new THREE.MeshStandardMaterial({ color: 0xe2e8f0, roughness: 0.4 });
-        robotJaw = new THREE.Mesh(jawGeo, jawMat);
-        robotJaw.position.set(0, -0.8, 0);
-        robotHeadGroup.add(robotJaw);
-
-        const mouthGeo = new THREE.BoxGeometry(1.8, 0.9, 1.8);
-        const mouthMat = new THREE.MeshBasicMaterial({ color: 0x0284c7 }); 
-        const mouthCore = new THREE.Mesh(mouthGeo, mouthMat);
-        mouthCore.position.set(0, -0.4, 0);
-        robotHeadGroup.add(mouthCore);
-
-        scene.add(robotHeadGroup);
-
-        const placeholder = container.querySelector('.tutor-3d-placeholder');
-        if (placeholder) placeholder.style.display = 'none';
-
-        document.addEventListener('mousemove', (event) => {
-            mouseX = (event.clientX / window.innerWidth) * 2 - 1;
-            mouseY = -(event.clientY / window.innerHeight) * 2 + 1;
-        });
-
-        const clock = new THREE.Clock();
-        
-        function animate() {
-            requestAnimationFrame(animate);
-            const time = clock.getElapsedTime();
-
-            if (robotHeadGroup) {
-                robotHeadGroup.rotation.y += (mouseX * 0.4 - robotHeadGroup.rotation.y) * 0.1;
-                robotHeadGroup.rotation.x += (-mouseY * 0.2 - robotHeadGroup.rotation.x) * 0.1;
-                robotHeadGroup.position.y = Math.sin(time * 2) * 0.1;
-
-                if (isRobotTalking && robotJaw) {
-                    const jawDrop = Math.abs(Math.sin(time * 20)) * 0.25; 
-                    robotJaw.position.y = -0.8 - jawDrop; 
-                } else if (robotJaw) {
-                    robotJaw.position.y = -0.8; 
+                    if (isRobotTalking && robotJaw) {
+                        const jawDrop = Math.abs(Math.sin(time * 20)) * 0.25; 
+                        robotJaw.position.y = -0.8 - jawDrop; 
+                    } else if (robotJaw) {
+                        robotJaw.position.y = -0.8; 
+                    }
                 }
+                renderer.render(scene, camera);
             }
-            renderer.render(scene, camera);
+            animate();
+
+            window.addEventListener('resize', () => {
+                if (container.clientWidth > 0 && container.clientHeight > 0) {
+                    camera.aspect = container.clientWidth / container.clientHeight;
+                    camera.updateProjectionMatrix();
+                    renderer.setSize(container.clientWidth, container.clientHeight);
+                }
+            });
         }
-        animate();
 
-        window.addEventListener('resize', () => {
-            if (container.clientWidth > 0 && container.clientHeight > 0) {
-                camera.aspect = container.clientWidth / container.clientHeight;
-                camera.updateProjectionMatrix();
-                renderer.setSize(container.clientWidth, container.clientHeight);
-            }
-        });
-    }
-
-    function startRobotTalking(durationMs) {
-        isRobotTalking = true;
-        setTimeout(() => {
-            isRobotTalking = false;
-        }, durationMs);
-    }
+        function startRobotTalking(durationMs) {
+            isRobotTalking = true;
+            setTimeout(() => {
+                isRobotTalking = false;
+            }, durationMs);
+        }
 
 }); // نهاية المستند
