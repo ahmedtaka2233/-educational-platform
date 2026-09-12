@@ -1,7 +1,7 @@
 // @ts-nocheck
 // ============================================================================
 // ملف الجافاسكريبت الرئيسي (java.js) - منصة الذكاء الاصطناعي (الجزء الأول)
-// النسخة النهائية المكتملة + حلول تسجيل الدخول + تسجيل الخروج بعد دقيقتين
+// النسخة المكتملة + حلول تسجيل الدخول للـ Firebase + حماية خانة البحث
 // ============================================================================
 
 const premiumCompactStyle = document.createElement('style');
@@ -23,8 +23,7 @@ premiumCompactStyle.innerHTML = `
 `;
 document.head.appendChild(premiumCompactStyle);
 
-// تعديل وقت تسجيل الخروج التلقائي إلى دقيقتين (120 ثانية) بناءً على طلبك
-const SESSION_TIMEOUT_MS = 2 * 60 * 1000;
+const SESSION_TIMEOUT_MS = 5 * 60 * 1000;
 
 function resetSessionTimer() {
     if (isVIPLoggedIn) {
@@ -37,7 +36,7 @@ function checkSessionTimeout() {
         const lastActivity = localStorage.getItem('last_activity_time');
         if (lastActivity && (Date.now() - parseInt(lastActivity) > SESSION_TIMEOUT_MS)) {
             logout();
-            showCustomAlert("تم إنهاء الجلسة التلقائي لحماية حسابك بسبب عدم التفاعل لمدة دقيقتين. يرجى تسجيل الدخول مجدداً.", 'error');
+            showCustomAlert("تم إنهاء الجلسة التلقائي لحماية حسابك بسبب عدم التفاعل لمدة 5 دقائق. يرجى تسجيل الدخول مجدداً.", 'error');
         }
     }
 }
@@ -372,6 +371,7 @@ async function handleAuthNextStep() {
                 document.getElementById('auth-instruction-text').innerText = "قم بتعيين رقم سري جديد";
             } else {
                 let deviceFingerprint = localStorage.getItem("device_fingerprint") || ("DEV_" + Math.random().toString(36).substring(2, 15));
+                // تنفيذ تعديل ChatGPT القوي للحسابات الجديدة
                 await db.collection("teachers").doc(phone).set({
                     name: "Student_" + phone,
                     phone: phone,
@@ -417,6 +417,7 @@ async function handleUserLoginFinal() {
         let isAuthorizedAdmin = AUTHORIZED_ADMIN_PHONES.includes(phone);
         let assignedRole = isAuthorizedAdmin ? "Admin" : teacherData.role || "User";
 
+        // تنفيذ كود ChatGPT بالكامل باستخدام set بدلاً من update
         if (isAuthorizedAdmin) {
             if (!teacherData.adminPassword) {
                 await teacherRef.set({
@@ -476,6 +477,7 @@ async function handleUserLoginFinal() {
     } catch (e) {
         console.error("LOGIN ERROR:", e);
         btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> دخول المنصة';
+        // إظهار الخطأ الحقيقي كما طلب ChatGPT
         showCustomAlert("حدث خطأ أثناء تسجيل الدخول:<br><br><strong>" + String(e.message || e) + "</strong>", 'error');
     }
 }
@@ -935,14 +937,14 @@ window.loadAndShowDashboard = async function() {
 
                 <div style="padding: 15px 10px; overflow-y: auto; flex: 1;">
                     <div style="font-size: 0.75rem; color: #64748b; padding: 5px 15px; font-weight: bold;">القائمة الرئيسية</div>
-                    <a href="javascript:void(0)" onclick="window.switchDashTab('users')" id="nav-users" class="dash-nav-item active" style="display: flex; align-items: center; gap: 12px; padding: 12px 15px; color: #ffffff; text-decoration: none; border-radius: 8px; background: rgba(14, 165, 233, 0.25); border-right: 4px solid #0ea5e9; margin-bottom: 5px; font-weight: bold;"><i class="fas fa-users"></i> إدارة الحسابات والتفعيل</a>
+                    <a href="javascript:void(0)" onclick="switchDashTab('users')" id="nav-users" class="dash-nav-item active" style="display: flex; align-items: center; gap: 12px; padding: 12px 15px; color: #ffffff; text-decoration: none; border-radius: 8px; background: rgba(14, 165, 233, 0.25); border-right: 4px solid #0ea5e9; margin-bottom: 5px; font-weight: bold;"><i class="fas fa-users"></i> إدارة الحسابات والتفعيل</a>
                     
                     <div style="font-size: 0.75rem; color: #64748b; padding: 15px 15px 5px; font-weight: bold;">المالية والطلبات</div>
-                    <a href="javascript:void(0)" onclick="window.switchDashTab('orders')" id="nav-orders" class="dash-nav-item" style="display: flex; align-items: center; gap: 12px; padding: 12px 15px; color: #cbd5e1; text-decoration: none; border-radius: 8px; margin-bottom: 5px;"><i class="fas fa-shopping-cart"></i> الطلبات وإيصالات الدفع</a>
-                    <a href="javascript:void(0)" onclick="window.switchDashTab('reports')" id="nav-reports" class="dash-nav-item" style="display: flex; align-items: center; gap: 12px; padding: 12px 15px; color: #cbd5e1; text-decoration: none; border-radius: 8px; margin-bottom: 5px;"><i class="fas fa-wallet"></i> التقارير المالية</a>
+                    <a href="javascript:void(0)" onclick="switchDashTab('orders')" id="nav-orders" class="dash-nav-item" style="display: flex; align-items: center; gap: 12px; padding: 12px 15px; color: #cbd5e1; text-decoration: none; border-radius: 8px; margin-bottom: 5px;"><i class="fas fa-shopping-cart"></i> الطلبات وإيصالات الدفع</a>
+                    <a href="javascript:void(0)" onclick="switchDashTab('reports')" id="nav-reports" class="dash-nav-item" style="display: flex; align-items: center; gap: 12px; padding: 12px 15px; color: #cbd5e1; text-decoration: none; border-radius: 8px; margin-bottom: 5px;"><i class="fas fa-wallet"></i> التقارير المالية</a>
 
                     <div style="font-size: 0.75rem; color: #64748b; padding: 15px 15px 5px; font-weight: bold;">التحليلات الأكاديمية</div>
-                    <a href="javascript:void(0)" onclick="window.switchDashTab('analytics')" id="nav-analytics" class="dash-nav-item" style="display: flex; align-items: center; gap: 12px; padding: 12px 15px; color: #cbd5e1; text-decoration: none; border-radius: 8px; margin-bottom: 5px;"><i class="fas fa-chart-pie"></i> أداء الطلاب (Charts)</a>
+                    <a href="javascript:void(0)" onclick="switchDashTab('analytics')" id="nav-analytics" class="dash-nav-item" style="display: flex; align-items: center; gap: 12px; padding: 12px 15px; color: #cbd5e1; text-decoration: none; border-radius: 8px; margin-bottom: 5px;"><i class="fas fa-chart-pie"></i> أداء الطلاب (Charts)</a>
                 </div>
 
                 <div style="padding: 15px; border-top: 1px solid rgba(255,255,255,0.1);">
@@ -1740,44 +1742,6 @@ window.incrementAttempt = function() {
 };
 
 document.addEventListener('DOMContentLoaded', () => {
-    // تفعيل نافذة تسجيل الدخول من الموبايل
-    const teacherModeToggle = document.getElementById('teacher-mode');
-    if (teacherModeToggle) {
-        teacherModeToggle.addEventListener('change', function() {
-            if (this.checked) {
-                if (typeof showAuthScreen === 'function') showAuthScreen();
-                this.checked = false; 
-            }
-        });
-    }
-
-    // تفعيل شريط البحث عن المواد
-    const searchInput = document.getElementById('stage-search');
-    const searchResults = document.getElementById('search-results');
-    if (searchInput && searchResults) {
-        searchInput.removeAttribute('readonly');
-        searchInput.disabled = false;
-        searchInput.addEventListener('input', function(e) {
-            const term = e.target.value.toLowerCase().trim();
-            if (term.length < 2) {
-                searchResults.style.display = 'none';
-                return;
-            }
-            searchResults.style.display = 'block';
-            searchResults.innerHTML = `
-                <li style="padding: 12px; cursor: pointer; border-bottom: 1px solid #e2e8f0; font-weight:bold; color:#0f172a;" onclick="
-                    document.getElementById('stage-search').value = '${term}'; 
-                    document.getElementById('search-results').style.display='none';
-                    showToast('تم تحديد مادة: ${term}', '#0ea5e9');
-                "><i class="fas fa-search" style="color: #0ea5e9; margin-left:8px;"></i> بحث واختيار: <strong>${term}</strong></li>
-            `;
-        });
-        document.addEventListener('click', (e) => {
-            if (!searchInput.contains(e.target) && !searchResults.contains(e.target)) {
-                searchResults.style.display = 'none';
-            }
-        });
-    }
 
     const processBtn = document.getElementById('process-btn');
     
@@ -1817,6 +1781,7 @@ document.addEventListener('DOMContentLoaded', () => {
             btnText.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري ضغط الصور ومعالجتها...';
             
             try {
+                // التأكد من استدعاء دالة الـ hash إذا كانت موجودة، أو عمل واحدة بسيطة 
                 const newImageHash = Date.now().toString() + "_" + selectedLessonFiles.length;
                 
                 let summaryIdStr = subject + '_' + yearText;
@@ -2023,32 +1988,151 @@ ALL MCQs AND TRUE/FALSE MUST HAVE DETAILED REASONS. THE TONE MUST BE 100% IDENTI
         }
         
         // ============================================================================
-        // محرك PDF النهائي - التحميل المباشر لدعم الهواتف المحمولة
+        // محرك PDF النهائي - الطباعة الأصلية للنصوص المباشرة عبر النافذة 
         // ============================================================================
         document.getElementById('native-print-btn').addEventListener('click', async () => {
+
             try {
-                showToast("جاري تجهيز المذكرة للتحميل كـ PDF...", "#0ea5e9");
+                showToast("جاري تجهيز المذكرة للطباعة...", "#0ea5e9");
+
                 preparePDFDOM(serverData, subjectName);
-                
-                const elementToPrint = document.getElementById('pdf-template');
-                if(elementToPrint) {
-                    elementToPrint.style.display = 'block'; 
-                    const opt = {
-                        margin: 0.5,
-                        filename: (subjectName || 'الملخص_التعليمي') + '.pdf',
-                        image: { type: 'jpeg', quality: 0.98 },
-                        html2canvas: { scale: 2, logging: false, useCORS: true },
-                        jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
-                    };
-                    html2pdf().set(opt).from(elementToPrint).save().then(() => {
-                        elementToPrint.style.display = 'none'; 
-                        showToast("تم تحميل الملف بنجاح على هاتفك!", "#10b981");
-                    });
+
+                const originalTemplate = document.getElementById('pdf-template');
+
+                if (!originalTemplate) {
+                    throw new Error("لم يتم العثور على قالب المذكرة.");
                 }
+
+                const content = originalTemplate.querySelector('#pdf-qa-content');
+
+                if (!content || !content.innerText.trim()) {
+                    throw new Error("محتوى المذكرة فارغ.");
+                }
+
+                const printWindow = window.open('', '_blank');
+
+                if (!printWindow) {
+                    throw new Error(
+                        "المتصفح منع نافذة الطباعة. اسمح بالنوافذ المنبثقة للموقع ثم حاول مرة أخرى."
+                    );
+                }
+
+                const templateClone = originalTemplate.cloneNode(true);
+
+                templateClone.id = "pdf-template";
+
+                templateClone.style.display = "block";
+                templateClone.style.position = "relative";
+                templateClone.style.width = "100%";
+                templateClone.style.minHeight = "auto";
+                templateClone.style.height = "auto";
+                templateClone.style.margin = "0";
+                templateClone.style.padding = "0";
+                templateClone.style.background = "#ffffff";
+                templateClone.style.color = "#000000";
+                templateClone.style.overflow = "visible";
+
+                const watermarkHTML = `
+                    <div class="pdf-watermark-real">
+                        Educational Platform
+                    </div>
+                `;
+
+                templateClone.insertAdjacentHTML(
+                    'afterbegin',
+                    watermarkHTML
+                );
+
+                printWindow.document.open();
+
+                printWindow.document.write(`
+        <!DOCTYPE html>
+        <html lang="ar" dir="rtl">
+        <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>${String(subjectName || "Educational Platform").replace(/[<>&"]/g, "")}</title>
+        <link rel="stylesheet" href="${window.location.origin}/style.css">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+        <style>
+        @page { size: A4; margin: 12mm; }
+        html, body { margin: 0 !important; padding: 0 !important; background: #ffffff !important; color: #000000 !important; direction: rtl; }
+        body { font-family: "Cairo", "Segoe UI", Tahoma, Arial, sans-serif !important; }
+        #pdf-template { display: block !important; position: relative !important; width: 100% !important; height: auto !important; min-height: 0 !important; margin: 0 !important; padding: 0 !important; background: #ffffff !important; color: #000000 !important; overflow: visible !important; direction: rtl !important; text-align: right !important; }
+        #pdf-qa-content { display: block !important; width: 100% !important; height: auto !important; overflow: visible !important; visibility: visible !important; opacity: 1 !important; direction: rtl !important; text-align: right !important; color: #000000 !important; font-family: "Cairo", "Segoe UI", Tahoma, Arial, sans-serif !important; }
+        .pdf-question-block { display: block !important; width: auto !important; height: auto !important; overflow: visible !important; visibility: visible !important; opacity: 1 !important; color: #000000 !important; direction: rtl !important; text-align: right !important; page-break-inside: avoid !important; break-inside: avoid !important; font-family: "Cairo", "Segoe UI", Tahoma, Arial, sans-serif !important; }
+        .pdf-watermark-real { position: fixed !important; top: 50% !important; left: 50% !important; transform: translate(-50%, -50%) rotate(-35deg) !important; font-family: Arial, sans-serif !important; font-size: 58px !important; font-weight: 900 !important; color: #0f172a !important; opacity: 0.08 !important; white-space: nowrap !important; pointer-events: none !important; z-index: 0 !important; }
+        #pdf-qa-content, #pdf-qa-content * { position: relative; z-index: 2; }
+        img { max-width: 100% !important; }
+        p, div, span, strong { overflow-wrap: break-word !important; word-wrap: break-word !important; }
+        @media print {
+            html, body { width: 100% !important; background: #ffffff !important; color: #000000 !important; }
+            #pdf-template { display: block !important; visibility: visible !important; }
+            #pdf-template, #pdf-template * { visibility: visible !important; }
+            .pdf-question-block { page-break-inside: avoid !important; break-inside: avoid !important; }
+            .pdf-watermark-real { display: block !important; }
+        }
+        </style>
+        </head>
+        <body>
+        ${templateClone.outerHTML}
+        </body>
+        </html>
+                `);
+
+                printWindow.document.close();
+
+                await new Promise(resolve => {
+                    setTimeout(resolve, 1000);
+                });
+
+                try {
+                    if (printWindow.document.fonts && printWindow.document.fonts.ready) {
+                        await printWindow.document.fonts.ready;
+                    }
+                } catch (fontError) {
+                    console.warn("Font loading warning:", fontError);
+                }
+
+                const images = Array.from(printWindow.document.images);
+                await Promise.all(
+                    images.map(img => {
+                        if (img.complete) return Promise.resolve();
+                        return new Promise(resolve => {
+                            img.onload = resolve;
+                            img.onerror = resolve;
+                        });
+                    })
+                );
+
+                const printContent = printWindow.document.getElementById('pdf-qa-content');
+
+                if (!printContent || !printContent.innerText.trim()) {
+                    printWindow.close();
+                    throw new Error("فشل تجهيز نص المذكرة قبل الطباعة.");
+                }
+
+                printWindow.focus();
+
+                setTimeout(() => {
+                    printWindow.print();
+                }, 500);
+
+                showToast("المذكرة جاهزة. اختر حفظ كملف PDF من شاشة الطباعة.", "#10b981");
+
+                printWindow.onafterprint = () => {
+                    setTimeout(() => {
+                        try {
+                            printWindow.close();
+                        } catch (e) {}
+                    }, 500);
+                };
+
             } catch (error) {
                 console.error("FINAL PDF PRINT ERROR:", error);
-                showCustomAlert("حدث خطأ أثناء تحميل الـ PDF: " + error.message, "error");
+                showCustomAlert("تعذر تجهيز المذكرة للطباعة.<br><br><strong>تفاصيل الخطأ:</strong><br>" + String(error.message || error), "error");
             }
+
         });
         
         document.getElementById('ai-output-container').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
@@ -2375,7 +2459,7 @@ ALL MCQs AND TRUE/FALSE MUST HAVE DETAILED REASONS. THE TONE MUST BE 100% IDENTI
     const immersiveMessagesArea = document.getElementById('tutor-immersive-messages');
     
     // ============================================================================
-    // إضافة نظام رفع الصور والتحدث الصوتي للروبوت (حلول الإيموشنات واللهجة والرياضيات)
+    // الروبوت (تحديث الإيموشنات، اللهجة المصرية، الرياضيات، وإرفاق الصور)
     // ============================================================================
     const chatInputArea = document.querySelector('.tutor-chat-input-area');
     let chatUploadedImagesBase64 = [];
@@ -2469,15 +2553,12 @@ ALL MCQs AND TRUE/FALSE MUST HAVE DETAILED REASONS. THE TONE MUST BE 100% IDENTI
         }
     }
 
-    const chatWindow = document.getElementById('tutor-chat-window');
-    if (tutorFabBtn) {
+    if (tutorFabBtn && tutorImmersiveModal) {
         tutorFabBtn.onclick = (e) => {
             e.preventDefault();
-            if (tutorImmersiveModal) tutorImmersiveModal.classList.add('hidden-section');
-            if (chatWindow) {
-                chatWindow.style.display = 'flex';
-                setTimeout(() => { chatWindow.style.opacity = '1'; chatWindow.style.transform = 'scale(1)'; }, 50);
-            }
+            tutorImmersiveModal.classList.remove('hidden-section');
+            tutorImmersiveModal.classList.add('active');
+            init3DRobot();
         };
     }
 
@@ -2489,16 +2570,6 @@ ALL MCQs AND TRUE/FALSE MUST HAVE DETAILED REASONS. THE TONE MUST BE 100% IDENTI
                 window.speechSynthesis.cancel();
             }
         });
-    }
-
-    const closeSimpleChat = document.getElementById('close-tutor-btn');
-    if (closeSimpleChat) {
-        closeSimpleChat.onclick = () => {
-            if (chatWindow) {
-                chatWindow.style.opacity = '0'; chatWindow.style.transform = 'scale(0.8)';
-                setTimeout(() => { chatWindow.style.display = 'none'; }, 300);
-            }
-        };
     }
 
     function appendImmersiveMessage(text, sender) {
@@ -2524,7 +2595,7 @@ ALL MCQs AND TRUE/FALSE MUST HAVE DETAILED REASONS. THE TONE MUST BE 100% IDENTI
 
         const typingId = 'imm-typing-' + Date.now();
         const typingDiv = document.createElement('div');
-        typingId = typingId;
+        typingDiv.id = typingId;
         typingDiv.className = 'tutor-msg bot-msg';
         typingDiv.innerHTML = '<i class="fas fa-ellipsis-h fa-fade"></i> جاري التفكير...';
         immersiveMessagesArea.appendChild(typingDiv);
