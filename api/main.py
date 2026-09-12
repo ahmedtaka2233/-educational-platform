@@ -29,11 +29,14 @@ def load_static_db():
 static_db = load_static_db()
 
 def get_gemini_url():
+    def get_gemini_url():
     # جلب مفتاح الـ API من متغيرات البيئة في Vercel
     key = os.environ.get("GEMINI_API_KEY", "")
+    model = os.environ.get("GEMINI_MODEL", "gemini-3.8-flash")
+
     return (
         "https://generativelanguage.googleapis.com/"
-        f"v1beta/models/gemini-2.5-flash:generateContent?key={key}"
+        f"v1beta/models/{model}:generateContent?key={key}"
     )
 
 def verify_token(req):
