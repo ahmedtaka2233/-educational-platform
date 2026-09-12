@@ -1,7 +1,6 @@
 // @ts-nocheck
 // ============================================================================
-// ملف الجافاسكريبت الرئيسي (java.js) - منصة الذكاء الاصطناعي (الجزء الأول)
-// النسخة المكتملة + حلول تسجيل الدخول للـ Firebase + حماية خانة البحث
+// ملف الجافاسكريبت الرئيسي (java.js) - منصة الذكاء الاصطناعي
 // ============================================================================
 
 const premiumCompactStyle = document.createElement('style');
@@ -328,7 +327,6 @@ function showAuthScreen() {
     document.getElementById('auth-payment-card').style.display = 'none';
     document.getElementById('auth-overlay').style.display = 'flex';
 }
-
 async function handleAuthNextStep() {
     let phone = document.getElementById('auth-phone').value.trim();
     if (phone.length < 10) {
@@ -1740,8 +1738,18 @@ window.incrementAttempt = function() {
     let attempts = parseInt(localStorage.getItem('user_attempts') || 0) + 1;
     localStorage.setItem('user_attempts', attempts);
 };
-
 document.addEventListener('DOMContentLoaded', () => {
+
+    // إصلاح: ربط زر تسجيل الدخول بنافذة الـ VIP داخل الـ DOM
+    const loginToggle = document.getElementById('teacher-mode');
+    if (loginToggle) {
+        loginToggle.addEventListener('change', function() {
+            if (this.checked) {
+                showAuthScreen();
+                this.checked = false; 
+            }
+        });
+    }
 
     const processBtn = document.getElementById('process-btn');
     
@@ -1781,7 +1789,6 @@ document.addEventListener('DOMContentLoaded', () => {
             btnText.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري ضغط الصور ومعالجتها...';
             
             try {
-                // التأكد من استدعاء دالة الـ hash إذا كانت موجودة، أو عمل واحدة بسيطة 
                 const newImageHash = Date.now().toString() + "_" + selectedLessonFiles.length;
                 
                 let summaryIdStr = subject + '_' + yearText;
@@ -1918,7 +1925,6 @@ ALL MCQs AND TRUE/FALSE MUST HAVE DETAILED REASONS. THE TONE MUST BE 100% IDENTI
                 
                 await summaryRef.set(existingData);
                 
-                // تأخير عرض رسالة النجاح وظهور الملف عشان المتصفح يلحق يجهز الـ PDF في الذاكرة
                 btnText.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري تجهيز المذكرة وبناء الـ PDF...';
                 
                 setTimeout(() => {
@@ -1987,152 +1993,40 @@ ALL MCQs AND TRUE/FALSE MUST HAVE DETAILED REASONS. THE TONE MUST BE 100% IDENTI
             }
         }
         
-        // ============================================================================
-        // محرك PDF النهائي - الطباعة الأصلية للنصوص المباشرة عبر النافذة 
-        // ============================================================================
-        document.getElementById('native-print-btn').addEventListener('click', async () => {
-
-            try {
-                showToast("جاري تجهيز المذكرة للطباعة...", "#0ea5e9");
-
-                preparePDFDOM(serverData, subjectName);
-
-                const originalTemplate = document.getElementById('pdf-template');
-
-                if (!originalTemplate) {
-                    throw new Error("لم يتم العثور على قالب المذكرة.");
-                }
-
-                const content = originalTemplate.querySelector('#pdf-qa-content');
-
-                if (!content || !content.innerText.trim()) {
-                    throw new Error("محتوى المذكرة فارغ.");
-                }
-
-                const printWindow = window.open('', '_blank');
-
-                if (!printWindow) {
-                    throw new Error(
-                        "المتصفح منع نافذة الطباعة. اسمح بالنوافذ المنبثقة للموقع ثم حاول مرة أخرى."
-                    );
-                }
-
-                const templateClone = originalTemplate.cloneNode(true);
-
-                templateClone.id = "pdf-template";
-
-                templateClone.style.display = "block";
-                templateClone.style.position = "relative";
-                templateClone.style.width = "100%";
-                templateClone.style.minHeight = "auto";
-                templateClone.style.height = "auto";
-                templateClone.style.margin = "0";
-                templateClone.style.padding = "0";
-                templateClone.style.background = "#ffffff";
-                templateClone.style.color = "#000000";
-                templateClone.style.overflow = "visible";
-
-                const watermarkHTML = `
-                    <div class="pdf-watermark-real">
-                        Educational Platform
-                    </div>
-                `;
-
-                templateClone.insertAdjacentHTML(
-                    'afterbegin',
-                    watermarkHTML
-                );
-
-                printWindow.document.open();
-
-                printWindow.document.write(`
-        <!DOCTYPE html>
-        <html lang="ar" dir="rtl">
-        <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>${String(subjectName || "Educational Platform").replace(/[<>&"]/g, "")}</title>
-        <link rel="stylesheet" href="${window.location.origin}/style.css">
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-        <style>
-        @page { size: A4; margin: 12mm; }
-        html, body { margin: 0 !important; padding: 0 !important; background: #ffffff !important; color: #000000 !important; direction: rtl; }
-        body { font-family: "Cairo", "Segoe UI", Tahoma, Arial, sans-serif !important; }
-        #pdf-template { display: block !important; position: relative !important; width: 100% !important; height: auto !important; min-height: 0 !important; margin: 0 !important; padding: 0 !important; background: #ffffff !important; color: #000000 !important; overflow: visible !important; direction: rtl !important; text-align: right !important; }
-        #pdf-qa-content { display: block !important; width: 100% !important; height: auto !important; overflow: visible !important; visibility: visible !important; opacity: 1 !important; direction: rtl !important; text-align: right !important; color: #000000 !important; font-family: "Cairo", "Segoe UI", Tahoma, Arial, sans-serif !important; }
-        .pdf-question-block { display: block !important; width: auto !important; height: auto !important; overflow: visible !important; visibility: visible !important; opacity: 1 !important; color: #000000 !important; direction: rtl !important; text-align: right !important; page-break-inside: avoid !important; break-inside: avoid !important; font-family: "Cairo", "Segoe UI", Tahoma, Arial, sans-serif !important; }
-        .pdf-watermark-real { position: fixed !important; top: 50% !important; left: 50% !important; transform: translate(-50%, -50%) rotate(-35deg) !important; font-family: Arial, sans-serif !important; font-size: 58px !important; font-weight: 900 !important; color: #0f172a !important; opacity: 0.08 !important; white-space: nowrap !important; pointer-events: none !important; z-index: 0 !important; }
-        #pdf-qa-content, #pdf-qa-content * { position: relative; z-index: 2; }
-        img { max-width: 100% !important; }
-        p, div, span, strong { overflow-wrap: break-word !important; word-wrap: break-word !important; }
-        @media print {
-            html, body { width: 100% !important; background: #ffffff !important; color: #000000 !important; }
-            #pdf-template { display: block !important; visibility: visible !important; }
-            #pdf-template, #pdf-template * { visibility: visible !important; }
-            .pdf-question-block { page-break-inside: avoid !important; break-inside: avoid !important; }
-            .pdf-watermark-real { display: block !important; }
-        }
-        </style>
-        </head>
-        <body>
-        ${templateClone.outerHTML}
-        </body>
-        </html>
-                `);
-
-                printWindow.document.close();
-
-                await new Promise(resolve => {
-                    setTimeout(resolve, 1000);
-                });
-
-                try {
-                    if (printWindow.document.fonts && printWindow.document.fonts.ready) {
-                        await printWindow.document.fonts.ready;
-                    }
-                } catch (fontError) {
-                    console.warn("Font loading warning:", fontError);
-                }
-
-                const images = Array.from(printWindow.document.images);
-                await Promise.all(
-                    images.map(img => {
-                        if (img.complete) return Promise.resolve();
-                        return new Promise(resolve => {
-                            img.onload = resolve;
-                            img.onerror = resolve;
-                        });
-                    })
-                );
-
-                const printContent = printWindow.document.getElementById('pdf-qa-content');
-
-                if (!printContent || !printContent.innerText.trim()) {
-                    printWindow.close();
-                    throw new Error("فشل تجهيز نص المذكرة قبل الطباعة.");
-                }
-
-                printWindow.focus();
-
-                setTimeout(() => {
-                    printWindow.print();
-                }, 500);
-
-                showToast("المذكرة جاهزة. اختر حفظ كملف PDF من شاشة الطباعة.", "#10b981");
-
-                printWindow.onafterprint = () => {
-                    setTimeout(() => {
-                        try {
-                            printWindow.close();
-                        } catch (e) {}
-                    }, 500);
-                };
-
-            } catch (error) {
-                console.error("FINAL PDF PRINT ERROR:", error);
-                showCustomAlert("تعذر تجهيز المذكرة للطباعة.<br><br><strong>تفاصيل الخطأ:</strong><br>" + String(error.message || error), "error");
+        // إصلاح: طباعة الـ PDF الآمنة للموبايل
+        document.getElementById('native-print-btn').addEventListener('click', function(e) {
+            e.preventDefault();
+            // فتح النافذة أولاً بشكل متزامن قبل أي أوامر أخرى
+            const previewWindow = window.open('', '_blank');
+            if (!previewWindow) {
+                showCustomAlert("المتصفح منع النافذة. جرب السماح بالنوافذ المنبثقة.", "error");
+                return;
             }
+            previewWindow.document.write('<html dir="rtl"><body style="text-align:center; padding:50px;"><h3>جاري تجهيز المذكرة...</h3></body></html>');
 
+            showToast("جاري تجهيز المذكرة للمعاينة...", "#0ea5e9");
+            preparePDFDOM(serverData, subjectName);
+            
+            const elementToPrint = document.getElementById('pdf-template');
+            elementToPrint.style.display = 'block';
+            
+            const opt = {
+                margin: 0.3,
+                filename: 'مذكرة_' + (subjectName || 'المنصة') + '.pdf',
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2, useCORS: true },
+                jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
+            };
+
+            html2pdf().set(opt).from(elementToPrint).outputPdf('blob').then(function(pdfBlob) {
+                const blobUrl = URL.createObjectURL(pdfBlob);
+                previewWindow.location.href = blobUrl;
+                elementToPrint.style.display = 'none';
+                showToast("تم فتح المعاينة بنجاح!", "#10b981");
+            }).catch(err => {
+                previewWindow.close();
+                showCustomAlert("حدث خطأ أثناء المعاينة.", "error");
+            });
         });
         
         document.getElementById('ai-output-container').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
@@ -2451,17 +2345,17 @@ ALL MCQs AND TRUE/FALSE MUST HAVE DETAILED REASONS. THE TONE MUST BE 100% IDENTI
         }
     }
 
+    // إصلاح: إعدادات نافذة المعلم الذكي (الخفيفة والمستقرة)
     const tutorFabBtn = document.getElementById('tutor-fab-btn');
-    const tutorImmersiveModal = document.getElementById('tutor-immersive-modal');
-    const closeImmersiveBtn = document.getElementById('close-immersive-btn');
-    const immersiveInput = document.getElementById('tutor-immersive-input');
-    const immersiveSendBtn = document.getElementById('tutor-immersive-send-btn');
-    const immersiveMessagesArea = document.getElementById('tutor-immersive-messages');
+    const tutorChatWindow = document.getElementById('tutor-chat-window');
+    const closeTutorBtn = document.getElementById('close-tutor-btn');
     
-    // ============================================================================
-    // الروبوت (تحديث الإيموشنات، اللهجة المصرية، الرياضيات، وإرفاق الصور)
-    // ============================================================================
-    const chatInputArea = document.querySelector('.tutor-chat-input-area');
+    // ربط المتغيرات بالنافذة الخفيفة الموجودة في التصميم
+    const immersiveInput = document.getElementById('tutor-input');
+    const immersiveSendBtn = document.getElementById('tutor-send-btn');
+    const immersiveMessagesArea = document.getElementById('tutor-messages');
+    
+    const chatInputArea = immersiveInput ? immersiveInput.parentElement : null;
     let chatUploadedImagesBase64 = [];
 
     if (chatInputArea && !document.getElementById('attach-ai-btn')) {
@@ -2482,8 +2376,8 @@ ALL MCQs AND TRUE/FALSE MUST HAVE DETAILED REASONS. THE TONE MUST BE 100% IDENTI
         fileInput.accept = 'image/*';
         fileInput.style.display = 'none';
 
-        chatInputArea.insertBefore(voiceBtn, document.getElementById('tutor-immersive-input'));
-        chatInputArea.insertBefore(attachBtn, document.getElementById('tutor-immersive-input'));
+        chatInputArea.insertBefore(voiceBtn, immersiveInput);
+        chatInputArea.insertBefore(attachBtn, immersiveInput);
         chatInputArea.appendChild(fileInput);
 
         attachBtn.onclick = () => {
@@ -2523,7 +2417,7 @@ ALL MCQs AND TRUE/FALSE MUST HAVE DETAILED REASONS. THE TONE MUST BE 100% IDENTI
             };
             recognition.onresult = (event) => {
                 const transcript = event.results[0][0].transcript;
-                document.getElementById('tutor-immersive-input').value = transcript;
+                immersiveInput.value = transcript;
                 sendImmersiveQuestion();
             };
             voiceBtn.onclick = () => {
@@ -2536,7 +2430,6 @@ ALL MCQs AND TRUE/FALSE MUST HAVE DETAILED REASONS. THE TONE MUST BE 100% IDENTI
         }
     }
 
-    // فلتر الإيموشنات لمنع نطق "قلب أحمر" وما شابه
     function removeEmojisForTTS(text) {
         if (!text) return "";
         return text.replace(/([\u2700-\u27BF]|[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD10-\uDDFF])/g, '').trim();
@@ -2553,29 +2446,47 @@ ALL MCQs AND TRUE/FALSE MUST HAVE DETAILED REASONS. THE TONE MUST BE 100% IDENTI
         }
     }
 
-    if (tutorFabBtn && tutorImmersiveModal) {
+    // فتح الشات الخفيف وتخطي حماية الصوت
+    if (tutorFabBtn && tutorChatWindow) {
         tutorFabBtn.onclick = (e) => {
             e.preventDefault();
-            tutorImmersiveModal.classList.remove('hidden-section');
-            tutorImmersiveModal.classList.add('active');
-            init3DRobot();
+            // تنشيط الصوت بصمت لتخطي حماية سفاري وكروم
+            if ('speechSynthesis' in window) {
+                let silentUtterance = new SpeechSynthesisUtterance('');
+                window.speechSynthesis.speak(silentUtterance);
+            }
+            tutorChatWindow.style.display = 'flex';
+            setTimeout(() => {
+                tutorChatWindow.style.opacity = '1';
+                tutorChatWindow.style.transform = 'scale(1)';
+            }, 50);
         };
     }
 
-    if (closeImmersiveBtn) {
-        closeImmersiveBtn.addEventListener('click', () => {
-            tutorImmersiveModal.classList.remove('active');
-            setTimeout(() => tutorImmersiveModal.classList.add('hidden-section'), 400);
+    // إغلاق الشات الخفيف وإيقاف الصوت
+    if (closeTutorBtn) {
+        closeTutorBtn.onclick = () => {
+            tutorChatWindow.style.opacity = '0';
+            tutorChatWindow.style.transform = 'scale(0.8)';
+            setTimeout(() => { tutorChatWindow.style.display = 'none'; }, 300);
             if ('speechSynthesis' in window) {
                 window.speechSynthesis.cancel();
             }
-        });
+        };
     }
 
     function appendImmersiveMessage(text, sender) {
         if (!immersiveMessagesArea) return;
         const msgDiv = document.createElement('div');
         msgDiv.className = sender === 'user' ? 'tutor-msg user-msg' : 'tutor-msg bot-msg';
+        
+        // تعديل ألوان الشات الخفيف برمجياً ليتناسب مع التصميم
+        if(sender === 'user') {
+            msgDiv.style.cssText = "align-self: flex-end; background: linear-gradient(135deg, #0ea5e9, #3b82f6); color: white; border-radius: 15px 15px 0 15px; padding: 14px 18px; max-width: 85%; font-family: 'Cairo', sans-serif;";
+        } else {
+            msgDiv.style.cssText = "align-self: flex-start; background: #ffffff; color: #1e293b; border: 1px solid #e2e8f0; border-radius: 15px 15px 15px 0; padding: 14px 18px; max-width: 85%; font-family: 'Cairo', sans-serif;";
+        }
+        
         msgDiv.innerHTML = text.replace(/\n/g, '<br>');
         immersiveMessagesArea.appendChild(msgDiv);
         immersiveMessagesArea.scrollTop = immersiveMessagesArea.scrollHeight;
@@ -2596,7 +2507,7 @@ ALL MCQs AND TRUE/FALSE MUST HAVE DETAILED REASONS. THE TONE MUST BE 100% IDENTI
         const typingId = 'imm-typing-' + Date.now();
         const typingDiv = document.createElement('div');
         typingDiv.id = typingId;
-        typingDiv.className = 'tutor-msg bot-msg';
+        typingDiv.style.cssText = "align-self: flex-start; background: #ffffff; color: #1e293b; border: 1px solid #e2e8f0; border-radius: 15px 15px 15px 0; padding: 14px 18px; max-width: 85%; font-family: 'Cairo', sans-serif;";
         typingDiv.innerHTML = '<i class="fas fa-ellipsis-h fa-fade"></i> جاري التفكير...';
         immersiveMessagesArea.appendChild(typingDiv);
         immersiveMessagesArea.scrollTop = immersiveMessagesArea.scrollHeight;
@@ -2670,7 +2581,6 @@ ALL MCQs AND TRUE/FALSE MUST HAVE DETAILED REASONS. THE TONE MUST BE 100% IDENTI
             document.getElementById(typingId).remove();
             appendImmersiveMessage(finalReply, 'bot');
             
-            startRobotTalking(finalReply.length * 50);
             speakText(finalReply); 
             
         } catch (err) {
@@ -2686,6 +2596,7 @@ ALL MCQs AND TRUE/FALSE MUST HAVE DETAILED REASONS. THE TONE MUST BE 100% IDENTI
         });
     }
 
+    // تم إبقاء دالة الروبوت 3D هنا كتعريف فقط لعدم المساس بالبنية البرمجية في حالة رغبتك بالرجوع لها لاحقاً
     let robotHeadGroup = null;
     let robotJaw = null;
     let isRobotTalking = false;
@@ -2695,83 +2606,60 @@ ALL MCQs AND TRUE/FALSE MUST HAVE DETAILED REASONS. THE TONE MUST BE 100% IDENTI
     function init3DRobot() {
         const container = document.getElementById('tutor-3d-canvas-container');
         if (!container || typeof THREE === 'undefined') return;
-        
         if (container.innerHTML.includes('canvas')) return;
         container.innerHTML = ''; 
-
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 100);
         camera.position.set(0, 0, 7); 
-
         const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
         renderer.setSize(container.clientWidth, container.clientHeight);
         renderer.setPixelRatio(window.devicePixelRatio); 
         container.appendChild(renderer.domElement);
-
         const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
         scene.add(ambientLight);
         const dirLight = new THREE.DirectionalLight(0xffffff, 0.9);
         dirLight.position.set(2, 5, 5);
         scene.add(dirLight);
-
         robotHeadGroup = new THREE.Group();
-
         const headGeo = new THREE.BoxGeometry(2.4, 1.8, 2.2);
         const headMat = new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.2, metalness: 0.5 });
         const upperHead = new THREE.Mesh(headGeo, headMat);
         upperHead.position.set(0, 0.5, 0);
         robotHeadGroup.add(upperHead);
-
         const visorGeo = new THREE.BoxGeometry(2.45, 0.7, 2.25);
         const visorMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.1 });
         const visor = new THREE.Mesh(visorGeo, visorMat);
         visor.position.set(0, 0.6, 0);
         robotHeadGroup.add(visor);
-
         const eyeGeo = new THREE.CircleGeometry(0.18, 32);
         const eyeMat = new THREE.MeshBasicMaterial({ color: 0x0ea5e9, side: THREE.DoubleSide });
-        
         const leftEye = new THREE.Mesh(eyeGeo, eyeMat);
         leftEye.position.set(-0.6, 0.6, 1.13);
         robotHeadGroup.add(leftEye);
-
         const rightEye = new THREE.Mesh(eyeGeo, eyeMat);
         rightEye.position.set(0.6, 0.6, 1.13);
         robotHeadGroup.add(rightEye);
-
         const jawGeo = new THREE.BoxGeometry(2.3, 0.7, 2.1);
         const jawMat = new THREE.MeshStandardMaterial({ color: 0xe2e8f0, roughness: 0.4 });
         robotJaw = new THREE.Mesh(jawGeo, jawMat);
         robotJaw.position.set(0, -0.8, 0);
         robotHeadGroup.add(robotJaw);
-
         const mouthGeo = new THREE.BoxGeometry(1.8, 0.9, 1.8);
         const mouthMat = new THREE.MeshBasicMaterial({ color: 0x0284c7 }); 
         const mouthCore = new THREE.Mesh(mouthGeo, mouthMat);
         mouthCore.position.set(0, -0.4, 0);
         robotHeadGroup.add(mouthCore);
-
         scene.add(robotHeadGroup);
-
         const placeholder = container.querySelector('.tutor-3d-placeholder');
         if (placeholder) placeholder.style.display = 'none';
-
-        document.addEventListener('mousemove', (event) => {
-            mouseX = (event.clientX / window.innerWidth) * 2 - 1;
-            mouseY = -(event.clientY / window.innerHeight) * 2 + 1;
-        });
-
         const clock = new THREE.Clock();
-        
         function animate() {
             requestAnimationFrame(animate);
             const time = clock.getElapsedTime();
-
             if (robotHeadGroup) {
                 robotHeadGroup.rotation.y += (mouseX * 0.4 - robotHeadGroup.rotation.y) * 0.1;
                 robotHeadGroup.rotation.x += (-mouseY * 0.2 - robotHeadGroup.rotation.x) * 0.1;
                 robotHeadGroup.position.y = Math.sin(time * 2) * 0.1;
-
                 if (isRobotTalking && robotJaw) {
                     const jawDrop = Math.abs(Math.sin(time * 20)) * 0.25; 
                     robotJaw.position.y = -0.8 - jawDrop; 
@@ -2782,14 +2670,6 @@ ALL MCQs AND TRUE/FALSE MUST HAVE DETAILED REASONS. THE TONE MUST BE 100% IDENTI
             renderer.render(scene, camera);
         }
         animate();
-
-        window.addEventListener('resize', () => {
-            if (container.clientWidth > 0 && container.clientHeight > 0) {
-                camera.aspect = container.clientWidth / container.clientHeight;
-                camera.updateProjectionMatrix();
-                renderer.setSize(container.clientWidth, container.clientHeight);
-            }
-        });
     }
 
     function startRobotTalking(durationMs) {
