@@ -29,8 +29,6 @@ def load_static_db():
 static_db = load_static_db()
 
 def get_gemini_url():
-    def get_gemini_url():
-    def get_gemini_url():
     # جلب مفتاح الـ API من متغيرات البيئة في Vercel
     key = os.environ.get("GEMINI_API_KEY", "")
     return (
