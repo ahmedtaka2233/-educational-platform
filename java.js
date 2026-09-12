@@ -1,7 +1,7 @@
 // @ts-nocheck
 // ============================================================================
 // ملف الجافاسكريبت الرئيسي (java.js) - منصة الذكاء الاصطناعي (الجزء الأول)
-// النسخة الأصلية المكتملة بدون أي ضغط أو حذف للأسطر
+// النسخة الأصلية المكتملة + حلول Autofill + تجهيز الصوت والـ PDF
 // ============================================================================
 
 const premiumCompactStyle = document.createElement('style');
@@ -647,6 +647,27 @@ function loginSuccess(phone, role) {
     localStorage.setItem('saved_user_phone', phone);
     localStorage.setItem('saved_user_role', role);
     resetSessionTimer();
+    
+    // =========================================================
+    // كود حارس خانة البحث: بيمسح رقم التليفون أو الإيميل فوراً لو المتصفح حطه
+    // =========================================================
+    let searchBoxElem = document.getElementById('stage-search');
+    if (searchBoxElem) {
+        searchBoxElem.value = '';
+        searchBoxElem.setAttribute('name', 'search-term-' + Date.now()); // تغيير الاسم برمجياً لخدع المتصفح
+        searchBoxElem.setAttribute('autocomplete', 'new-password'); 
+        
+        let clearAttempts = 0;
+        let clearSearchInterval = setInterval(() => {
+            if (searchBoxElem.value === phone || searchBoxElem.value === localStorage.getItem('saved_user_phone')) {
+                searchBoxElem.value = '';
+            }
+            clearAttempts++;
+            if (clearAttempts > 10) { 
+                clearInterval(clearSearchInterval); 
+            }
+        }, 300);
+    }
     
     updateGamification(0); 
 
@@ -2807,12 +2828,12 @@ ALL MCQs AND TRUE/FALSE MUST HAVE DETAILED REASONS. THE TONE MUST BE 100% IDENTI
     const immersiveMessagesArea = document.getElementById('tutor-immersive-messages');
     
     // ============================================================================
-    // إضافة نظام رفع الصور والتحدث الصوتي للروبوت
+    // إضافة نظام رفع الصور والتحدث الصوتي للروبوت (حلول الإيموشنات واللهجة)
     // ============================================================================
     const chatInputArea = document.querySelector('.tutor-chat-input-area');
     let chatUploadedImagesBase64 = [];
 
-    if (chatInputArea && !document.getElementById('voice-ai-btn')) {
+    if (chatInputArea && !document.getElementById('attach-ai-btn')) {
         
         const attachBtn = document.createElement('button');
         attachBtn.id = 'attach-ai-btn';
@@ -2847,7 +2868,7 @@ ALL MCQs AND TRUE/FALSE MUST HAVE DETAILED REASONS. THE TONE MUST BE 100% IDENTI
                 }
                 chatUploadedImagesBase64 = [];
                 for (let file of event.target.files) {
-                    const base64 = await new Promise((resolve, reject) => {
+                    const base64 = await new Promise((resolve) => {
                         const reader = new FileReader();
                         reader.onload = (e) => resolve(e.target.result.split(',')[1]);
                         reader.readAsDataURL(file);
@@ -2862,7 +2883,7 @@ ALL MCQs AND TRUE/FALSE MUST HAVE DETAILED REASONS. THE TONE MUST BE 100% IDENTI
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         if (SpeechRecognition) {
             const recognition = new SpeechRecognition();
-            recognition.lang = 'ar-SA';
+            recognition.lang = 'ar-EG'; // اللهجة المصرية في التعرف
             recognition.onstart = () => {
                 voiceBtn.style.background = '#ef4444';
             };
@@ -2884,11 +2905,19 @@ ALL MCQs AND TRUE/FALSE MUST HAVE DETAILED REASONS. THE TONE MUST BE 100% IDENTI
         }
     }
 
+    // فلتر قوي لمسح الإيموشنات قبل النطق الصوتي
+    function removeEmojisForTTS(text) {
+        if (!text) return "";
+        return text.replace(/([\u2700-\u27BF]|[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD10-\uDDFF])/g, '').trim();
+    }
+
     function speakText(text) {
         if ('speechSynthesis' in window) {
             window.speechSynthesis.cancel();
-            let utterance = new SpeechSynthesisUtterance(text);
-            utterance.lang = 'ar-SA';
+            let cleanText = removeEmojisForTTS(text); // مسح الإيموشنات
+            let utterance = new SpeechSynthesisUtterance(cleanText);
+            utterance.lang = 'ar-EG'; // اللهجة المصرية
+            utterance.rate = 1.05; // سرعة طبيعية وسريعة
             window.speechSynthesis.speak(utterance);
         }
     }
@@ -2945,7 +2974,7 @@ ALL MCQs AND TRUE/FALSE MUST HAVE DETAILED REASONS. THE TONE MUST BE 100% IDENTI
 
         try {
             if (chatUploadedImagesBase64.length > 0) {
-                let chatPrompt = `الطالب يسألك بخصوص الصور المرفقة ويقول: "${text}". اشرح له بالتفصيل. هام جداً: يجب أن يكون الرد مصفوفة JSON متوافقة تماماً مع هذا التنسيق: {"brief_explanation": "اكتب الشرح المباشر والرسالة الصوتية للطالب هنا", "qa_list": []}`;
+                let chatPrompt = `الطالب يسألك بخصوص الصور المرفقة ويقول: "${text}". اشرح له بأسلوب مبسط جداً وبالعامية المصرية الطبيعية (كأنك مدرس مصري خبير). لا تستخدم اللغة العربية الفصحى المعقدة. هام جداً: يجب أن يكون الرد مصفوفة JSON متوافقة تماماً مع هذا التنسيق: {"brief_explanation": "اكتب الشرح المباشر للطالب هنا", "qa_list": []}`;
                 
                 const response = await fetch('/api/analyze', {
                     method: 'POST',
@@ -2976,8 +3005,8 @@ ALL MCQs AND TRUE/FALSE MUST HAVE DETAILED REASONS. THE TONE MUST BE 100% IDENTI
                 let mainStageVal = document.getElementById('main-stage')?.value || "";
                 
                 let customPrompt = "MANDATORY_STRICT_INSTRUCTION: YOU ARE A FRIENDLY, HUMAN-LIKE EXPERT EGYPTIAN TEACHER. ";
-                customPrompt += "CRITICAL RULE 1: YOU MUST STRICTLY ADHERE TO THE UPLOADED LESSON CONTENT ONLY. NEVER ADD EXTERNAL INFORMATION OUTSIDE THE UPLOADED IMAGES OR CURRICULUM. ";
-                customPrompt += "CRITICAL RULE 2: IF THE SUBJECT IS ENGLISH, FRENCH, GERMAN, OR ITALIAN, YOU MUST EXPLAIN IN THAT SPECIFIC LANGUAGE FIRST. HOWEVER, IF THE STUDENT DOES NOT UNDERSTAND OR ASKS TO EXPLAIN IN ARABIC, YOU MUST EXPLAIN IN CLEAR ARABIC. FOR ALL OTHER SUBJECTS, SPEAK ARABIC BY DEFAULT. ";
+                customPrompt += "CRITICAL RULE: YOU MUST EXPLAIN IN NATURAL EGYPTIAN ARABIC DIALECT (العامية المصرية البسيطة). DO NOT USE COMPLEX FORMAL ARABIC. ";
+                customPrompt += "YOU MUST RESPOND IMMEDIATELY AND DIRECTLY TO THE STUDENT'S QUESTION. ";
                 
                 if (mainStageVal.includes('primary')) {
                     customPrompt += "THE STUDENT IS IN PRIMARY SCHOOL (" + currentYear + "). EXPLAIN IN A VERY SIMPLE, CLEAR, AND ENGAGING WAY SUITABLE FOR CHILDREN.";
@@ -2985,8 +3014,6 @@ ALL MCQs AND TRUE/FALSE MUST HAVE DETAILED REASONS. THE TONE MUST BE 100% IDENTI
                     customPrompt += "THE STUDENT IS IN PREPARATORY SCHOOL (" + currentYear + "). EXPLAIN SIMPLY BUT PROVIDE A COMPREHENSIVE AND STRUCTURED EXPLANATION FOR THE QUESTION.";
                 } else if (mainStageVal.includes('high') || mainStageVal.includes('diploma')) {
                     customPrompt += "THE STUDENT IS IN SECONDARY SCHOOL/DIPLOMA (" + currentYear + "). EXPLAIN USING ALL AVAILABLE METHODS, PROVIDE DEEP ACADEMIC ANALYSIS, EXAMPLES, AND THOROUGH DETAILS.";
-                } else {
-                    customPrompt += "ADAPT YOUR EXPLANATION TO THE STUDENT'S LEVEL.";
                 }
 
                 const response = await fetch('/api/analyze', {
@@ -3012,7 +3039,7 @@ ALL MCQs AND TRUE/FALSE MUST HAVE DETAILED REASONS. THE TONE MUST BE 100% IDENTI
             appendImmersiveMessage(finalReply, 'bot');
             
             startRobotTalking(finalReply.length * 50);
-            speakText(finalReply);
+            speakText(finalReply); // نطق الرد فوراً بالصوت المصري وبدون إيموشنات
             
         } catch (err) {
             if(document.getElementById(typingId)) document.getElementById(typingId).remove();
