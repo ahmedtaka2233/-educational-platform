@@ -471,18 +471,19 @@ select:focus, input:focus {
     unicode-bidi: normal !important;
 }
 
+/* العلامة المائية: صغيرة وأنيقة ومتموضعة في منتصف الورقة مباشرة */
 #pdf-template::after {
     content: "Educational platform" !important;
     position: absolute;
-    top: 40%;
-    left: 10%;
-    font-size: 5rem;
-    font-weight: 900;
-    color: #0f172a;
-    opacity: 0.08;
-    transform: rotate(-35deg);
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) rotate(-30deg);
+    font-size: 1.8rem;
+    font-weight: 700;
+    letter-spacing: 2px;
+    color: rgba(15, 23, 42, 0.18);
     pointer-events: none;
-    z-index: 9999;
+    z-index: 999999;
     white-space: nowrap;
 }
 
@@ -496,7 +497,7 @@ select:focus, input:focus {
     animation: pulseMic 1.5s infinite;
 }
 
-/* التنسيق الخاص بالطباعة الرسمية (المحرك الرسمي المضمون 100%) */
+/* التنسيق الخاص بالطباعة الرسمية */
 @media print {
     body * {
         visibility: hidden !important;
@@ -524,15 +525,15 @@ select:focus, input:focus {
     #pdf-template::after {
         content: "Educational platform" !important;
         position: fixed !important;
-        top: 45% !important;
-        left: 10% !important;
-        font-size: 5rem !important;
-        font-weight: 900 !important;
-        color: #0f172a !important;
-        opacity: 0.08 !important;
-        transform: rotate(-35deg) !important;
+        top: 50% !important;
+        left: 50% !important;
+        transform: translate(-50%, -50%) rotate(-30deg) !important;
+        font-size: 1.8rem !important;
+        font-weight: 700 !important;
+        letter-spacing: 2px !important;
+        color: rgba(15, 23, 42, 0.18) !important;
         pointer-events: none !important;
-        z-index: 9999 !important;
+        z-index: 999999 !important;
         white-space: nowrap !important;
         display: block !important;
     }

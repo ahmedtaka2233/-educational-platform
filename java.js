@@ -54,7 +54,15 @@ window.addEventListener('load', () => {
             customSplash.style.visibility = 'hidden';
             setTimeout(() => {
                 customSplash.remove();
+                // إظهار تسجيل الدخول تلقائياً عند فتح المنصة والبرنامج
+                if (!isVIPLoggedIn) {
+                    showAuthScreen();
+                }
             }, 800);
+        } else {
+            if (!isVIPLoggedIn) {
+                showAuthScreen();
+            }
         }
     }, 3000); 
 });
@@ -287,7 +295,10 @@ function createAuthScreen() {
                 <div style="width:45px; height:45px; background:#fef3c7; color:#b45309; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:1.2rem; margin-bottom:10px;"><i class="fas fa-crown"></i></div>
                 <h3 style="color:#1e293b; margin-top:0; margin-bottom:8px;">تفعيل عضوية VIP</h3>
                 <p style="color:#64748b; font-size:0.85rem; margin-bottom:15px;">انتهت محاولاتك المجانية. للاستمرار يرجى الاشتراك.</p>
-                <div style="background:#f8fafc; border:1px solid #cbd5e1; border-radius:8px; padding:12px; margin-bottom:15px; font-size:0.85rem; line-height:1.6; color:#334155;">
+                <div style="background:#f8fafc; border:1px solid #cbd5e1; border-radius:8px; padding:12px; margin-bottom:15px; font-size:0.85rem; line-height:1.6; color:#334155; text-align: right;">
+                    <strong>باقات الاشتراك المتاحة:</strong><br>
+                    • للطلاب: من 100 إلى 300 جنيه (خصم يصل لـ 25% كل 3 شهور عند دفع الحد الأقصى 300 ج).<br>
+                    • للمدرسين: من 200 إلى 600 جنيه (خصم يصل لـ 25% كل شهرين إلى 3 شهور عند دفع الحد الأقصى 600 ج).<br><br>
                     قم بالتحويل لفودافون كاش على الرقم <strong style="color:#0ea5e9; font-size:1rem;" dir="ltr">01026336159</strong><br>
                     وبعد إتمام التحويل، اضغط تأكيد وسنقوم بتوجيهك للواتس آب.
                 </div>
@@ -327,6 +338,7 @@ function showAuthScreen() {
     document.getElementById('auth-payment-card').style.display = 'none';
     document.getElementById('auth-overlay').style.display = 'flex';
 }
+
 async function handleAuthNextStep() {
     let phone = document.getElementById('auth-phone').value.trim();
     if (phone.length < 10) {
@@ -344,45 +356,40 @@ async function handleAuthNextStep() {
 
         if (docSnap.exists) {
             let data = docSnap.data();
-            if (data.status === "Free" && !isSpecialNumber) {
-                loginSuccess(phone, "User");
+            // الفحص الدقيق: هل لديه رقم سري مسجل أم لا
+            let hasPassword = !!(data.studentPassword || data.adminPassword);
+
+            document.getElementById('auth-password-container').style.display = 'block';
+            document.getElementById('auth-next-btn').style.display = 'none';
+            document.getElementById('auth-login-btn').style.display = 'block';
+            document.getElementById('auth-phone').disabled = true;
+
+            if (hasPassword) {
+                document.getElementById('auth-password').placeholder = "أدخل الرقم السري لحسابك";
+                document.getElementById('auth-instruction-text').innerText = "تم التعرف على حسابك، يرجى كتابة الرقم السري";
             } else {
-                document.getElementById('auth-password-container').style.display = 'block';
-                document.getElementById('auth-next-btn').style.display = 'none';
-                document.getElementById('auth-login-btn').style.display = 'block';
-                document.getElementById('auth-phone').disabled = true;
-                
-                if (!data.studentPassword && !data.adminPassword) {
-                    document.getElementById('auth-password').placeholder = "أنشئ رقماً سرياً جديداً لحسابك";
-                    document.getElementById('auth-instruction-text').innerText = "يرجى إنشاء رقم سري لحماية حسابك";
-                } else {
-                    document.getElementById('auth-instruction-text').innerText = "أدخل الرقم السري للمتابعة";
-                }
+                // إذا لم يكن عاملاً رقماً سرياً نوجهه لإنشاء واحد جديد فوراً
+                document.getElementById('auth-password').placeholder = "أنشئ رقماً سرياً جديداً لحسابك";
+                document.getElementById('auth-instruction-text').innerText = "حسابك لا يحتوي على رقم سري، يرجى إنشاء كلمة سر جديدة";
             }
         } else {
-            if (isSpecialNumber) {
-                document.getElementById('auth-password-container').style.display = 'block';
-                document.getElementById('auth-next-btn').style.display = 'none';
-                document.getElementById('auth-login-btn').style.display = 'block';
-                document.getElementById('auth-phone').disabled = true;
-                document.getElementById('auth-password').placeholder = "أنشئ رقماً سرياً لحسابك المميز";
-                document.getElementById('auth-instruction-text').innerText = "قم بتعيين رقم سري جديد";
-            } else {
-                let deviceFingerprint = localStorage.getItem("device_fingerprint") || ("DEV_" + Math.random().toString(36).substring(2, 15));
-                // تنفيذ تعديل ChatGPT القوي للحسابات الجديدة
-                await db.collection("teachers").doc(phone).set({
-                    name: "Student_" + phone,
-                    phone: phone,
-                    status: "Free",
-                    role: "User",
-                    registeredDeviceFingerprint: deviceFingerprint,
-                    createdAt: new Date()
-                }, { merge: true });
-                loginSuccess(phone, "User");
-                setTimeout(() => {
-                    checkFreeTrialAndAccess();
-                }, 800);
-            }
+            // مستخدم جديد يسجل لأول مرة يوجهه مباشرة لإنشاء كلمة سر جديدة
+            let deviceFingerprint = localStorage.getItem("device_fingerprint") || ("DEV_" + Math.random().toString(36).substring(2, 15));
+            await db.collection("teachers").doc(phone).set({
+                name: "Student_" + phone,
+                phone: phone,
+                status: isSpecialNumber ? "VIP_Active" : "Free",
+                role: isSpecialNumber ? "Admin" : "User",
+                registeredDeviceFingerprint: deviceFingerprint,
+                createdAt: new Date()
+            }, { merge: true });
+
+            document.getElementById('auth-password-container').style.display = 'block';
+            document.getElementById('auth-next-btn').style.display = 'none';
+            document.getElementById('auth-login-btn').style.display = 'block';
+            document.getElementById('auth-phone').disabled = true;
+            document.getElementById('auth-password').placeholder = "أنشئ رقماً سرياً جديداً لحسابك";
+            document.getElementById('auth-instruction-text').innerText = "مرحباً بك! يرجى إنشاء كلمة سر جديدة لحسابك";
         }
     } catch (e) {
         showCustomAlert("خطأ في الاتصال بالشبكة: " + e.message, "error");
@@ -415,7 +422,6 @@ async function handleUserLoginFinal() {
         let isAuthorizedAdmin = AUTHORIZED_ADMIN_PHONES.includes(phone);
         let assignedRole = isAuthorizedAdmin ? "Admin" : teacherData.role || "User";
 
-        // تنفيذ كود ChatGPT بالكامل باستخدام set بدلاً من update
         if (isAuthorizedAdmin) {
             if (!teacherData.adminPassword) {
                 await teacherRef.set({
@@ -436,7 +442,7 @@ async function handleUserLoginFinal() {
                     phone: phone,
                     name: teacherData.name || ("Student_" + phone),
                     studentPassword: password,
-                    status: teacherData.status || "VIP_Active",
+                    status: teacherData.status || "Free",
                     role: teacherData.role || "User",
                     createdAt: teacherData.createdAt || new Date()
                 }, { merge: true });
@@ -475,7 +481,6 @@ async function handleUserLoginFinal() {
     } catch (e) {
         console.error("LOGIN ERROR:", e);
         btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> دخول المنصة';
-        // إظهار الخطأ الحقيقي كما طلب ChatGPT
         showCustomAlert("حدث خطأ أثناء تسجيل الدخول:<br><br><strong>" + String(e.message || e) + "</strong>", 'error');
     }
 }
@@ -566,8 +571,8 @@ function showFreeTrialSelectionModal() {
             
             <div style="display:flex; flex-direction:column; gap:12px;">
                 <button onclick="startFreeTrialTimer(1)" style="background:#f1f5f9; color:#334155; border:2px solid #cbd5e1; padding:15px; border-radius:12px; font-weight:bold; cursor:pointer; font-size:1.1rem; transition:0.3s;" onmouseover="this.style.borderColor='#8b5cf6'" onmouseout="this.style.borderColor='#cbd5e1'">تجربة سريعة (دقيقة واحدة)</button>
-                <button onclick="startFreeTrialTimer(5)" style="background:#f1f5f9; color:#334155; border:2px solid #cbd5e1; padding:15px; border-radius:12px; font-weight:bold; cursor:pointer; font-size:1.1rem; transition:0.3s;" onmouseover="this.style.borderColor='#8b5cf6'" onmouseout="this.style.borderColor='#cbd5e1'">تجربة متوسطة (5 دقائق)</button>
-                <button onclick="startFreeTrialTimer(10)" style="background:#8b5cf6; color:#ffffff; border:none; padding:15px; border-radius:12px; font-weight:bold; cursor:pointer; font-size:1.1rem; box-shadow:0 4px 15px rgba(139,92,246,0.3);">تجربة كاملة (10 دقائق)</button>
+                <button onclick="startFreeTrialTimer(3)" style="background:#f1f5f9; color:#334155; border:2px solid #cbd5e1; padding:15px; border-radius:12px; font-weight:bold; cursor:pointer; font-size:1.1rem; transition:0.3s;" onmouseover="this.style.borderColor='#8b5cf6'" onmouseout="this.style.borderColor='#cbd5e1'">تجربة متوسطة (3 دقائق)</button>
+                <button onclick="startFreeTrialTimer(5)" style="background:#8b5cf6; color:#ffffff; border:none; padding:15px; border-radius:12px; font-weight:bold; cursor:pointer; font-size:1.1rem; box-shadow:0 4px 15px rgba(139,92,246,0.3);">تجربة كاملة (أقصى حد: 5 دقائق)</button>
             </div>
         </div>
     `;
@@ -666,9 +671,6 @@ function loginSuccess(phone, role) {
     localStorage.setItem('saved_user_role', role);
     resetSessionTimer();
     
-    // =========================================================
-    // كود حارس خانة البحث القوي: يمنع الرقم من الظهور فيها تماماً
-    // =========================================================
     let searchBoxElem = document.getElementById('stage-search');
     if (searchBoxElem) {
         searchBoxElem.value = '';
@@ -881,7 +883,6 @@ function buildDynamicUserMenu(phone, role) {
     if (role === 'Admin' || AUTHORIZED_ADMIN_PHONES.includes(phone)) {
         const dashBtn = document.getElementById('btn-dyn-dash');
         if (dashBtn) {
-            // حل جذري لمنع خطأ loadAndShowDashboard is not defined
             dashBtn.addEventListener('click', () => {
                 if (typeof window.loadAndShowDashboard === 'function') {
                     window.loadAndShowDashboard();
@@ -897,10 +898,8 @@ function buildDynamicUserMenu(phone, role) {
         }
     }
 }
-// ==================== نهاية الجزء الأول ====================
-// ==================== بداية الجزء الثاني والأخير ====================
 
-// جعل دوال لوحة التحكم عامة (Global) لمنع خطأ is not defined ولإحياء الروبوت
+// جعل دوال لوحة التحكم عامة (Global) لمنع خطأ is not defined
 window.loadAndShowDashboard = async function() {
     if (!AUTHORIZED_ADMIN_PHONES.includes(currentTeacherId) && currentUserRole !== 'Admin') {
         showCustomAlert("غير مصرح لك بالوصول إلى لوحة التحكم.", 'error');
@@ -1738,9 +1737,71 @@ window.incrementAttempt = function() {
     let attempts = parseInt(localStorage.getItem('user_attempts') || 0) + 1;
     localStorage.setItem('user_attempts', attempts);
 };
+
 document.addEventListener('DOMContentLoaded', () => {
 
-    // إصلاح: ربط زر تسجيل الدخول بنافذة الـ VIP داخل الـ DOM
+    // إصلاح منظومة البحث وتفعيل كتابة الحروف العربية
+    const searchInput = document.getElementById('stage-search');
+    const searchResults = document.getElementById('search-results');
+    
+    if (searchInput && searchResults) {
+        searchInput.addEventListener('input', async (e) => {
+            const query = e.target.value.trim().toLowerCase();
+            searchResults.innerHTML = '';
+            
+            if (!query) {
+                searchResults.style.display = 'none';
+                return;
+            }
+
+            try {
+                const res = await fetch('database.json');
+                const dbData = await res.json();
+                let matchedSubjects = [];
+
+                for (let key in dbData) {
+                    if (key.toLowerCase().includes(query)) {
+                        matchedSubjects.push(key);
+                    }
+                }
+
+                if (matchedSubjects.length > 0) {
+                    searchResults.style.display = 'block';
+                    matchedSubjects.forEach(sub => {
+                        let li = document.createElement('li');
+                        li.textContent = sub;
+                        li.onclick = () => {
+                            searchInput.value = sub;
+                            searchResults.style.display = 'none';
+                            const subSelect = document.getElementById('subject-select');
+                            const subContainer = document.getElementById('subject-container');
+                            const uploadSec = document.getElementById('student-upload-section');
+                            const extractSec = document.getElementById('extraction-settings');
+                            
+                            if (subSelect) {
+                                subSelect.innerHTML = `<option value="${sub}" selected>${sub}</option>`;
+                                if (subContainer) subContainer.classList.remove('hidden-section');
+                                if (uploadSec) uploadSec.classList.remove('hidden-section');
+                                if (extractSec) extractSec.classList.remove('hidden-section');
+                            }
+                        };
+                        searchResults.appendChild(li);
+                    });
+                } else {
+                    searchResults.style.display = 'none';
+                }
+            } catch (err) {
+                console.error("Search fetch error:", err);
+            }
+        });
+
+        document.addEventListener('click', (e) => {
+            if (!searchInput.contains(e.target) && !searchResults.contains(e.target)) {
+                searchResults.style.display = 'none';
+            }
+        });
+    }
+
     const loginToggle = document.getElementById('teacher-mode');
     if (loginToggle) {
         loginToggle.addEventListener('change', function() {
@@ -1993,18 +2054,16 @@ ALL MCQs AND TRUE/FALSE MUST HAVE DETAILED REASONS. THE TONE MUST BE 100% IDENTI
             }
         }
         
-        // إصلاح: طباعة الـ PDF الآمنة للموبايل
         document.getElementById('native-print-btn').addEventListener('click', function(e) {
             e.preventDefault();
-            // فتح النافذة أولاً بشكل متزامن قبل أي أوامر أخرى
             const previewWindow = window.open('', '_blank');
             if (!previewWindow) {
                 showCustomAlert("المتصفح منع النافذة. جرب السماح بالنوافذ المنبثقة.", "error");
                 return;
             }
-            previewWindow.document.write('<html dir="rtl"><body style="text-align:center; padding:50px;"><h3>جاري تجهيز المذكرة...</h3></body></html>');
+            previewWindow.document.write('<html dir="rtl"><body style="text-align:center; padding:50px; font-family:Cairo, sans-serif;"><h3>جاري كتابة ومعالجة نصوص الذكاء الاصطناعي وبناء الـ PDF...</h3><p>يرجى الانتظار ثوانٍ قليلة...</p></body></html>');
 
-            showToast("جاري تجهيز المذكرة للمعاينة...", "#0ea5e9");
+            showToast("جاري كتابة النصوص بالذكاء الاصطناعي وبناء الـ PDF...", "#0ea5e9");
             preparePDFDOM(serverData, subjectName);
             
             const elementToPrint = document.getElementById('pdf-template');
@@ -2018,15 +2077,18 @@ ALL MCQs AND TRUE/FALSE MUST HAVE DETAILED REASONS. THE TONE MUST BE 100% IDENTI
                 jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
             };
 
-            html2pdf().set(opt).from(elementToPrint).outputPdf('blob').then(function(pdfBlob) {
-                const blobUrl = URL.createObjectURL(pdfBlob);
-                previewWindow.location.href = blobUrl;
-                elementToPrint.style.display = 'none';
-                showToast("تم فتح المعاينة بنجاح!", "#10b981");
-            }).catch(err => {
-                previewWindow.close();
-                showCustomAlert("حدث خطأ أثناء المعاينة.", "error");
-            });
+            // تأخير متقن لمنح الذكاء الاصطناعي الوقت الكامل لكتابة النصوص داخل الـ PDF
+            setTimeout(() => {
+                html2pdf().set(opt).from(elementToPrint).outputPdf('blob').then(function(pdfBlob) {
+                    const blobUrl = URL.createObjectURL(pdfBlob);
+                    previewWindow.location.href = blobUrl;
+                    elementToPrint.style.display = 'none';
+                    showToast("تم بناء وتحميل المذكرة بنجاح!", "#10b981");
+                }).catch(err => {
+                    previewWindow.close();
+                    showCustomAlert("حدث خطأ أثناء المعاينة.", "error");
+                });
+            }, 3500);
         });
         
         document.getElementById('ai-output-container').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
@@ -2345,12 +2407,10 @@ ALL MCQs AND TRUE/FALSE MUST HAVE DETAILED REASONS. THE TONE MUST BE 100% IDENTI
         }
     }
 
-    // إصلاح: إعدادات نافذة المعلم الذكي (الخفيفة والمستقرة)
     const tutorFabBtn = document.getElementById('tutor-fab-btn');
     const tutorChatWindow = document.getElementById('tutor-chat-window');
     const closeTutorBtn = document.getElementById('close-tutor-btn');
     
-    // ربط المتغيرات بالنافذة الخفيفة الموجودة في التصميم
     const immersiveInput = document.getElementById('tutor-input');
     const immersiveSendBtn = document.getElementById('tutor-send-btn');
     const immersiveMessagesArea = document.getElementById('tutor-messages');
@@ -2446,11 +2506,29 @@ ALL MCQs AND TRUE/FALSE MUST HAVE DETAILED REASONS. THE TONE MUST BE 100% IDENTI
         }
     }
 
-    // فتح الشات الخفيف وتخطي حماية الصوت
+    // تقييد الروبوت في الـ VIP فقط وتوجيه المجاني للدفع تلقائياً
     if (tutorFabBtn && tutorChatWindow) {
-        tutorFabBtn.onclick = (e) => {
+        tutorFabBtn.onclick = async (e) => {
             e.preventDefault();
-            // تنشيط الصوت بصمت لتخطي حماية سفاري وكروم
+
+            if (!isVIPLoggedIn || currentUserRole === "Free") {
+                showCustomAlert(`
+                    عفواً، المعلم الذكي (الروبوت) متاح فقط لحسابات الـ VIP المدفوعة.<br><br>
+                    <strong>تفاصيل الاشتراك:</strong><br>
+                    • للطلاب: من 100 إلى 300 جنيه (خصم 25% كل 3 شهور للحد الأقصى).<br>
+                    • للمدرسين: من 200 إلى 600 جنيه (خصم 25% كل 2 إلى 3 شهور للحد الأقصى).<br><br>
+                    سيتم تحويلك الآن لتفعيل اشتراك الـ VIP.
+                `, 'error');
+
+                setTimeout(() => {
+                    createAuthScreen();
+                    document.getElementById('auth-user-card').style.display = 'none';
+                    document.getElementById('auth-payment-card').style.display = 'block';
+                    document.getElementById('auth-overlay').style.display = 'flex';
+                }, 2200);
+                return;
+            }
+
             if ('speechSynthesis' in window) {
                 let silentUtterance = new SpeechSynthesisUtterance('');
                 window.speechSynthesis.speak(silentUtterance);
@@ -2463,7 +2541,6 @@ ALL MCQs AND TRUE/FALSE MUST HAVE DETAILED REASONS. THE TONE MUST BE 100% IDENTI
         };
     }
 
-    // إغلاق الشات الخفيف وإيقاف الصوت
     if (closeTutorBtn) {
         closeTutorBtn.onclick = () => {
             tutorChatWindow.style.opacity = '0';
@@ -2480,7 +2557,6 @@ ALL MCQs AND TRUE/FALSE MUST HAVE DETAILED REASONS. THE TONE MUST BE 100% IDENTI
         const msgDiv = document.createElement('div');
         msgDiv.className = sender === 'user' ? 'tutor-msg user-msg' : 'tutor-msg bot-msg';
         
-        // تعديل ألوان الشات الخفيف برمجياً ليتناسب مع التصميم
         if(sender === 'user') {
             msgDiv.style.cssText = "align-self: flex-end; background: linear-gradient(135deg, #0ea5e9, #3b82f6); color: white; border-radius: 15px 15px 0 15px; padding: 14px 18px; max-width: 85%; font-family: 'Cairo', sans-serif;";
         } else {
@@ -2596,7 +2672,6 @@ ALL MCQs AND TRUE/FALSE MUST HAVE DETAILED REASONS. THE TONE MUST BE 100% IDENTI
         });
     }
 
-    // تم إبقاء دالة الروبوت 3D هنا كتعريف فقط لعدم المساس بالبنية البرمجية في حالة رغبتك بالرجوع لها لاحقاً
     let robotHeadGroup = null;
     let robotJaw = null;
     let isRobotTalking = false;
