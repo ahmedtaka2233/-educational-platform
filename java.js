@@ -1465,7 +1465,7 @@ window.incrementAttempt = function() {
 };
 
 // ==========================================
-// تفعيل القوائم المنسدلة يدوياً والبحث (كما في الصور الأصلية)
+// تفعيل القوائم المنسدلة يدوياً والبحث (بدون تغيير الديزاين كما في الصور)
 // ==========================================
 document.addEventListener('DOMContentLoaded', () => {
 
@@ -1482,7 +1482,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const searchInput = document.getElementById('stage-search');
     const searchResults = document.getElementById('search-results');
 
-    // قاعدة بيانات المراحل والشعب والصفوف
     const stagesData = {
         primary: {
             subStages: [],
@@ -1682,9 +1681,6 @@ document.addEventListener('DOMContentLoaded', () => {
                             
                             window.searchedSubjectTemp = sub; 
                             
-                            const stagesGrid = document.querySelector('.stages-grid');
-                            if(stagesGrid) stagesGrid.style.display = 'block';
-
                             if (mainStage) {
                                 mainStage.style.borderColor = '#0ea5e9';
                                 mainStage.style.boxShadow = '0 0 0 4px rgba(14, 165, 233, 0.2)';
@@ -2006,14 +2002,8 @@ ALL MCQs AND TRUE/FALSE MUST HAVE DETAILED REASONS. THE TONE MUST BE 100% IDENTI
         
         document.getElementById('native-print-btn').addEventListener('click', function(e) {
             e.preventDefault();
-            const previewWindow = window.open('', '_blank');
-            if (!previewWindow) {
-                showCustomAlert("المتصفح منع النافذة. جرب السماح بالنوافذ المنبثقة.", "error");
-                return;
-            }
-            previewWindow.document.write('<html dir="rtl"><body style="text-align:center; padding:50px; font-family:Cairo, sans-serif;"><h3>جاري كتابة ومعالجة نصوص الذكاء الاصطناعي وبناء الـ PDF...</h3><p>يرجى الانتظار ثوانٍ قليلة...</p></body></html>');
-
-            showToast("جاري كتابة النصوص بالذكاء الاصطناعي وبناء الـ PDF...", "#0ea5e9");
+            
+            showToast("جاري تجهيز المذكرة، يرجى الانتظار 10 ثواني...", "#0ea5e9");
             preparePDFDOM(serverData, subjectName);
             
             const elementToPrint = document.getElementById('pdf-template');
@@ -2023,21 +2013,19 @@ ALL MCQs AND TRUE/FALSE MUST HAVE DETAILED REASONS. THE TONE MUST BE 100% IDENTI
                 margin: 0.3,
                 filename: 'مذكرة_' + (subjectName || 'المنصة') + '.pdf',
                 image: { type: 'jpeg', quality: 0.98 },
-                html2canvas: { scale: 2, useCORS: true },
+                html2canvas: { scale: 2, useCORS: true, logging: false },
                 jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
             };
 
             setTimeout(() => {
-                html2pdf().set(opt).from(elementToPrint).outputPdf('blob').then(function(pdfBlob) {
-                    const blobUrl = URL.createObjectURL(pdfBlob);
-                    previewWindow.location.href = blobUrl;
+                html2pdf().set(opt).from(elementToPrint).save().then(() => {
                     elementToPrint.style.display = 'none';
-                    showToast("تم بناء وتحميل المذكرة بنجاح!", "#10b981");
+                    showToast("تم تحميل المذكرة بنجاح!", "#10b981");
                 }).catch(err => {
-                    previewWindow.close();
-                    showCustomAlert("حدث خطأ أثناء المعاينة.", "error");
+                    elementToPrint.style.display = 'none';
+                    showCustomAlert("حدث خطأ أثناء تحميل الملف.", "error");
                 });
-            }, 3500);
+            }, 10000);
         });
         
         document.getElementById('ai-output-container').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
