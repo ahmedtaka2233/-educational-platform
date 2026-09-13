@@ -1521,33 +1521,33 @@ document.addEventListener('DOMContentLoaded', () => {
     ];
 
     function checkAndShowUpload() {
-        if (subjectSelect && subjectSelect.value && subjectSelect.value !== "none" && subjectSelect.value !== "") {
-            if (uploadSection) uploadSection.classList.remove('hidden-section');
-            if (extractSection) extractSection.classList.remove('hidden-section');
-            
-            if (pathDisplay) {
-                pathDisplay.style.display = 'block';
-                let pathText = "";
-                
-                if (mainStage && mainStage.value !== 'none' && mainStage.options[mainStage.selectedIndex]) {
-                    pathText += mainStage.options[mainStage.selectedIndex].text;
-                } else {
-                    pathText += "بحث سريع";
-                }
+    const hasMainStage = mainStage && mainStage.value && mainStage.value !== "none";
+    const requiresSubStage = (mainStage && (mainStage.value === 'high_general' || mainStage.value === 'high_azhar' || mainStage.value === 'diploma'));
+    const hasSubStage = requiresSubStage ? (subStage && subStage.value && subStage.value !== "") : true;
+    const hasYear = yearStage && yearStage.value && yearStage.value !== "";
+    const hasSubject = (subjectSelect && subjectSelect.value && subjectSelect.value !== "") || window.searchedSubjectTemp;
 
-                if (subStageContainer && !subStageContainer.classList.contains('hidden-section') && subStage && subStage.value) {
-                    pathText += ' > ' + subStage.value;
-                }
-                
-                if (yearStageContainer && !yearStageContainer.classList.contains('hidden-section') && yearStage && yearStage.value) {
-                    pathText += ' > ' + yearStage.value;
-                }
-                
-                pathText += ' > ' + subjectSelect.value;
-                pathDisplay.innerHTML = `<i class="fas fa-map-marker-alt"></i> مسار المادة المحدد:<br><strong>${pathText}</strong>`;
+    if (hasMainStage && hasSubStage && hasYear && hasSubject) {
+        if (uploadSection) uploadSection.classList.remove('hidden-section');
+        if (extractSection) extractSection.classList.remove('hidden-section');
+        
+        if (pathDisplay) {
+            pathDisplay.style.display = 'block';
+            let pathText = mainStage.options[mainStage.selectedIndex].text;
+            if (requiresSubStage) {
+                pathText += ' > ' + subStage.value;
             }
+            pathText += ' > ' + yearStage.value;
+            pathText += ' > ' + (subjectSelect.value || window.searchedSubjectTemp);
+            pathDisplay.innerHTML = `<i class="fas fa-map-marker-alt"></i> المسار المكتمل:<br><strong>${pathText}</strong>`;
         }
+    } else {
+        if (uploadSection) uploadSection.classList.add('hidden-section');
+        if (extractSection) extractSection.classList.add('hidden-section');
+        if (pathDisplay) pathDisplay.style.display = 'none';
     }
+}
+
 
     if (mainStage) {
         mainStage.addEventListener('change', () => {
@@ -2000,33 +2000,70 @@ ALL MCQs AND TRUE/FALSE MUST HAVE DETAILED REASONS. THE TONE MUST BE 100% IDENTI
             }
         }
         
-        document.getElementById('native-print-btn').addEventListener('click', function(e) {
-            e.preventDefault();
-            
-            showToast("جاري تجهيز المذكرة، يرجى الانتظار 10 ثواني...", "#0ea5e9");
-            preparePDFDOM(serverData, subjectName);
-            
-            const elementToPrint = document.getElementById('pdf-template');
-            elementToPrint.style.display = 'block';
-            
-            const opt = {
-                margin: 0.3,
-                filename: 'مذكرة_' + (subjectName || 'المنصة') + '.pdf',
-                image: { type: 'jpeg', quality: 0.98 },
-                html2canvas: { scale: 2, useCORS: true, logging: false },
-                jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
-            };
+        const nativePrintBtn = document.getElementById('native-print-btn');
+if (nativePrintBtn) {
+    const newPrintBtn = nativePrintBtn.cloneNode(true);
+    nativePrintBtn.parentNode.replaceChild(newPrintBtn, nativePrintBtn);
 
-            setTimeout(() => {
-                html2pdf().set(opt).from(elementToPrint).save().then(() => {
-                    elementToPrint.style.display = 'none';
-                    showToast("تم تحميل المذكرة بنجاح!", "#10b981");
-                }).catch(err => {
-                    elementToPrint.style.display = 'none';
-                    showCustomAlert("حدث خطأ أثناء تحميل الملف.", "error");
-                });
-            }, 10000);
-        });
+    newPrintBtn.onclick = async function(e) {
+        e.preventDefault();
+        
+        if (typeof serverData === 'undefined' || !serverData || !serverData.qa_data || serverData.qa_data.length === 0) {
+            showCustomAlert("عفواً، لا توجد أسئلة أو ملخص لطباعته. تأكد من معالجة الدرس أولاً.", "error");
+            return;
+        }
+
+        showToast("جاري التجهيز والتحقق من النصوص لملف الـ PDF...", "#0ea5e9");
+        preparePDFDOM(serverData, subjectName || "المادة");
+        
+        const elementToPrint = document.getElementById('pdf-template');
+        const contentArea = document.getElementById('pdf-qa-content');
+
+        if (!contentArea || contentArea.innerText.trim().length < 20) {
+            showCustomAlert("خطأ: تم اكتشاف أن الصفحة ستكون فارغة! جاري إعادة المعالجة...", "error");
+            preparePDFDOM(serverData, subjectName || "المادة");
+        }
+
+        elementToPrint.style.display = 'block';
+        elementToPrint.style.position = 'absolute';
+        elementToPrint.style.left = '-9999px'; 
+        elementToPrint.style.top = '0';
+        elementToPrint.style.width = '800px';
+        elementToPrint.style.backgroundColor = '#ffffff';
+        elementToPrint.style.color = '#000000';
+        
+        await document.fonts.ready;
+        await new Promise(resolve => setTimeout(resolve, 1500)); 
+
+        const opt = {
+            margin: 0.3,
+            filename: 'مذكرة_' + (subjectName || 'المنصة') + '_' + Date.now() + '.pdf',
+            image: { type: 'jpeg', quality: 1.0 },
+            html2canvas: { 
+                scale: 3, 
+                useCORS: true, 
+                logging: false,
+                letterRendering: true,
+                scrollY: 0,
+                windowWidth: 800
+            },
+            jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' },
+            pagebreak: { mode: ['css', 'legacy'], avoid: '.pdf-question-block' }
+        };
+
+        try {
+            await html2pdf().set(opt).from(elementToPrint).save();
+            showToast("تم التحقق وطباعة الـ PDF بنجاح تام!", "#10b981");
+        } catch (err) {
+            showCustomAlert("فشل في استخراج الـ PDF: " + err.message, "error");
+        } finally {
+            elementToPrint.style.display = 'none';
+            elementToPrint.style.position = '';
+            elementToPrint.style.left = '';
+        }
+    };
+}
+
         
         document.getElementById('ai-output-container').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
@@ -2560,18 +2597,21 @@ ALL MCQs AND TRUE/FALSE MUST HAVE DETAILED REASONS. THE TONE MUST BE 100% IDENTI
                 let currentYear = document.getElementById('year-stage')?.options[document.getElementById('year-stage')?.selectedIndex]?.text || "غير محدد";
                 let mainStageVal = document.getElementById('main-stage')?.value || "";
                 
-                let customPrompt = "MANDATORY_STRICT_INSTRUCTION: YOU ARE A FRIENDLY, HUMAN-LIKE EXPERT EGYPTIAN TEACHER. ";
-                customPrompt += "CRITICAL RULE: YOU MUST SPEAK AND EXPLAIN ENTIRELY IN PURE EGYPTIAN COLLOQUIAL ARABIC (عامية مصرية بحتة في كل كلمة). DO NOT USE FORMAL ARABIC (لغة فصحى) AT ALL. ";
-                customPrompt += "YOU MUST RESPOND IMMEDIATELY AND DIRECTLY TO THE STUDENT'S QUESTION. ";
-                customPrompt += "IF THE SUBJECT INCLUDES MATH (الرياضيات), EXPLAIN THE STEPS LOGICALLY AND CLEARLY IN EGYPTIAN ARABIC. ";
-                
-                if (mainStageVal.includes('primary')) {
-                    customPrompt += "THE STUDENT IS IN PRIMARY SCHOOL (" + currentYear + "). EXPLAIN IN A VERY SIMPLE, CLEAR, AND ENGAGING WAY SUITABLE FOR CHILDREN.";
-                } else if (mainStageVal.includes('prep')) {
-                    customPrompt += "THE STUDENT IS IN PREPARATORY SCHOOL (" + currentYear + "). EXPLAIN SIMPLY BUT PROVIDE A COMPREHENSIVE AND STRUCTURED EXPLANATION FOR THE QUESTION WITH STEP BY STEP MATH LOGIC IF NEEDED.";
-                } else if (mainStageVal.includes('high') || mainStageVal.includes('diploma')) {
-                    customPrompt += "THE STUDENT IS IN SECONDARY SCHOOL/DIPLOMA (" + currentYear + "). EXPLAIN USING ALL AVAILABLE METHODS, PROVIDE DEEP ACADEMIC ANALYSIS, EXAMPLES, AND THOROUGH DETAILS, ESPECIALLY FOR MATH AND PHYSICS.";
-                }
+                let customPrompt = `
+SYSTEM ROLE: أنت الآن معلم مصري شاطر جداً، ذكي، ودمك خفيف، وخبير في المناهج المصرية.
+CRITICAL RULE 1: يجب أن تتحدث وتشرح حصرياً بالعامية المصرية البحتة (زي ما المصريين بيتكلموا في الشارع وفي المدارس). إياك ثم إياك استخدام اللغة العربية الفصحى أو الكلمات المعقدة نهائياً. استخدم مصطلحات زي (بص يا بطل، ركز معايا، دي سهلة جداً، الفكرة وما فيها، خد بالك، قشطة).
+CRITICAL RULE 2: الرد يجب أن يكون مباشراً على سؤال الطالب. لو السؤال فيه رياضيات أو فيزياء، اشرح الخطوات بالبلدي وبطريقة منطقية وعملية.
+CRITICAL RULE 3: لا تكن آلياً، كن بشرياً وتفاعلياً لأقصى حد.
+`;
+
+if (mainStageVal.includes('primary')) {
+    customPrompt += `الطالب في المرحلة الابتدائية (${currentYear}). اشرح له بأسلوب طفولي مبسط جداً، شجعه، وقوله يا بطل أو يا دكتور.`;
+} else if (mainStageVal.includes('prep')) {
+    customPrompt += `الطالب في المرحلة الإعدادية (${currentYear}). اشرح ببساطة بس اديله تفاصيل المنهج بشكل يثبت في دماغه، ووضح القوانين لو فيه مسائل.`;
+} else if (mainStageVal.includes('high') || mainStageVal.includes('diploma')) {
+    customPrompt += `الطالب في المرحلة الثانوية أو الدبلومات (${currentYear}). ده طالب كبير، اديله الخلاصة والتكات بتاعة الامتحانات، واشرح التفاصيل العميقة بأسلوب مصري سلس خصوصاً لو المسألة صعبة.`;
+}
+
 
                 const response = await fetch('/api/analyze', {
                     method: 'POST',
