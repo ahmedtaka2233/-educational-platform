@@ -19,6 +19,32 @@ premiumCompactStyle.innerHTML = `
     .pdf-question-block { padding: 12px !important; font-size: 0.95rem !important; margin-bottom: 15px !important; }
     #lesson-upload-box { padding: 15px !important; }
     #lesson-upload-box i { font-size: 2rem !important; margin-bottom: 10px !important; }
+
+    /* تنسيق أزرار المسارات التفاعلية الذكية الموضحة بالصور */
+    .filter-btn-chip {
+        background: #ffffff;
+        color: #0284c7;
+        border: 1px solid #bae6fd;
+        padding: 8px 14px;
+        border-radius: 8px;
+        font-size: 0.88rem;
+        font-weight: bold;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .filter-btn-chip:hover {
+        background: #e0f2fe;
+        border-color: #0284c7;
+    }
+    .filter-btn-chip.active-chip {
+        background: #0ea5e9 !important;
+        color: #ffffff !important;
+        border-color: #0284c7 !important;
+        box-shadow: 0 2px 6px rgba(14, 165, 233, 0.35);
+    }
 `;
 document.head.appendChild(premiumCompactStyle);
 
@@ -54,7 +80,6 @@ window.addEventListener('load', () => {
             customSplash.style.visibility = 'hidden';
             setTimeout(() => {
                 customSplash.remove();
-                // إظهار تسجيل الدخول تلقائياً عند فتح المنصة والبرنامج
                 if (!isVIPLoggedIn) {
                     showAuthScreen();
                 }
@@ -356,7 +381,6 @@ async function handleAuthNextStep() {
 
         if (docSnap.exists) {
             let data = docSnap.data();
-            // الفحص الدقيق: هل لديه رقم سري مسجل أم لا
             let hasPassword = !!(data.studentPassword || data.adminPassword);
 
             document.getElementById('auth-password-container').style.display = 'block';
@@ -368,12 +392,10 @@ async function handleAuthNextStep() {
                 document.getElementById('auth-password').placeholder = "أدخل الرقم السري لحسابك";
                 document.getElementById('auth-instruction-text').innerText = "تم التعرف على حسابك، يرجى كتابة الرقم السري";
             } else {
-                // إذا لم يكن عاملاً رقماً سرياً نوجهه لإنشاء واحد جديد فوراً
                 document.getElementById('auth-password').placeholder = "أنشئ رقماً سرياً جديداً لحسابك";
                 document.getElementById('auth-instruction-text').innerText = "حسابك لا يحتوي على رقم سري، يرجى إنشاء كلمة سر جديدة";
             }
         } else {
-            // مستخدم جديد يسجل لأول مرة يوجهه مباشرة لإنشاء كلمة سر جديدة
             let deviceFingerprint = localStorage.getItem("device_fingerprint") || ("DEV_" + Math.random().toString(36).substring(2, 15));
             await db.collection("teachers").doc(phone).set({
                 name: "Student_" + phone,
@@ -899,7 +921,6 @@ function buildDynamicUserMenu(phone, role) {
     }
 }
 
-// جعل دوال لوحة التحكم عامة (Global) لمنع خطأ is not defined
 window.loadAndShowDashboard = async function() {
     if (!AUTHORIZED_ADMIN_PHONES.includes(currentTeacherId) && currentUserRole !== 'Admin') {
         showCustomAlert("غير مصرح لك بالوصول إلى لوحة التحكم.", 'error');
@@ -1030,276 +1051,6 @@ window.switchDashTab = function(tabName) {
     }
 
     window.renderActiveDashTab();
-};
-
-window.renderActiveDashTab = async function() {
-    const tabContent = document.getElementById('dash-tab-content');
-    if (!tabContent) return;
-
-    if (currentActiveDashTab === "users") {
-        document.getElementById('dash-header-title').innerText = "إدارة الحسابات وطلبات تفعيل VIP";
-        document.getElementById('dash-header-subtitle').innerText = "مراجعة طلبات التفعيل، أمان الأجهزة، وإضافة أرقام مجانية";
-        
-        tabContent.innerHTML = `
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 18px; margin-bottom: 25px;">
-                <div style="background: #ffffff; padding: 20px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); border-right: 4px solid #0ea5e9; display: flex; justify-content: space-between; align-items: center;">
-                    <div>
-                        <div style="font-size: 0.85rem; color: #64748b; font-weight: bold;">إجمالي الحسابات</div>
-                        <div id="stat-total-users" style="font-size: 1.8rem; font-weight: bold; color: #0f172a; margin-top: 5px;">0</div>
-                    </div>
-                    <div style="width: 45px; height: 45px; background: #eff6ff; color: #0ea5e9; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.3rem;"><i class="fas fa-users"></i></div>
-                </div>
-
-                <div style="background: #ffffff; padding: 20px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); border-right: 4px solid #f59e0b; display: flex; justify-content: space-between; align-items: center;">
-                    <div>
-                        <div style="font-size: 0.85rem; color: #64748b; font-weight: bold;">طلبات تفعيل معلقة</div>
-                        <div id="stat-pending-users" style="font-size: 1.8rem; font-weight: bold; color: #b45309; margin-top: 5px;">0</div>
-                    </div>
-                    <div style="width: 45px; height: 45px; background: #fef3c7; color: #f59e0b; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.3rem;"><i class="fas fa-clock"></i></div>
-                </div>
-
-                <div style="background: #ffffff; padding: 20px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); border-right: 4px solid #10b981; display: flex; justify-content: space-between; align-items: center;">
-                    <div>
-                        <div style="font-size: 0.85rem; color: #64748b; font-weight: bold;">حسابات VIP نشطة</div>
-                        <div id="stat-active-users" style="font-size: 1.8rem; font-weight: bold; color: #065f46; margin-top: 5px;">0</div>
-                    </div>
-                    <div style="width: 45px; height: 45px; background: #d1fae5; color: #10b981; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.3rem;"><i class="fas fa-check-circle"></i></div>
-                </div>
-            </div>
-
-            <div style="background: #ffffff; padding: 20px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); margin-bottom: 25px; border: 2px solid #0ea5e9;">
-                <h4 style="margin: 0 0 12px 0; color: #0f172a; font-size: 1.1rem;"><i class="fas fa-user-plus" style="color: #0ea5e9;"></i> إضافة وتفعيل رقم VIP يدوياً (مجاناً):</h4>
-                <div style="display: flex; gap: 12px; flex-wrap: wrap; align-items: center;">
-                    <input type="tel" id="manual-add-phone" placeholder="أدخل رقم الموبايل (مثال: 010xxxxxxxx)" style="flex: 1; min-width: 220px; padding: 12px 15px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.95rem; direction: rtl; text-align: center; font-weight: bold;">
-                    <input type="text" id="manual-add-duration" value="0 يوم" placeholder="المدة (مثال: 365 يوم، ما لا نهاية)..." style="width: 200px; padding: 12px 15px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.95rem; text-align: center;">
-                    <button id="manual-add-btn" style="background: #0ea5e9; color: white; border: none; padding: 12px 24px; border-radius: 8px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 8px;"><i class="fas fa-plus-circle"></i> إضافة وتفعيل VIP</button>
-                </div>
-            </div>
-
-            <div style="background: #ffffff; padding: 18px 20px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); margin-bottom: 20px; display: flex; gap: 15px; flex-wrap: wrap; align-items: center;">
-                <div style="flex: 1; min-width: 250px; position: relative;">
-                    <input type="text" id="dash-search-input" placeholder="بحث برقم الموبايل أو اسم الحساب..." style="width: 100%; padding: 12px 15px 12px 40px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.95rem;">
-                    <i class="fas fa-search" style="position: absolute; left: 15px; top: 50%; transform: translateY(-50%); color: #94a3b8;"></i>
-                </div>
-                <select id="dash-filter-status" style="padding: 12px 18px; border: 1px solid #cbd5e1; border-radius: 8px; background: #ffffff; min-width: 180px; font-weight: bold;">
-                    <option value="ALL">كل حالات الحسابات</option>
-                    <option value="Pending_Review">معلق (بانتظار التفعيل)</option>
-                    <option value="VIP_Active">نشط (VIP Active)</option>
-                    <option value="Expired">منتهي الصلاحية (Expired)</option>
-                    <option value="Free">مجاني / غير نشط</option>
-                </select>
-            </div>
-
-            <div style="background: #ffffff; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); overflow-x: auto;">
-                <table style="width: 100%; border-collapse: collapse; text-align: right; min-width: 850px;">
-                    <thead>
-                        <tr style="background: #f1f5f9; color: #334155; border-bottom: 2px solid #e2e8f0;">
-                            <th style="padding: 15px 18px;">#</th>
-                            <th style="padding: 15px 18px;">رقم الموبايل</th>
-                            <th style="padding: 15px 18px;">الحالة الحالية</th>
-                            <th style="padding: 15px 18px;">مدة التفعيل (كتابة يدوية)</th>
-                            <th style="padding: 15px 18px;">أمان الجهاز</th>
-                            <th style="padding: 15px 18px;">إجراءات الإدارة</th>
-                        </tr>
-                    </thead>
-                    <tbody id="dash-table-body">
-                        <tr>
-                            <td colspan="6" style="padding: 40px; text-align: center; color: #64748b;">
-                                <i class="fas fa-spinner fa-spin fa-2x"></i><br>جاري جلب قائمة الحسابات...
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        `;
-
-        document.getElementById('dash-search-input').addEventListener('input', () => {
-            window.loadDashboardTableData();
-        });
-        document.getElementById('dash-filter-status').addEventListener('change', () => {
-            window.loadDashboardTableData();
-        });
-
-        document.getElementById('manual-add-btn').addEventListener('click', async () => {
-            let phoneVal = document.getElementById('manual-add-phone').value.trim();
-            let durationVal = document.getElementById('manual-add-duration').value.trim() || "0 يوم";
-            
-            if (phoneVal.length < 10) {
-                showCustomAlert("برجاء إدخال رقم موبايل صحيح أولاً.", 'error');
-                return;
-            }
-
-            let daysToAdd = 365;
-            let isLifetime = false;
-            if (durationVal.includes("ما لا نهاية") || durationVal.includes("دائم")) {
-                daysToAdd = 36500;
-                isLifetime = true;
-            } else if (durationVal.includes("365") || durationVal.includes("سنة") || durationVal.includes("عام")) {
-                daysToAdd = 365;
-            } else if (durationVal.includes("6") || durationVal.includes("ست")) {
-                daysToAdd = 180;
-            } else if (durationVal.includes("شهر") || durationVal.includes("30")) {
-                daysToAdd = 30;
-            } else if (durationVal.includes("0") || durationVal.includes("صفر")) {
-                daysToAdd = 0;
-            }
-
-            let endTimestamp = new Date(Date.now() + (daysToAdd * 24 * 60 * 60 * 1000));
-
-            try {
-                await db.collection("teachers").doc(phoneVal).set({
-                    name: "VIP_Free_" + phoneVal,
-                    phone: phoneVal,
-                    status: "VIP_Active",
-                    vipDurationText: durationVal,
-                    subscriptionEnd: endTimestamp,
-                    isLifetimeVIP: isLifetime,
-                    role: "User",
-                    subscriptionStart: new Date(),
-                    addedManuallyByAdmin: true,
-                    createdAt: new Date()
-                }, { merge: true });
-
-                showToast(`تم إضافة وتفعيل الرقم (${phoneVal}) في الـ VIP بنجاح!`);
-                document.getElementById('manual-add-phone').value = "";
-                document.getElementById('manual-add-duration').value = "0 يوم";
-                window.loadDashboardTableData();
-            } catch (e) {
-                showCustomAlert("حدث خطأ أثناء الإضافة: " + e.message, 'error');
-            }
-        });
-
-        window.loadDashboardTableData();
-    }
-    else if (currentActiveDashTab === "orders") {
-        document.getElementById('dash-header-title').innerText = "الطلبات وإيصالات الدفع (بانتظار التفعيل)";
-        document.getElementById('dash-header-subtitle').innerText = "جميع الأرقام التي حولت الفلوس ومنتظرة تفعيل العضوية";
-        
-        tabContent.innerHTML = `
-            <div style="background: #ffffff; padding: 20px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
-                <div>
-                    <h4 style="margin: 0; color: #0f172a; font-size: 1.1rem;"><i class="fas fa-file-invoice-dollar" style="color:#b45309;"></i> قائمة طلبات الدفع المعلقة (Pending Activation):</h4>
-                    <p style="margin: 5px 0 0 0; color: #64748b; font-size: 0.9rem;">يتم عرض الحسابات التي طلبت التفعيل (يرجى مطابقتها مع رسائل فودافون كاش)</p>
-                </div>
-                <button onclick="window.printOrdersReportPDF()" style="background: #10b981; color: white; border: none; padding: 12px 24px; border-radius: 8px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 8px;"><i class="fas fa-file-pdf"></i> تحميل تقرير الطلبات معلقة التفعيل (PDF)</button>
-            </div>
-
-            <div id="orders-report-print-area" style="background: #ffffff; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); overflow-x: auto; padding: 10px;">
-                <div style="text-align:center; padding: 15px; border-bottom: 2px solid #e2e8f0; margin-bottom: 10px;">
-                    <h3 style="margin: 0; color: #0f172a;">تقرير طلبات الدفع وإيصالات التحويل </h3>
-                    <span style="color: #64748b; font-size: 0.85rem;">تاريخ التقرير: ${new Date().toLocaleDateString('ar-EG')}</span>
-                </div>
-                <table style="width: 100%; border-collapse: collapse; text-align: right; min-width: 600px;">
-                    <thead>
-                        <tr style="background: #f1f5f9; color: #334155; border-bottom: 2px solid #e2e8f0;">
-                            <th style="padding: 14px 18px;">#</th>
-                            <th style="padding: 14px 18px;">رقم الموبايل</th>
-                            <th style="padding: 14px 18px;">إثبات الدفع</th>
-                            <th style="padding: 14px 18px;">تاريخ الطلب</th>
-                            <th style="padding: 14px 18px;">إجراء سريع</th>
-                        </tr>
-                    </thead>
-                    <tbody id="orders-table-body">
-                        <tr>
-                            <td colspan="5" style="padding: 40px; text-align: center; color: #64748b;">
-                                <i class="fas fa-spinner fa-spin fa-2x"></i><br>جاري جلب طلبات التفعيل المعلقة...
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        `;
-        window.loadOrdersTableData();
-    }
-    else if (currentActiveDashTab === "reports") {
-        document.getElementById('dash-header-title').innerText = "التقارير المالية الشاملة";
-        document.getElementById('dash-header-subtitle').innerText = "حساب إجمالي الدخل المالي وعدد المشتركين وطباعة التقرير كملف PDF";
-        
-        tabContent.innerHTML = `
-            <div style="background: #ffffff; padding: 20px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
-                <div>
-                    <h4 style="margin: 0; color: #0f172a; font-size: 1.1rem;"><i class="fas fa-coins" style="color:#059669;"></i> التقرير المالي لحسابات الـ VIP المدفوعة:</h4>
-                    <p style="margin: 5px 0 0 0; color: #64748b; font-size: 0.9rem;">إجمالي العائد المحسوب بناءً على اشتراكات المشتركين النشطة (مع استبعاد الإدارة والعائلة)</p>
-                </div>
-                <button onclick="window.printFinancialReportPDF()" style="background: #0ea5e9; color: white; border: none; padding: 12px 24px; border-radius: 8px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 8px;"><i class="fas fa-file-pdf"></i> تحميل التقرير المالي الشامل (PDF)</button>
-            </div>
-
-            <div id="financial-report-print-area" style="background: #ffffff; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); overflow-x: auto; padding: 20px;">
-                <div style="text-align:center; padding-bottom: 15px; border-bottom: 2px solid #e2e8f0; margin-bottom: 20px;">
-                    <h2 style="margin: 0; color: #0f172a;">التقرير المالي وإجمالي الدخل</h2>
-                    <span style="color: #64748b; font-size: 0.9rem;">تاريخ استخراج التقرير: ${new Date().toLocaleDateString('ar-EG')}</span>
-                </div>
-
-                <div style="display: flex; gap: 20px; margin-bottom: 25px; flex-wrap: wrap;">
-                    <div style="flex: 1; background: #ecfdf5; border: 1px solid #10b981; padding: 20px; border-radius: 10px; text-align: center;">
-                        <span style="color: #065f46; font-weight: bold; font-size: 0.95rem;">إجمالي العائد المالي المحسوب (جنيه)</span>
-                        <div id="report-total-revenue" style="font-size: 2.2rem; font-weight: bold; color: #047857; margin-top: 10px;">0 ج.م</div>
-                    </div>
-                    <div style="flex: 1; background: #eff6ff; border: 1px solid #0ea5e9; padding: 20px; border-radius: 10px; text-align: center;">
-                        <span style="color: #1e40af; font-weight: bold; font-size: 0.95rem;">عدد المشتركين الفعليين (VIP Active)</span>
-                        <div id="report-active-subscribers" style="font-size: 2.2rem; font-weight: bold; color: #1d4ed8; margin-top: 10px;">0</div>
-                    </div>
-                </div>
-
-                <h4 style="color: #0f172a; margin-bottom: 10px;">قائمة المشتركين النشطة التي دخلت في الحساب المالي:</h4>
-                <table style="width: 100%; border-collapse: collapse; text-align: right; min-width: 600px;">
-                    <thead>
-                        <tr style="background: #f1f5f9; color: #334155; border-bottom: 2px solid #e2e8f0;">
-                            <th style="padding: 12px 15px;">#</th>
-                            <th style="padding: 12px 15px;">رقم الموبايل</th>
-                            <th style="padding: 12px 15px;">المدة المشترك بها</th>
-                            <th style="padding: 12px 15px;">القيمة المحسوبة</th>
-                            <th style="padding: 12px 15px;">تاريخ التفعيل</th>
-                        </tr>
-                    </thead>
-                    <tbody id="reports-table-body">
-                        <tr>
-                            <td colspan="5" style="padding: 40px; text-align: center; color: #64748b;">
-                                <i class="fas fa-spinner fa-spin fa-2x"></i><br>جاري حساب الدخل المالي وتجهيز القائمة...
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        `;
-        window.loadFinancialReportData();
-    }
-    else if (currentActiveDashTab === "analytics") {
-        document.getElementById('dash-header-title').innerText = "التحليلات الأكاديمية العميقة";
-        document.getElementById('dash-header-subtitle').innerText = "مستويات الطلاب، نسب النجاح، والوقت المستغرق في الامتحانات التفاعلية";
-        
-        tabContent.innerHTML = `
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-bottom: 30px;">
-                <div style="background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); text-align:center;">
-                    <h4 style="color:#1e293b; margin-top:0;">متوسط درجات الطلاب (حسب المادة)</h4>
-                    <canvas id="scoresChart" height="250"></canvas>
-                </div>
-                <div style="background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); text-align:center;">
-                    <h4 style="color:#1e293b; margin-top:0;">معدل النجاح والرسوب العام</h4>
-                    <canvas id="completionChart" height="250"></canvas>
-                </div>
-            </div>
-            
-            <div style="background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.05);">
-                <h4 style="color:#1e293b; margin-top:0; border-bottom: 2px solid #e2e8f0; padding-bottom:10px;">سجل آخر امتحانات تفاعلية مسجلة</h4>
-                <table style="width: 100%; border-collapse: collapse; text-align: right; min-width: 600px;">
-                    <thead style="background:#f8fafc;">
-                        <tr>
-                            <th style="padding:12px; border-bottom: 2px solid #cbd5e1;">رقم الطالب</th>
-                            <th style="padding:12px; border-bottom: 2px solid #cbd5e1;">المادة الدراسية</th>
-                            <th style="padding:12px; border-bottom: 2px solid #cbd5e1;">النتيجة بالنسبة المئوية</th>
-                            <th style="padding:12px; border-bottom: 2px solid #cbd5e1;">الوقت المستغرق</th>
-                        </tr>
-                    </thead>
-                    <tbody id="analytics-table-body">
-                        <tr><td colspan="4" style="text-align:center; padding: 20px;"><i class="fas fa-spinner fa-spin"></i> جاري استدعاء التحليلات...</td></tr>
-                    </tbody>
-                </table>
-            </div>
-        `;
-        
-        window.loadDeepAnalyticsData();
-    }
 };
 
 window.loadDashboardTableData = async function() {
@@ -1738,9 +1489,150 @@ window.incrementAttempt = function() {
     localStorage.setItem('user_attempts', attempts);
 };
 
+// ============================================================================
+// نظام المسارات الذكي التفاعلي (Interactive Educational Pathways)
+// ============================================================================
+const EDUCATIONAL_PATHWAYS = {
+    "المرحلة الابتدائية": {
+        types: ["عام", "أزهري"],
+        grades: ["الصف الأول", "الصف الثاني", "الصف الثالث", "الصف الرابع", "الصف الخامس", "الصف السادس"]
+    },
+    "المرحلة الإعدادية": {
+        types: ["عام", "أزهري"],
+        grades: ["الصف الأول الإعدادي", "الصف الثاني الإعدادي", "الصف الثالث الإعدادي"]
+    },
+    "المرحلة الثانوية": {
+        types: ["عام - علمي علوم", "عام - علمي رياضة", "عام - أدبي", "أزهري - علمي", "أزهري - أدبي"],
+        grades: ["الصف الأول الثانوي", "الصف الثاني الثانوي", "الصف الثالث الثانوي"]
+    },
+    "الدبلومات الفنية": {
+        types: ["صناعي", "تجاري", "زراعي", "فندقي"],
+        grades: ["الصف الأول", "الصف الثاني", "الصف الثالث"]
+    }
+};
+
+function renderInteractiveFilterStages(subjectName) {
+    filterSelectedSubject = subjectName;
+    const filterContainer = document.getElementById('search-filter-container');
+    const filterTitle = document.getElementById('filter-title');
+    const stageStep = document.getElementById('filter-stage-step');
+    const typeStep = document.getElementById('filter-type-step');
+    const gradeStep = document.getElementById('filter-grade-step');
+
+    if (!filterContainer || !stageStep || !typeStep || !gradeStep) return;
+
+    filterContainer.classList.remove('hidden-section');
+    filterTitle.innerText = `اختر المرحلة الدراسية لمادة: ${subjectName}`;
+    
+    stageStep.innerHTML = '';
+    typeStep.innerHTML = '';
+    gradeStep.innerHTML = '';
+    typeStep.style.display = 'none';
+    gradeStep.style.display = 'none';
+
+    Object.keys(EDUCATIONAL_PATHWAYS).forEach(stage => {
+        let btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'filter-btn-chip';
+        btn.innerText = stage;
+        btn.onclick = () => {
+            stageStep.querySelectorAll('.filter-btn-chip').forEach(b => b.classList.remove('active-chip'));
+            btn.classList.add('active-chip');
+            filterSelectedStage = stage;
+            renderInteractiveFilterTypes(stage);
+        };
+        stageStep.appendChild(btn);
+    });
+}
+
+function renderInteractiveFilterTypes(stage) {
+    const typeStep = document.getElementById('filter-type-step');
+    const gradeStep = document.getElementById('filter-grade-step');
+    const filterTitle = document.getElementById('filter-title');
+
+    typeStep.innerHTML = '';
+    gradeStep.innerHTML = '';
+    gradeStep.style.display = 'none';
+    typeStep.style.display = 'flex';
+    filterTitle.innerText = "اختر نوع التعليم / الشعبة:";
+
+    const types = EDUCATIONAL_PATHWAYS[stage].types;
+    types.forEach(t => {
+        let btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'filter-btn-chip';
+        btn.innerText = t;
+        btn.onclick = () => {
+            typeStep.querySelectorAll('.filter-btn-chip').forEach(b => b.classList.remove('active-chip'));
+            btn.classList.add('active-chip');
+            filterSelectedType = t;
+            renderInteractiveFilterGrades(stage, t);
+        };
+        typeStep.appendChild(btn);
+    });
+}
+
+function renderInteractiveFilterGrades(stage, type) {
+    const gradeStep = document.getElementById('filter-grade-step');
+    const filterTitle = document.getElementById('filter-title');
+
+    gradeStep.innerHTML = '';
+    gradeStep.style.display = 'flex';
+    filterTitle.innerText = "اختر الصف الدراسي:";
+
+    const grades = EDUCATIONAL_PATHWAYS[stage].grades;
+    grades.forEach(g => {
+        let btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'filter-btn-chip';
+        btn.innerText = g;
+        btn.onclick = () => {
+            gradeStep.querySelectorAll('.filter-btn-chip').forEach(b => b.classList.remove('active-chip'));
+            btn.classList.add('active-chip');
+            filterSelectedGrade = g;
+            completeInteractivePathwaySelection();
+        };
+        gradeStep.appendChild(btn);
+    });
+}
+
+function completeInteractivePathwaySelection() {
+    const subjectSelectUI = document.getElementById('subject-select');
+    const subjectContainer = document.getElementById('subject-container');
+    const selectedPathDisplay = document.getElementById('selected-path-display');
+    const uploadSection = document.getElementById('student-upload-section');
+    const extractionSettings = document.getElementById('extraction-settings');
+    const yearStageUI = document.getElementById('year-stage');
+    const yearStageContainer = document.getElementById('year-stage-container');
+
+    const fullPathString = `${filterSelectedStage} > ${filterSelectedType} > ${filterSelectedGrade} > ${filterSelectedSubject}`;
+
+    if (subjectSelectUI) {
+        subjectSelectUI.innerHTML = `<option value="${filterSelectedSubject}" selected>${filterSelectedSubject}</option>`;
+    }
+    if (yearStageUI) {
+        yearStageUI.innerHTML = `<option value="${filterSelectedGrade}" selected>${filterSelectedGrade}</option>`;
+    }
+    if (subjectContainer) subjectContainer.classList.remove('hidden-section');
+    if (yearStageContainer) yearStageContainer.classList.remove('hidden-section');
+
+    if (selectedPathDisplay) {
+        selectedPathDisplay.style.display = 'block';
+        selectedPathDisplay.innerHTML = `<i class="fas fa-map-marker-alt"></i> مسار المادة المحدد:<br><strong>${fullPathString}</strong>`;
+    }
+
+    if (uploadSection) uploadSection.classList.remove('hidden-section');
+    if (extractionSettings) extractionSettings.classList.remove('hidden-section');
+
+    const searchFilterContainer = document.getElementById('search-filter-container');
+    if (searchFilterContainer) {
+        searchFilterContainer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
 
-    // إصلاح منظومة البحث وتفعيل كتابة الحروف العربية
+    // تفعيل البحث باللغة العربية مع إظهار المسارات التفاعلية
     const searchInput = document.getElementById('stage-search');
     const searchResults = document.getElementById('search-results');
     
@@ -1765,6 +1657,21 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 }
 
+                const commonSubjects = [
+                    "الفيزياء", "الكيمياء", "الأحياء", "الرياضيات", "اللغة العربية", 
+                    "اللغة الإنجليزية", "اللغة الفرنسية", "اللغة الألمانية", "اللغة الإيطالية", 
+                    "التاريخ", "الجغرافيا", "الفلسفة والمنطق", "علم النفس والاجتماع", 
+                    "الجيولوجيا وعلوم البيئة", "القرآن الكريم", "التربية الدينية الإسلامية",
+                    "الفقه والشريعة", "تكنولوجيا المعلومات والاتصالات (ICT)", "العلوم", "الدراسات الاجتماعية",
+                    "مبادئ المحاسبة (المالية/الشركات)", "تخطيط وإدارة إنتاج"
+                ];
+
+                commonSubjects.forEach(s => {
+                    if (s.toLowerCase().includes(query) && !matchedSubjects.includes(s)) {
+                        matchedSubjects.push(s);
+                    }
+                });
+
                 if (matchedSubjects.length > 0) {
                     searchResults.style.display = 'block';
                     matchedSubjects.forEach(sub => {
@@ -1773,17 +1680,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         li.onclick = () => {
                             searchInput.value = sub;
                             searchResults.style.display = 'none';
-                            const subSelect = document.getElementById('subject-select');
-                            const subContainer = document.getElementById('subject-container');
-                            const uploadSec = document.getElementById('student-upload-section');
-                            const extractSec = document.getElementById('extraction-settings');
-                            
-                            if (subSelect) {
-                                subSelect.innerHTML = `<option value="${sub}" selected>${sub}</option>`;
-                                if (subContainer) subContainer.classList.remove('hidden-section');
-                                if (uploadSec) uploadSec.classList.remove('hidden-section');
-                                if (extractSec) extractSec.classList.remove('hidden-section');
-                            }
+                            renderInteractiveFilterStages(sub);
                         };
                         searchResults.appendChild(li);
                     });
@@ -1798,6 +1695,43 @@ document.addEventListener('DOMContentLoaded', () => {
         document.addEventListener('click', (e) => {
             if (!searchInput.contains(e.target) && !searchResults.contains(e.target)) {
                 searchResults.style.display = 'none';
+            }
+        });
+    }
+
+    // ربط رفع الصور
+    const lessonUploadBox = document.getElementById('lesson-upload-box');
+    const lessonImageInput = document.getElementById('lesson-image');
+    const lessonUploadText = document.getElementById('lesson-upload-text');
+    const imagePreviewContainer = document.getElementById('image-preview-container');
+    const imagePreview = document.getElementById('image-preview');
+
+    if (lessonUploadBox && lessonImageInput) {
+        lessonUploadBox.addEventListener('click', () => {
+            lessonImageInput.click();
+        });
+
+        lessonImageInput.addEventListener('change', (e) => {
+            const files = Array.from(e.target.files);
+            if (files.length > 0) {
+                if (files.length > 10) {
+                    showCustomAlert("عفواً، أقصى عدد مسموح به هو 10 صور فقط للمرة الواحدة!", "error");
+                    lessonImageInput.value = "";
+                    selectedLessonFiles = [];
+                    return;
+                }
+                selectedLessonFiles = files;
+                lessonUploadText.innerHTML = `<i class="fas fa-check-circle" style="color:#10b981;"></i> تم إرفاق ${files.length} صور بنجاح`;
+                
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    if (imagePreview) {
+                        imagePreview.src = event.target.result;
+                        if (imagePreviewContainer) imagePreviewContainer.classList.remove('hidden-section');
+                    }
+                };
+                reader.readAsDataURL(files[0]);
+                showToast(`تم إرفاق ${files.length} صور بنجاح!`, "#10b981");
             }
         });
     }
@@ -2077,7 +2011,6 @@ ALL MCQs AND TRUE/FALSE MUST HAVE DETAILED REASONS. THE TONE MUST BE 100% IDENTI
                 jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
             };
 
-            // تأخير متقن لمنح الذكاء الاصطناعي الوقت الكامل لكتابة النصوص داخل الـ PDF
             setTimeout(() => {
                 html2pdf().set(opt).from(elementToPrint).outputPdf('blob').then(function(pdfBlob) {
                     const blobUrl = URL.createObjectURL(pdfBlob);
@@ -2341,7 +2274,7 @@ ALL MCQs AND TRUE/FALSE MUST HAVE DETAILED REASONS. THE TONE MUST BE 100% IDENTI
                             method: 'POST',
                             headers: { 
                                 'Content-Type': 'application/json',
-                                'X-Bypass-Trial': 'true'
+                                'X-Bypass-Trial': 'true' 
                             },
                             body: JSON.stringify({
                                 action: 'semantic_grade',
@@ -2506,7 +2439,6 @@ ALL MCQs AND TRUE/FALSE MUST HAVE DETAILED REASONS. THE TONE MUST BE 100% IDENTI
         }
     }
 
-    // تقييد الروبوت في الـ VIP فقط وتوجيه المجاني للدفع تلقائياً
     if (tutorFabBtn && tutorChatWindow) {
         tutorFabBtn.onclick = async (e) => {
             e.preventDefault();
@@ -2598,7 +2530,7 @@ ALL MCQs AND TRUE/FALSE MUST HAVE DETAILED REASONS. THE TONE MUST BE 100% IDENTI
                     method: 'POST',
                     headers: { 
                         'Content-Type': 'application/json',
-                        'X-Bypass-Trial': 'true'
+                        'X-Bypass-Trial': 'true' 
                     },
                     body: JSON.stringify({
                         action: 'analyze',
@@ -2639,7 +2571,7 @@ ALL MCQs AND TRUE/FALSE MUST HAVE DETAILED REASONS. THE TONE MUST BE 100% IDENTI
                     method: 'POST',
                     headers: { 
                         'Content-Type': 'application/json',
-                        'X-Bypass-Trial': 'true'
+                        'X-Bypass-Trial': 'true' 
                     },
                     body: JSON.stringify({
                         action: 'chat',
