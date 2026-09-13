@@ -19,32 +19,6 @@ premiumCompactStyle.innerHTML = `
     .pdf-question-block { padding: 12px !important; font-size: 0.95rem !important; margin-bottom: 15px !important; }
     #lesson-upload-box { padding: 15px !important; }
     #lesson-upload-box i { font-size: 2rem !important; margin-bottom: 10px !important; }
-
-    /* تنسيق أزرار المسارات التفاعلية الذكية الموضحة بالصور */
-    .filter-btn-chip {
-        background: #ffffff;
-        color: #0284c7;
-        border: 1px solid #bae6fd;
-        padding: 8px 14px;
-        border-radius: 8px;
-        font-size: 0.88rem;
-        font-weight: bold;
-        cursor: pointer;
-        transition: all 0.2s ease;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-    }
-    .filter-btn-chip:hover {
-        background: #e0f2fe;
-        border-color: #0284c7;
-    }
-    .filter-btn-chip.active-chip {
-        background: #0ea5e9 !important;
-        color: #ffffff !important;
-        border-color: #0284c7 !important;
-        box-shadow: 0 2px 6px rgba(14, 165, 233, 0.35);
-    }
 `;
 document.head.appendChild(premiumCompactStyle);
 
@@ -921,6 +895,7 @@ function buildDynamicUserMenu(phone, role) {
     }
 }
 
+// دوال الداشبورد والإدارة...
 window.loadAndShowDashboard = async function() {
     if (!AUTHORIZED_ADMIN_PHONES.includes(currentTeacherId) && currentUserRole !== 'Admin') {
         showCustomAlert("غير مصرح لك بالوصول إلى لوحة التحكم.", 'error');
@@ -1489,155 +1464,153 @@ window.incrementAttempt = function() {
     localStorage.setItem('user_attempts', attempts);
 };
 
-// ============================================================================
-// نظام المسارات الذكي التفاعلي (Interactive Educational Pathways)
-// ============================================================================
-const EDUCATIONAL_PATHWAYS = {
-    "المرحلة الابتدائية": {
-        types: ["عام", "أزهري"],
-        grades: ["الصف الأول", "الصف الثاني", "الصف الثالث", "الصف الرابع", "الصف الخامس", "الصف السادس"]
-    },
-    "المرحلة الإعدادية": {
-        types: ["عام", "أزهري"],
-        grades: ["الصف الأول الإعدادي", "الصف الثاني الإعدادي", "الصف الثالث الإعدادي"]
-    },
-    "المرحلة الثانوية": {
-        types: ["عام - علمي علوم", "عام - علمي رياضة", "عام - أدبي", "أزهري - علمي", "أزهري - أدبي"],
-        grades: ["الصف الأول الثانوي", "الصف الثاني الثانوي", "الصف الثالث الثانوي"]
-    },
-    "الدبلومات الفنية": {
-        types: ["صناعي", "تجاري", "زراعي", "فندقي"],
-        grades: ["الصف الأول", "الصف الثاني", "الصف الثالث"]
-    }
-};
-
-function renderInteractiveFilterStages(subjectName) {
-    filterSelectedSubject = subjectName;
-    const filterContainer = document.getElementById('search-filter-container');
-    const filterTitle = document.getElementById('filter-title');
-    const stageStep = document.getElementById('filter-stage-step');
-    const typeStep = document.getElementById('filter-type-step');
-    const gradeStep = document.getElementById('filter-grade-step');
-
-    if (!filterContainer || !stageStep || !typeStep || !gradeStep) return;
-
-    filterContainer.classList.remove('hidden-section');
-    filterTitle.innerText = `اختر المرحلة الدراسية لمادة: ${subjectName}`;
-    
-    stageStep.innerHTML = '';
-    typeStep.innerHTML = '';
-    gradeStep.innerHTML = '';
-    typeStep.style.display = 'none';
-    gradeStep.style.display = 'none';
-
-    Object.keys(EDUCATIONAL_PATHWAYS).forEach(stage => {
-        let btn = document.createElement('button');
-        btn.type = 'button';
-        btn.className = 'filter-btn-chip';
-        btn.innerText = stage;
-        btn.onclick = () => {
-            stageStep.querySelectorAll('.filter-btn-chip').forEach(b => b.classList.remove('active-chip'));
-            btn.classList.add('active-chip');
-            filterSelectedStage = stage;
-            renderInteractiveFilterTypes(stage);
-        };
-        stageStep.appendChild(btn);
-    });
-}
-
-function renderInteractiveFilterTypes(stage) {
-    const typeStep = document.getElementById('filter-type-step');
-    const gradeStep = document.getElementById('filter-grade-step');
-    const filterTitle = document.getElementById('filter-title');
-
-    typeStep.innerHTML = '';
-    gradeStep.innerHTML = '';
-    gradeStep.style.display = 'none';
-    typeStep.style.display = 'flex';
-    filterTitle.innerText = "اختر نوع التعليم / الشعبة:";
-
-    const types = EDUCATIONAL_PATHWAYS[stage].types;
-    types.forEach(t => {
-        let btn = document.createElement('button');
-        btn.type = 'button';
-        btn.className = 'filter-btn-chip';
-        btn.innerText = t;
-        btn.onclick = () => {
-            typeStep.querySelectorAll('.filter-btn-chip').forEach(b => b.classList.remove('active-chip'));
-            btn.classList.add('active-chip');
-            filterSelectedType = t;
-            renderInteractiveFilterGrades(stage, t);
-        };
-        typeStep.appendChild(btn);
-    });
-}
-
-function renderInteractiveFilterGrades(stage, type) {
-    const gradeStep = document.getElementById('filter-grade-step');
-    const filterTitle = document.getElementById('filter-title');
-
-    gradeStep.innerHTML = '';
-    gradeStep.style.display = 'flex';
-    filterTitle.innerText = "اختر الصف الدراسي:";
-
-    const grades = EDUCATIONAL_PATHWAYS[stage].grades;
-    grades.forEach(g => {
-        let btn = document.createElement('button');
-        btn.type = 'button';
-        btn.className = 'filter-btn-chip';
-        btn.innerText = g;
-        btn.onclick = () => {
-            gradeStep.querySelectorAll('.filter-btn-chip').forEach(b => b.classList.remove('active-chip'));
-            btn.classList.add('active-chip');
-            filterSelectedGrade = g;
-            completeInteractivePathwaySelection();
-        };
-        gradeStep.appendChild(btn);
-    });
-}
-
-function completeInteractivePathwaySelection() {
-    const subjectSelectUI = document.getElementById('subject-select');
-    const subjectContainer = document.getElementById('subject-container');
-    const selectedPathDisplay = document.getElementById('selected-path-display');
-    const uploadSection = document.getElementById('student-upload-section');
-    const extractionSettings = document.getElementById('extraction-settings');
-    const yearStageUI = document.getElementById('year-stage');
-    const yearStageContainer = document.getElementById('year-stage-container');
-
-    const fullPathString = `${filterSelectedStage} > ${filterSelectedType} > ${filterSelectedGrade} > ${filterSelectedSubject}`;
-
-    if (subjectSelectUI) {
-        subjectSelectUI.innerHTML = `<option value="${filterSelectedSubject}" selected>${filterSelectedSubject}</option>`;
-    }
-    if (yearStageUI) {
-        yearStageUI.innerHTML = `<option value="${filterSelectedGrade}" selected>${filterSelectedGrade}</option>`;
-    }
-    if (subjectContainer) subjectContainer.classList.remove('hidden-section');
-    if (yearStageContainer) yearStageContainer.classList.remove('hidden-section');
-
-    if (selectedPathDisplay) {
-        selectedPathDisplay.style.display = 'block';
-        selectedPathDisplay.innerHTML = `<i class="fas fa-map-marker-alt"></i> مسار المادة المحدد:<br><strong>${fullPathString}</strong>`;
-    }
-
-    if (uploadSection) uploadSection.classList.remove('hidden-section');
-    if (extractionSettings) extractionSettings.classList.remove('hidden-section');
-
-    const searchFilterContainer = document.getElementById('search-filter-container');
-    if (searchFilterContainer) {
-        searchFilterContainer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    }
-}
-
+// ==========================================
+// تفعيل القوائم المنسدلة يدوياً والبحث (بدون تغيير الديزاين)
+// ==========================================
 document.addEventListener('DOMContentLoaded', () => {
 
-    // تفعيل البحث باللغة العربية مع إظهار المسارات التفاعلية
+    const mainStage = document.getElementById('main-stage');
+    const subStage = document.getElementById('sub-stage');
+    const subStageContainer = document.getElementById('sub-stage-container');
+    const yearStage = document.getElementById('year-stage');
+    const yearStageContainer = document.getElementById('year-stage-container');
+    const subjectSelect = document.getElementById('subject-select');
+    const subjectContainer = document.getElementById('subject-container');
+    const uploadSection = document.getElementById('student-upload-section');
+    const extractSection = document.getElementById('extraction-settings');
+    const pathDisplay = document.getElementById('selected-path-display');
     const searchInput = document.getElementById('stage-search');
     const searchResults = document.getElementById('search-results');
-    
+
+    // قاعدة بيانات المراحل والشعب والصفوف
+    const stagesData = {
+        primary: {
+            subStages: [],
+            years: ["الصف الأول", "الصف الثاني", "الصف الثالث", "الصف الرابع", "الصف الخامس", "الصف السادس"],
+            subjects: ["اللغة العربية", "الرياضيات", "العلوم", "الدراسات الاجتماعية", "اللغة الإنجليزية", "تكنولوجيا المعلومات والاتصالات (ICT)", "التربية الدينية"]
+        },
+        prep: {
+            subStages: [],
+            years: ["الصف الأول الإعدادي", "الصف الثاني الإعدادي", "الصف الثالث الإعدادي"],
+            subjects: ["اللغة العربية", "الرياضيات", "العلوم", "الدراسات الاجتماعية", "اللغة الإنجليزية", "التربية الدينية", "الحاسب الآلي"]
+        },
+        high_general: {
+            subStages: ["عام - علمي علوم", "عام - علمي رياضة", "عام - أدبي"],
+            years: ["الصف الأول الثانوي", "الصف الثاني الثانوي", "الصف الثالث الثانوي"],
+            subjects: ["اللغة العربية", "اللغة الإنجليزية", "اللغة الفرنسية", "اللغة الألمانية", "اللغة الإيطالية", "الفيزياء", "الكيمياء", "الأحياء", "الرياضيات", "التاريخ", "الجغرافيا", "الفلسفة والمنطق", "علم النفس والاجتماع", "الجيولوجيا وعلوم البيئة"]
+        },
+        high_azhar: {
+            subStages: ["أزهري - علمي", "أزهري - أدبي"],
+            years: ["الصف الأول الثانوي", "الصف الثاني الثانوي", "الصف الثالث الثانوي"],
+            subjects: ["القرآن الكريم", "الفقه", "التفسير", "الحديث", "التوحيد", "النحو", "الصرف", "البلاغة", "الأدب والنصوص", "الفيزياء", "الكيمياء", "الأحياء", "الرياضيات", "التاريخ", "الجغرافيا", "اللغة الإنجليزية", "اللغة الفرنسية"]
+        },
+        diploma: {
+            subStages: ["صناعي", "تجاري", "زراعي", "فندقي"],
+            years: ["الصف الأول", "الصف الثاني", "الصف الثالث"],
+            subjects: ["مبادئ المحاسبة (المالية/الشركات)", "تخطيط وإدارة إنتاج", "اللغة العربية", "اللغة الإنجليزية", "الرياضيات", "الفيزياء"]
+        }
+    };
+
+    const allUniqueSubjects = [...new Set(Object.values(stagesData).flatMap(s => s.subjects))];
+
+    function checkAndShowUpload() {
+        if (mainStage && mainStage.value !== 'none' && yearStage && yearStage.value && subjectSelect && subjectSelect.value) {
+            if (uploadSection) uploadSection.classList.remove('hidden-section');
+            if (extractSection) extractSection.classList.remove('hidden-section');
+            if (pathDisplay) {
+                pathDisplay.style.display = 'block';
+                let pathText = mainStage.options[mainStage.selectedIndex].text;
+                if (subStageContainer && !subStageContainer.classList.contains('hidden-section') && subStage.value) {
+                    pathText += ' > ' + subStage.value;
+                }
+                pathText += ' > ' + yearStage.value + ' > ' + subjectSelect.value;
+                pathDisplay.innerHTML = `<i class="fas fa-map-marker-alt"></i> مسار المادة المحدد:<br><strong>${pathText}</strong>`;
+            }
+        }
+    }
+
+    if (mainStage) {
+        mainStage.addEventListener('change', () => {
+            const val = mainStage.value;
+            if (subStage) subStage.innerHTML = '<option value="">-- اختر الشعبة / التخصص --</option>';
+            if (yearStage) yearStage.innerHTML = '<option value="">-- اختر الصف الدراسي --</option>';
+            if (subjectSelect) subjectSelect.innerHTML = '<option value="">-- اختر المادة --</option>';
+            
+            if (val === 'none') {
+                if (subStageContainer) subStageContainer.classList.add('hidden-section');
+                if (yearStageContainer) yearStageContainer.classList.add('hidden-section');
+                if (subjectContainer) subjectContainer.classList.add('hidden-section');
+                if (uploadSection) uploadSection.classList.add('hidden-section');
+                if (extractSection) extractSection.classList.add('hidden-section');
+                if (pathDisplay) pathDisplay.style.display = 'none';
+                return;
+            }
+
+            const data = stagesData[val];
+            
+            if (data.subStages.length > 0) {
+                data.subStages.forEach(sub => {
+                    if (subStage) subStage.innerHTML += `<option value="${sub}">${sub}</option>`;
+                });
+                if (subStageContainer) subStageContainer.classList.remove('hidden-section');
+                if (yearStageContainer) yearStageContainer.classList.add('hidden-section');
+            } else {
+                if (subStageContainer) subStageContainer.classList.add('hidden-section');
+                data.years.forEach(y => {
+                    if (yearStage) yearStage.innerHTML += `<option value="${y}">${y}</option>`;
+                });
+                if (yearStageContainer) yearStageContainer.classList.remove('hidden-section');
+            }
+            if (subjectContainer) subjectContainer.classList.add('hidden-section');
+            if (uploadSection) uploadSection.classList.add('hidden-section');
+            if (extractSection) extractSection.classList.add('hidden-section');
+            if (pathDisplay) pathDisplay.style.display = 'none';
+        });
+    }
+
+    if (subStage) {
+        subStage.addEventListener('change', () => {
+            if (!subStage.value) return;
+            const val = mainStage.value;
+            if (yearStage) {
+                yearStage.innerHTML = '<option value="">-- اختر الصف الدراسي --</option>';
+                stagesData[val].years.forEach(y => {
+                    yearStage.innerHTML += `<option value="${y}">${y}</option>`;
+                });
+            }
+            if (yearStageContainer) yearStageContainer.classList.remove('hidden-section');
+            if (subjectContainer) subjectContainer.classList.add('hidden-section');
+        });
+    }
+
+    if (yearStage) {
+        yearStage.addEventListener('change', () => {
+            if (!yearStage.value) return;
+            const val = mainStage.value;
+            if (subjectSelect) {
+                subjectSelect.innerHTML = '<option value="">-- اختر المادة --</option>';
+                stagesData[val].subjects.forEach(s => {
+                    subjectSelect.innerHTML += `<option value="${s}">${s}</option>`;
+                });
+            }
+            if (subjectContainer) subjectContainer.classList.remove('hidden-section');
+            
+            if (searchInput && searchInput.value && subjectSelect) {
+                const searchVal = searchInput.value.trim();
+                Array.from(subjectSelect.options).forEach(opt => {
+                    if (opt.value === searchVal) opt.selected = true;
+                });
+            }
+            checkAndShowUpload();
+        });
+    }
+
+    if (subjectSelect) {
+        subjectSelect.addEventListener('change', checkAndShowUpload);
+    }
+
     if (searchInput && searchResults) {
-        searchInput.addEventListener('input', async (e) => {
+        searchInput.addEventListener('input', (e) => {
             const query = e.target.value.trim().toLowerCase();
             searchResults.innerHTML = '';
             
@@ -1646,49 +1619,37 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            try {
-                const res = await fetch('database.json');
-                const dbData = await res.json();
-                let matchedSubjects = [];
+            const matches = allUniqueSubjects.filter(s => s.toLowerCase().includes(query));
 
-                for (let key in dbData) {
-                    if (key.toLowerCase().includes(query)) {
-                        matchedSubjects.push(key);
-                    }
-                }
-
-                const commonSubjects = [
-                    "الفيزياء", "الكيمياء", "الأحياء", "الرياضيات", "اللغة العربية", 
-                    "اللغة الإنجليزية", "اللغة الفرنسية", "اللغة الألمانية", "اللغة الإيطالية", 
-                    "التاريخ", "الجغرافيا", "الفلسفة والمنطق", "علم النفس والاجتماع", 
-                    "الجيولوجيا وعلوم البيئة", "القرآن الكريم", "التربية الدينية الإسلامية",
-                    "الفقه والشريعة", "تكنولوجيا المعلومات والاتصالات (ICT)", "العلوم", "الدراسات الاجتماعية",
-                    "مبادئ المحاسبة (المالية/الشركات)", "تخطيط وإدارة إنتاج"
-                ];
-
-                commonSubjects.forEach(s => {
-                    if (s.toLowerCase().includes(query) && !matchedSubjects.includes(s)) {
-                        matchedSubjects.push(s);
-                    }
+            if (matches.length > 0) {
+                searchResults.style.display = 'block';
+                matches.forEach(sub => {
+                    let li = document.createElement('li');
+                    li.textContent = sub;
+                    li.onclick = () => {
+                        searchInput.value = sub;
+                        searchResults.style.display = 'none';
+                        
+                        if (subjectSelect) {
+                            subjectSelect.innerHTML = `<option value="${sub}" selected>${sub}</option>`;
+                        }
+                        if (subjectContainer) subjectContainer.classList.remove('hidden-section');
+                        
+                        if (mainStage) {
+                            mainStage.style.borderColor = '#0ea5e9';
+                            mainStage.style.boxShadow = '0 0 0 4px rgba(14, 165, 233, 0.2)';
+                            setTimeout(() => {
+                                mainStage.style.borderColor = '';
+                                mainStage.style.boxShadow = '';
+                            }, 2000);
+                        }
+                        
+                        checkAndShowUpload();
+                    };
+                    searchResults.appendChild(li);
                 });
-
-                if (matchedSubjects.length > 0) {
-                    searchResults.style.display = 'block';
-                    matchedSubjects.forEach(sub => {
-                        let li = document.createElement('li');
-                        li.textContent = sub;
-                        li.onclick = () => {
-                            searchInput.value = sub;
-                            searchResults.style.display = 'none';
-                            renderInteractiveFilterStages(sub);
-                        };
-                        searchResults.appendChild(li);
-                    });
-                } else {
-                    searchResults.style.display = 'none';
-                }
-            } catch (err) {
-                console.error("Search fetch error:", err);
+            } else {
+                searchResults.style.display = 'none';
             }
         });
 
@@ -1721,7 +1682,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     return;
                 }
                 selectedLessonFiles = files;
-                lessonUploadText.innerHTML = `<i class="fas fa-check-circle" style="color:#10b981;"></i> تم إرفاق ${files.length} صور بنجاح`;
+                if (lessonUploadText) {
+                    lessonUploadText.innerHTML = `<i class="fas fa-check-circle" style="color:#10b981;"></i> تم إرفاق ${files.length} صور بنجاح`;
+                }
                 
                 const reader = new FileReader();
                 reader.onload = (event) => {
@@ -2274,7 +2237,7 @@ ALL MCQs AND TRUE/FALSE MUST HAVE DETAILED REASONS. THE TONE MUST BE 100% IDENTI
                             method: 'POST',
                             headers: { 
                                 'Content-Type': 'application/json',
-                                'X-Bypass-Trial': 'true' 
+                                'X-Bypass-Trial': 'true'
                             },
                             body: JSON.stringify({
                                 action: 'semantic_grade',
