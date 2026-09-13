@@ -1482,7 +1482,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const searchInput = document.getElementById('stage-search');
     const searchResults = document.getElementById('search-results');
 
-    // قاعدة بيانات المراحل والشعب والصفوف
+    // قاعدة بيانات المراحل والشعب والصفوف لتعمل بدون الاعتماد الكامل على ملف خارجي
     const stagesData = {
         primary: {
             subStages: [],
@@ -1492,15 +1492,15 @@ document.addEventListener('DOMContentLoaded', () => {
         prep: {
             subStages: [],
             years: ["الصف الأول الإعدادي", "الصف الثاني الإعدادي", "الصف الثالث الإعدادي"],
-            subjects: ["اللغة العربية", "الرياضيات", "العلوم", "الدراسات الاجتماعية", "اللغة الإنجليزية", "التربية الدينية", "الحاسب الآلي"]
+            subjects: ["اللغة العربية", "الرياضيات", "العلوم", "الدراسات الاجتماعية", "اللغة الإنجليزية", "الحاسب الآلي", "التربية الدينية"]
         },
         high_general: {
-            subStages: ["عام - علمي علوم", "عام - علمي رياضة", "عام - أدبي"],
+            subStages: ["علمي علوم", "علمي رياضة", "أدبي"],
             years: ["الصف الأول الثانوي", "الصف الثاني الثانوي", "الصف الثالث الثانوي"],
             subjects: ["اللغة العربية", "اللغة الإنجليزية", "اللغة الفرنسية", "اللغة الألمانية", "اللغة الإيطالية", "الفيزياء", "الكيمياء", "الأحياء", "الرياضيات", "التاريخ", "الجغرافيا", "الفلسفة والمنطق", "علم النفس والاجتماع", "الجيولوجيا وعلوم البيئة"]
         },
         high_azhar: {
-            subStages: ["أزهري - علمي", "أزهري - أدبي"],
+            subStages: ["علمي", "أدبي"],
             years: ["الصف الأول الثانوي", "الصف الثاني الثانوي", "الصف الثالث الثانوي"],
             subjects: ["القرآن الكريم", "الفقه", "التفسير", "الحديث", "التوحيد", "النحو", "الصرف", "البلاغة", "الأدب والنصوص", "الفيزياء", "الكيمياء", "الأحياء", "الرياضيات", "التاريخ", "الجغرافيا", "اللغة الإنجليزية", "اللغة الفرنسية"]
         },
@@ -1511,19 +1511,40 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    const allUniqueSubjects = [...new Set(Object.values(stagesData).flatMap(s => s.subjects))];
+    const allUniqueSubjects = [
+        "اللغة العربية", "الرياضيات", "العلوم", "الدراسات الاجتماعية", "اللغة الإنجليزية", 
+        "تكنولوجيا المعلومات والاتصالات (ICT)", "التربية الدينية", "الحاسب الآلي",
+        "اللغة الفرنسية", "اللغة الألمانية", "اللغة الإيطالية", "الفيزياء", "الكيمياء", 
+        "الأحياء", "التاريخ", "الجغرافيا", "الفلسفة والمنطق", "علم النفس والاجتماع", 
+        "الجيولوجيا وعلوم البيئة", "القرآن الكريم", "الفقه", "التفسير", "الحديث", "التوحيد", 
+        "النحو", "الصرف", "البلاغة", "الأدب والنصوص", "مبادئ المحاسبة (المالية/الشركات)", 
+        "تخطيط وإدارة إنتاج"
+    ];
 
     function checkAndShowUpload() {
-        if (mainStage && mainStage.value !== 'none' && yearStage && yearStage.value && subjectSelect && subjectSelect.value) {
+        if (subjectSelect && subjectSelect.value && subjectSelect.value !== "none" && subjectSelect.value !== "") {
             if (uploadSection) uploadSection.classList.remove('hidden-section');
             if (extractSection) extractSection.classList.remove('hidden-section');
+            
             if (pathDisplay) {
                 pathDisplay.style.display = 'block';
-                let pathText = mainStage.options[mainStage.selectedIndex].text;
-                if (subStageContainer && !subStageContainer.classList.contains('hidden-section') && subStage.value) {
+                let pathText = "";
+                
+                if (mainStage && mainStage.value !== 'none' && mainStage.options[mainStage.selectedIndex]) {
+                    pathText += mainStage.options[mainStage.selectedIndex].text;
+                } else {
+                    pathText += "بحث سريع";
+                }
+
+                if (subStageContainer && !subStageContainer.classList.contains('hidden-section') && subStage && subStage.value) {
                     pathText += ' > ' + subStage.value;
                 }
-                pathText += ' > ' + yearStage.value + ' > ' + subjectSelect.value;
+                
+                if (yearStageContainer && !yearStageContainer.classList.contains('hidden-section') && yearStage && yearStage.value) {
+                    pathText += ' > ' + yearStage.value;
+                }
+                
+                pathText += ' > ' + subjectSelect.value;
                 pathDisplay.innerHTML = `<i class="fas fa-map-marker-alt"></i> مسار المادة المحدد:<br><strong>${pathText}</strong>`;
             }
         }
@@ -1547,7 +1568,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             const data = stagesData[val];
-            
             if (data.subStages.length > 0) {
                 data.subStages.forEach(sub => {
                     if (subStage) subStage.innerHTML += `<option value="${sub}">${sub}</option>`;
@@ -1594,14 +1614,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
             }
             if (subjectContainer) subjectContainer.classList.remove('hidden-section');
-            
-            if (searchInput && searchInput.value && subjectSelect) {
-                const searchVal = searchInput.value.trim();
-                Array.from(subjectSelect.options).forEach(opt => {
-                    if (opt.value === searchVal) opt.selected = true;
-                });
-            }
-            checkAndShowUpload();
         });
     }
 
@@ -1626,23 +1638,22 @@ document.addEventListener('DOMContentLoaded', () => {
                 matches.forEach(sub => {
                     let li = document.createElement('li');
                     li.textContent = sub;
+                    li.style.cssText = "padding: 12px 18px; cursor: pointer; border-bottom: 1px solid #f1f5f9; color: #334155; transition: 0.2s;";
+                    li.onmouseover = () => { li.style.backgroundColor = '#e0f2fe'; li.style.color = '#0284c7'; };
+                    li.onmouseout = () => { li.style.backgroundColor = 'transparent'; li.style.color = '#334155'; };
+                    
                     li.onclick = () => {
                         searchInput.value = sub;
                         searchResults.style.display = 'none';
                         
+                        if (yearStage && !yearStage.value) {
+                            yearStage.innerHTML = '<option value="عام" selected>عام</option>';
+                        }
+
                         if (subjectSelect) {
                             subjectSelect.innerHTML = `<option value="${sub}" selected>${sub}</option>`;
                         }
                         if (subjectContainer) subjectContainer.classList.remove('hidden-section');
-                        
-                        if (mainStage) {
-                            mainStage.style.borderColor = '#0ea5e9';
-                            mainStage.style.boxShadow = '0 0 0 4px rgba(14, 165, 233, 0.2)';
-                            setTimeout(() => {
-                                mainStage.style.borderColor = '';
-                                mainStage.style.boxShadow = '';
-                            }, 2000);
-                        }
                         
                         checkAndShowUpload();
                     };
