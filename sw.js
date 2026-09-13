@@ -1,4 +1,5 @@
 const CACHE_NAME = 'edu-platform-v6-ultra';
+
 const ASSETS_TO_CACHE = [
     '/',
     '/index.html',
