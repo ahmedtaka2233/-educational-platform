@@ -1465,248 +1465,344 @@ window.incrementAttempt = function() {
 };
 
 // ==========================================
-// تفعيل القوائم المنسدلة يدوياً والبحث (بدون تغيير الديزاين كما في الصور)
+// تفعيل القوائم المنسدلة يدوياً والبحث (بالفلاتر والمسارات المتقدمة)
 // ==========================================
 document.addEventListener('DOMContentLoaded', () => {
 
-    const mainStage = document.getElementById('main-stage');
-    const subStage = document.getElementById('sub-stage');
-    const subStageContainer = document.getElementById('sub-stage-container');
-    const yearStage = document.getElementById('year-stage');
-    const yearStageContainer = document.getElementById('year-stage-container');
-    const subjectSelect = document.getElementById('subject-select');
-    const subjectContainer = document.getElementById('subject-container');
-    const uploadSection = document.getElementById('student-upload-section');
-    const extractSection = document.getElementById('extraction-settings');
-    const pathDisplay = document.getElementById('selected-path-display');
-    const searchInput = document.getElementById('stage-search');
-    const searchResults = document.getElementById('search-results');
-
-    const stagesData = {
-        primary: {
-            subStages: [],
-            years: ["الصف الأول", "الصف الثاني", "الصف الثالث", "الصف الرابع", "الصف الخامس", "الصف السادس"],
-            subjects: ["اللغة العربية", "الرياضيات", "العلوم", "الدراسات الاجتماعية", "اللغة الإنجليزية", "تكنولوجيا المعلومات والاتصالات (ICT)", "التربية الدينية"]
-        },
-        prep: {
-            subStages: [],
-            years: ["الصف الأول الإعدادي", "الصف الثاني الإعدادي", "الصف الثالث الإعدادي"],
-            subjects: ["اللغة العربية", "الرياضيات", "العلوم", "الدراسات الاجتماعية", "اللغة الإنجليزية", "الحاسب الآلي", "التربية الدينية"]
-        },
-        high_general: {
-            subStages: ["علمي علوم", "علمي رياضة", "أدبي"],
-            years: ["الصف الأول الثانوي", "الصف الثاني الثانوي", "الصف الثالث الثانوي"],
-            subjects: ["اللغة العربية", "اللغة الإنجليزية", "اللغة الفرنسية", "اللغة الألمانية", "اللغة الإيطالية", "الفيزياء", "الكيمياء", "الأحياء", "الرياضيات", "التاريخ", "الجغرافيا", "الفلسفة والمنطق", "علم النفس والاجتماع", "الجيولوجيا وعلوم البيئة"]
-        },
-        high_azhar: {
-            subStages: ["علمي", "أدبي"],
-            years: ["الصف الأول الثانوي", "الصف الثاني الثانوي", "الصف الثالث الثانوي"],
-            subjects: ["القرآن الكريم", "الفقه", "التفسير", "الحديث", "التوحيد", "النحو", "الصرف", "البلاغة", "الأدب والنصوص", "الفيزياء", "الكيمياء", "الأحياء", "الرياضيات", "التاريخ", "الجغرافيا", "اللغة الإنجليزية", "اللغة الفرنسية"]
-        },
-        diploma: {
-            subStages: ["صناعي", "تجاري", "زراعي", "فندقي"],
-            years: ["الصف الأول", "الصف الثاني", "الصف الثالث"],
-            subjects: ["مبادئ المحاسبة (المالية/الشركات)", "تخطيط وإدارة إنتاج", "اللغة العربية", "اللغة الإنجليزية", "الرياضيات", "الفيزياء"]
-        }
+    const subjectsDB = {
+        primary_general: ["اللغة العربية", "الرياضيات", "اللغة الإنجليزية", "العلوم", "الدراسات الاجتماعية", "تكنولوجيا المعلومات", "التربية الدينية"],
+        primary_azhar: ["القرآن الكريم", "التربية الإسلامية", "اللغة العربية", "الرياضيات", "اللغة الإنجليزية", "العلوم", "الدراسات الاجتماعية"],
+        prep_general: ["اللغة العربية", "الرياضيات (جبر وإحصاء)", "الرياضيات (هندسة)", "العلوم", "الدراسات الاجتماعية", "اللغة الإنجليزية"],
+        prep_azhar: ["القرآن الكريم", "الفقه", "أصول الدين", "النحو", "الصرف", "الرياضيات", "العلوم", "الدراسات الاجتماعية", "اللغة الإنجليزية"],
+        high_general_sci_biology: ["اللغة العربية", "اللغة الإنجليزية", "الفيزياء", "الكيمياء", "الأحياء", "الجيولوجيا", "اللغة الأجنبية الثانية"],
+        high_general_sci_math: ["اللغة العربية", "اللغة الإنجليزية", "الفيزياء", "الكيمياء", "الرياضيات البحتة", "الرياضيات التطبيقية"],
+        high_general_lit: ["اللغة العربية", "اللغة الإنجليزية", "التاريخ", "الجغرافيا", "علم النفس", "الفلسفة والمنطق", "اللغة الأجنبية الثانية"],
+        high_azhar_sci: ["القرآن الكريم", "الفقه", "الحديث", "النحو", "الصرف", "الفيزياء", "الكيمياء", "الأحياء", "الرياضيات", "اللغة الإنجليزية"],
+        high_azhar_lit: ["القرآن الكريم", "الفقه", "الحديث", "النحو", "الصرف", "التاريخ", "الجغرافيا", "المنطق", "اللغة الإنجليزية"],
+        diploma_industrial: ["اللغة العربية", "اللغة الإنجليزية", "الرياضيات", "الفيزياء العامة", "تخصصات صناعية متعددة"],
+        diploma_commercial: ["اللغة العربية", "اللغة الإنجليزية", "إدارة أعمال", "محاسبة مالية", "سكرتارية", "اقتصاد وإحصاء"],
+        diploma_agricultural: ["اللغة العربية", "اللغة الإنجليزية", "الرياضيات", "محاصيل الحقل", "أمراض النبات", "صناعات زراعية"],
+        diploma_tourism: ["اللغة العربية", "اللغة الإنجليزية", "أصول فن الطهو", "خدمة المطاعم", "شركات السياحة", "محاسبة فندقية"]
     };
 
-    const allUniqueSubjects = [
-        "اللغة العربية", "الرياضيات", "العلوم", "الدراسات الاجتماعية", "اللغة الإنجليزية", 
-        "تكنولوجيا المعلومات والاتصالات (ICT)", "التربية الدينية", "الحاسب الآلي",
-        "اللغة الفرنسية", "اللغة الألمانية", "اللغة الإيطالية", "الفيزياء", "الكيمياء", 
-        "الأحياء", "التاريخ", "الجغرافيا", "الفلسفة والمنطق", "علم النفس والاجتماع", 
-        "الجيولوجيا وعلوم البيئة", "القرآن الكريم", "الفقه", "التفسير", "الحديث", "التوحيد", 
-        "النحو", "الصرف", "البلاغة", "الأدب والنصوص", "مبادئ المحاسبة (المالية/الشركات)", 
-        "تخطيط وإدارة إنتاج"
-    ];
-
-    function checkAndShowUpload() {
-    const hasMainStage = mainStage && mainStage.value && mainStage.value !== "none";
-    const requiresSubStage = (mainStage && (mainStage.value === 'high_general' || mainStage.value === 'high_azhar' || mainStage.value === 'diploma'));
-    const hasSubStage = requiresSubStage ? (subStage && subStage.value && subStage.value !== "") : true;
-    const hasYear = yearStage && yearStage.value && yearStage.value !== "";
-    const hasSubject = (subjectSelect && subjectSelect.value && subjectSelect.value !== "") || window.searchedSubjectTemp;
-
-    if (hasMainStage && hasSubStage && hasYear && hasSubject) {
-        if (uploadSection) uploadSection.classList.remove('hidden-section');
-        if (extractSection) extractSection.classList.remove('hidden-section');
-        
-        if (pathDisplay) {
-            pathDisplay.style.display = 'block';
-            let pathText = mainStage.options[mainStage.selectedIndex].text;
-            if (requiresSubStage) {
-                pathText += ' > ' + subStage.value;
-            }
-            pathText += ' > ' + yearStage.value;
-            pathText += ' > ' + (subjectSelect.value || window.searchedSubjectTemp);
-            pathDisplay.innerHTML = `<i class="fas fa-map-marker-alt"></i> المسار المكتمل:<br><strong>${pathText}</strong>`;
-        }
-    } else {
-        if (uploadSection) uploadSection.classList.add('hidden-section');
-        if (extractSection) extractSection.classList.add('hidden-section');
-        if (pathDisplay) pathDisplay.style.display = 'none';
+    function getOrdinal(i) {
+        const ordinals = ["", "الأول", "الثاني", "الثالث", "الرابع", "الخامس", "السادس"];
+        return ordinals[i];
     }
-}
 
+    const ui = {
+        searchInput: document.getElementById('stage-search'),
+        searchResults: document.getElementById('search-results'),
+        filterContainer: document.getElementById('search-filter-container'),
+        filterTitle: document.getElementById('filter-title'),
+        filterStage: document.getElementById('filter-stage-step'),
+        filterType: document.getElementById('filter-type-step'),
+        filterGrade: document.getElementById('filter-grade-step'),
+        mainStage: document.getElementById('main-stage'),
+        subStage: document.getElementById('sub-stage'),
+        subStageContainer: document.getElementById('sub-stage-container'),
+        yearStage: document.getElementById('year-stage'),
+        yearStageContainer: document.getElementById('year-stage-container'),
+        subjectSelect: document.getElementById('subject-select'),
+        subjectContainer: document.getElementById('subject-container'),
+        pathDisplay: document.getElementById('selected-path-display'),
+        studentUploadSection: document.getElementById('student-upload-section'),
+        extractionSettings: document.getElementById('extraction-settings')
+    };
 
-    if (mainStage) {
-        mainStage.addEventListener('change', () => {
-            const val = mainStage.value;
-            if (subStage) subStage.innerHTML = '<option value="">-- اختر الشعبة / التخصص --</option>';
-            if (yearStage) yearStage.innerHTML = '<option value="">-- اختر الصف الدراسي --</option>';
-            if (subjectSelect) subjectSelect.innerHTML = '<option value="">-- اختر المادة --</option>';
+    if (ui.searchInput) {
+        ui.searchInput.value = '';
+        ui.searchInput.setAttribute('autocomplete', 'off');
+    }
+
+    function normalizeText(text) { 
+        let normalized = text.replace(/[أإآ]/g, "ا").replace(/ة/g, "ه").replace(/ى/g, "ي");
+        return normalized.toLowerCase(); 
+    }
+
+    if (ui.searchInput) {
+        ui.searchInput.addEventListener('input', (event) => {
+            const query = normalizeText(event.target.value.trim());
+            ui.searchResults.innerHTML = '';
+            hideElement(ui.filterContainer);
             
-            if (val === 'none') {
-                if (subStageContainer) subStageContainer.classList.add('hidden-section');
-                if (yearStageContainer) yearStageContainer.classList.add('hidden-section');
-                if (subjectContainer) subjectContainer.classList.add('hidden-section');
-                if (uploadSection) uploadSection.classList.add('hidden-section');
-                if (extractSection) extractSection.classList.add('hidden-section');
-                if (pathDisplay) pathDisplay.style.display = 'none';
-                return;
+            if (query.length < 2) { 
+                ui.searchResults.style.display = 'none'; 
+                return; 
+            }
+            
+            let matchedSubjects = [];
+            for (const [pathKey, subjects] of Object.entries(subjectsDB)) {
+                subjects.forEach((subject) => {
+                    if (normalizeText(subject).includes(query) && !matchedSubjects.includes(subject)) {
+                        matchedSubjects.push(subject);
+                    }
+                });
             }
 
-            const data = stagesData[val];
-            if (data.subStages.length > 0) {
-                data.subStages.forEach(sub => {
-                    if (subStage) subStage.innerHTML += `<option value="${sub}">${sub}</option>`;
+            if (matchedSubjects.length > 0) {
+                ui.searchResults.style.display = 'block';
+                matchedSubjects.slice(0, 10).forEach((sub) => { 
+                    let li = document.createElement('li');
+                    li.innerHTML = '<i class="fas fa-book-open"></i> ' + sub;
+                    li.style.cssText = "padding: 12px 18px; cursor: pointer; border-bottom: 1px solid #f1f5f9; color: #334155; transition: 0.2s; font-weight:bold;";
+                    li.onmouseover = () => { li.style.backgroundColor = '#e0f2fe'; li.style.color = '#0284c7'; };
+                    li.onmouseout = () => { li.style.backgroundColor = 'transparent'; li.style.color = '#334155'; };
+                    
+                    li.onclick = () => {
+                        ui.searchInput.value = sub;
+                        ui.searchResults.style.display = 'none';
+                        filterSelectedSubject = sub;
+                        startFilterProcess(sub);
+                    };
+                    ui.searchResults.appendChild(li);
                 });
-                if (subStageContainer) subStageContainer.classList.remove('hidden-section');
-                if (yearStageContainer) yearStageContainer.classList.add('hidden-section');
             } else {
-                if (subStageContainer) subStageContainer.classList.add('hidden-section');
-                data.years.forEach(y => {
-                    if (yearStage) yearStage.innerHTML += `<option value="${y}">${y}</option>`;
-                });
-                if (yearStageContainer) yearStageContainer.classList.remove('hidden-section');
+                ui.searchResults.style.display = 'none';
             }
-            if (subjectContainer) subjectContainer.classList.add('hidden-section');
-            if (uploadSection) uploadSection.classList.add('hidden-section');
-            if (extractSection) extractSection.classList.add('hidden-section');
-            if (pathDisplay) pathDisplay.style.display = 'none';
         });
     }
 
-    if (subStage) {
-        subStage.addEventListener('change', () => {
-            if (!subStage.value) return;
-            const val = mainStage.value;
-            if (yearStage) {
-                yearStage.innerHTML = '<option value="">-- اختر الصف الدراسي --</option>';
-                stagesData[val].years.forEach(y => {
-                    yearStage.innerHTML += `<option value="${y}">${y}</option>`;
-                });
-            }
-            if (yearStageContainer) yearStageContainer.classList.remove('hidden-section');
-            if (subjectContainer) subjectContainer.classList.add('hidden-section');
-        });
+    function createFilterButton(text, onClickFunction) {
+        let btn = document.createElement('button');
+        btn.style.padding = "10px 18px"; 
+        btn.style.border = "1px solid var(--primary-color)";
+        btn.style.borderRadius = "8px"; 
+        btn.style.background = "white";
+        btn.style.color = "var(--primary-dark)"; 
+        btn.style.cursor = "pointer";
+        btn.style.fontWeight = "bold"; 
+        btn.innerHTML = text;
+        
+        btn.onmouseover = () => { btn.style.background = "var(--primary-light)"; };
+        btn.onmouseout = () => { btn.style.background = "white"; };
+        btn.onclick = onClickFunction;
+        return btn;
     }
 
-    if (yearStage) {
-        yearStage.addEventListener('change', () => {
-            if (!yearStage.value) return;
-            const val = mainStage.value;
+    function startFilterProcess(subject) {
+        showElement(ui.filterContainer);
+        ui.filterStage.innerHTML = ''; ui.filterType.innerHTML = ''; ui.filterGrade.innerHTML = '';
+        ui.filterTitle.innerHTML = 'اختر المرحلة الدراسية لمادة: ' + subject;
+        
+        ui.filterStage.appendChild(createFilterButton('المرحلة الابتدائية', () => selectFilterStage('primary')));
+        ui.filterStage.appendChild(createFilterButton('المرحلة الإعدادية', () => selectFilterStage('prep')));
+        ui.filterStage.appendChild(createFilterButton('المرحلة الثانوية', () => selectFilterStage('high')));
+        ui.filterStage.appendChild(createFilterButton('الدبلومات الفنية', () => selectFilterStage('diploma')));
+    }
+
+    function selectFilterStage(stage) {
+        filterSelectedStage = stage;
+        ui.filterType.innerHTML = ''; ui.filterGrade.innerHTML = '';
+        ui.filterTitle.innerHTML = 'اختر نوع التعليم:';
+        
+        if (stage === 'primary' || stage === 'prep') {
+            ui.filterType.appendChild(createFilterButton('تربية وتعليم (عام)', () => selectFilterType('general')));
+            ui.filterType.appendChild(createFilterButton('أزهري', () => selectFilterType('azhar')));
+        } else if (stage === 'high') {
+            ui.filterType.appendChild(createFilterButton('عام - علمي علوم', () => selectFilterType('general_sci_biology')));
+            ui.filterType.appendChild(createFilterButton('عام - علمي رياضة', () => selectFilterType('general_sci_math')));
+            ui.filterType.appendChild(createFilterButton('عام - أدبي', () => selectFilterType('general_lit')));
+            ui.filterType.appendChild(createFilterButton('أزهري - علمي', () => selectFilterType('azhar_sci')));
+            ui.filterType.appendChild(createFilterButton('أزهري - أدبي', () => selectFilterType('azhar_lit')));
+        } else if (stage === 'diploma') {
+            ui.filterType.appendChild(createFilterButton('دبلوم صناعي', () => selectFilterType('industrial')));
+            ui.filterType.appendChild(createFilterButton('دبلوم تجاري', () => selectFilterType('commercial')));
+            ui.filterType.appendChild(createFilterButton('دبلوم زراعي', () => selectFilterType('agricultural')));
+            ui.filterType.appendChild(createFilterButton('دبلوم سياحة', () => selectFilterType('tourism')));
+        }
+    }
+
+    function selectFilterType(type) {
+        filterSelectedType = type;
+        ui.filterGrade.innerHTML = '';
+        ui.filterTitle.innerHTML = 'اختر الصف الدراسي:';
+        
+        let startGrade = 1;
+        let endGrade = (filterSelectedStage === 'primary') ? 6 : 3;
+        
+        for (let i = startGrade; i <= endGrade; i++) {
+            ui.filterGrade.appendChild(createFilterButton('الصف ' + getOrdinal(i), () => finishFiltering(i)));
+        }
+    }
+
+    function finishFiltering(grade) {
+        filterSelectedGrade = grade;
+        hideElement(ui.filterContainer);
+        let finalPath = "";
+        
+        if (filterSelectedStage === 'primary' || filterSelectedStage === 'prep') {
+            finalPath = filterSelectedStage + '_' + filterSelectedType;
+        } else if (filterSelectedStage === 'high') {
+            finalPath = 'high_' + filterSelectedType;
+        } else if (filterSelectedStage === 'diploma') {
+            finalPath = 'diploma_' + filterSelectedType;
+        }
+        
+        autoFillDropdowns(finalPath, filterSelectedGrade, filterSelectedSubject);
+    }
+
+    function updatePathDisplay() {
+        if (!ui.pathDisplay) return; 
+        try {
+            let stage = ui.mainStage.options[ui.mainStage.selectedIndex] ? ui.mainStage.options[ui.mainStage.selectedIndex].text : "";
+            let sub = ui.subStage.options[ui.subStage.selectedIndex] ? ui.subStage.options[ui.subStage.selectedIndex].text : "";
+            let year = ui.yearStage.options[ui.yearStage.selectedIndex] ? ui.yearStage.options[ui.yearStage.selectedIndex].text : "";
+            const subject = ui.subjectSelect.value;
             
-            if (!val || val === 'none') {
-                if (window.searchedSubjectTemp && subjectSelect) {
-                    subjectSelect.innerHTML = `<option value="${window.searchedSubjectTemp}" selected>${window.searchedSubjectTemp}</option>`;
-                    if (subjectContainer) subjectContainer.classList.remove('hidden-section');
-                    checkAndShowUpload();
-                }
-                return;
-            }
+            let path = stage;
+            if (sub && !sub.includes('--')) path += ` > ${sub}`;
+            if (year && !year.includes('--')) path += ` > ${year}`;
+            if (subject) path += ` > ${subject}`;
+            
+            ui.pathDisplay.innerHTML = '<i class="fas fa-map-marker-alt"></i> مسار المادة المحدد: <br> ' + path;
+            ui.pathDisplay.style.display = 'block';
+        } catch (error) {}
+    }
 
-            if (subjectSelect) {
-                subjectSelect.innerHTML = '<option value="">-- اختر المادة --</option>';
-                stagesData[val].subjects.forEach(s => {
-                    subjectSelect.innerHTML += `<option value="${s}">${s}</option>`;
-                });
+    if (ui.mainStage) {
+        ui.mainStage.addEventListener('change', (event) => {
+            const val = event.target.value; 
+            hideAllChildSections();
+            
+            if (val === 'primary' || val === 'prep') { 
+                ui.subStage.innerHTML = '<option value="">-- حدد نوع التعليم --</option><option value="general">تربية وتعليم (عام)</option><option value="azhar">أزهري</option>';
+                showElement(ui.subStageContainer); 
+            } else if (val === 'high_general') { 
+                ui.subStage.innerHTML = '<option value="">-- حدد الشعبة --</option><option value="sci_biology">علمي علوم</option><option value="sci_math">علمي رياضة</option><option value="lit">أدبي</option>';
+                showElement(ui.subStageContainer); 
+            } else if (val === 'high_azhar') { 
+                ui.subStage.innerHTML = '<option value="">-- حدد الشعبة --</option><option value="sci">علمي</option><option value="lit">أدبي</option>';
+                showElement(ui.subStageContainer); 
+            } else if (val === 'diploma') { 
+                ui.subStage.innerHTML = '<option value="">-- حدد التخصص --</option><option value="industrial">صناعي</option><option value="commercial">تجاري</option><option value="agricultural">زراعي</option><option value="tourism">سياحة وفنادق</option>';
+                showElement(ui.subStageContainer); 
+            }
+        });
+    }
+
+    if (ui.subStage) {
+        ui.subStage.addEventListener('change', (event) => {
+            if (event.target.value) {
+                let currentTrackPath = ui.mainStage.value;
+                if (!currentTrackPath.includes('high_') && currentTrackPath !== 'diploma') currentTrackPath += '_';
+                else if (currentTrackPath === 'diploma') currentTrackPath += '_';
                 
-                if (window.searchedSubjectTemp) {
-                    Array.from(subjectSelect.options).forEach(opt => {
-                        if (opt.value === window.searchedSubjectTemp) {
-                            opt.selected = true;
-                        }
-                    });
-                }
+                if (ui.mainStage.value.includes('high')) currentTrackPath = ui.mainStage.value + '_' + event.target.value;
+                else currentTrackPath += event.target.value;
+                
+                let limit = (ui.mainStage.value === 'primary') ? 6 : 3;
+                populateYears(1, limit, ui.mainStage.value.split('_')[0], currentTrackPath);
+                
+                showElement(ui.yearStageContainer);
+            } else {
+                hideAllChildSections(true);
             }
-            if (subjectContainer) subjectContainer.classList.remove('hidden-section');
-            checkAndShowUpload();
         });
     }
 
-    if (subjectSelect) {
-        subjectSelect.addEventListener('change', checkAndShowUpload);
+    if (ui.yearStage) {
+        ui.yearStage.addEventListener('change', (event) => {
+            if (event.target.value) { 
+                populateSubjects(ui.yearStage.getAttribute('data-current-path')); 
+                showElement(ui.subjectContainer); 
+                if (ui.pathDisplay) ui.pathDisplay.style.display = 'none'; 
+            } else { 
+                hideElement(ui.subjectContainer); 
+                hideElement(ui.extractionSettings); 
+                hideElement(ui.studentUploadSection); 
+                if (ui.pathDisplay) ui.pathDisplay.style.display = 'none'; 
+            }
+        });
     }
 
-    if (searchInput && searchResults) {
-        searchInput.addEventListener('input', async (e) => {
-            const query = e.target.value.trim().toLowerCase();
-            searchResults.innerHTML = '';
-            
-            if (!query) {
-                searchResults.style.display = 'none';
-                return;
-            }
-
-            try {
-                const res = await fetch('database.json');
-                const dbData = await res.json();
-                let matchedSubjects = [];
-
-                for (let key in dbData) {
-                    if (key.toLowerCase().includes(query)) {
-                        matchedSubjects.push(key);
-                    }
-                }
-
-                allUniqueSubjects.forEach(s => {
-                    if (s.toLowerCase().includes(query) && !matchedSubjects.includes(s)) {
-                        matchedSubjects.push(s);
-                    }
-                });
-
-                if (matchedSubjects.length > 0) {
-                    searchResults.style.display = 'block';
-                    matchedSubjects.forEach(sub => {
-                        let li = document.createElement('li');
-                        li.textContent = sub;
-                        li.style.cssText = "padding: 12px 18px; cursor: pointer; border-bottom: 1px solid #f1f5f9; color: #334155; transition: 0.2s; font-weight:bold;";
-                        li.onmouseover = () => { li.style.backgroundColor = '#e0f2fe'; li.style.color = '#0284c7'; };
-                        li.onmouseout = () => { li.style.backgroundColor = 'transparent'; li.style.color = '#334155'; };
-                        
-                        li.onclick = () => {
-                            searchInput.value = sub;
-                            searchResults.style.display = 'none';
-                            
-                            window.searchedSubjectTemp = sub; 
-                            
-                            if (mainStage) {
-                                mainStage.style.borderColor = '#0ea5e9';
-                                mainStage.style.boxShadow = '0 0 0 4px rgba(14, 165, 233, 0.2)';
-                                setTimeout(() => {
-                                    mainStage.style.borderColor = '';
-                                    mainStage.style.boxShadow = '';
-                                }, 2500);
-                            }
-
-                            showToast("الرجاء اختيار (المرحلة التعليمية) ثم (الصف) من القوائم بالأسفل لإظهار زر الرفع.", "#0ea5e9");
-                        };
-                        searchResults.appendChild(li);
-                    });
-                } else {
-                    searchResults.style.display = 'none';
-                }
-            } catch (err) {
-                console.error("Search fetch error:", err);
+    if (ui.subjectSelect) {
+        ui.subjectSelect.addEventListener('change', (event) => {
+            if (event.target.value) { 
+                showElement(ui.studentUploadSection); 
+                showElement(ui.extractionSettings); 
+                updatePathDisplay(); 
+            } else { 
+                hideElement(ui.extractionSettings); 
+                hideElement(ui.studentUploadSection); 
+                if (ui.pathDisplay) ui.pathDisplay.style.display = 'none'; 
             }
         });
+    }
 
-        document.addEventListener('click', (e) => {
-            if (!searchInput.contains(e.target) && !searchResults.contains(e.target)) {
-                searchResults.style.display = 'none';
-            }
+    function populateYears(start, end, stageType, trackPath) {
+        let html = '<option value="">-- اختر الصف الدراسي --</option>';
+        for (let i = start; i <= end; i++) { 
+            html += '<option value="' + i + '">الصف ' + getOrdinal(i);
+            if (stageType === 'primary') html += ' الابتدائي';
+            else if (stageType === 'prep') html += ' الإعدادي';
+            else if (stageType === 'high') html += ' الثانوي';
+            else if (stageType === 'diploma') html += ' (دبلوم)';
+            html += '</option>';
+        }
+        ui.yearStage.innerHTML = html; 
+        ui.yearStage.setAttribute('data-current-path', trackPath);
+        hideElement(ui.subjectContainer); 
+        hideElement(ui.studentUploadSection);
+    }
+    
+    function populateSubjects(path) {
+        const subjects = subjectsDB[path] || []; 
+        let html = '<option value="">-- اختر المادة العلمية --</option>';
+        subjects.forEach((sub) => { 
+            html += '<option value="' + sub + '">' + sub + '</option>'; 
         });
+        ui.subjectSelect.innerHTML = html;
+    }
+    
+    function showElement(el) { 
+        if (!el) return; 
+        el.classList.remove('hidden-section'); 
+        el.classList.add('show-anim'); 
+    }
+    
+    function hideElement(el) { 
+        if (!el) return; 
+        el.classList.remove('show-anim'); 
+        el.classList.add('hidden-section'); 
+    }
+    
+    function hideAllChildSections(keepSub = false) { 
+        if (!keepSub) {
+            hideElement(ui.subStageContainer); 
+        }
+        hideElement(ui.yearStageContainer); 
+        hideElement(ui.subjectContainer); 
+        hideElement(ui.extractionSettings); 
+        hideElement(ui.studentUploadSection);
+        if (ui.pathDisplay) {
+            ui.pathDisplay.style.display = 'none'; 
+        }
+    }
+
+    function autoFillDropdowns(pathKey, yearIndex, subject) {
+        const parts = pathKey.split('_');
+        
+        if (parts[0] === 'high') {
+            ui.mainStage.value = parts[0] + '_' + parts[1];
+        } else {
+            ui.mainStage.value = parts[0];
+        }
+        
+        ui.mainStage.dispatchEvent(new Event('change'));
+        
+        if (parts[0] === 'high' && parts.length > 2) {
+            ui.subStage.value = parts.slice(2).join('_');
+        } else if (parts.length > 1) {
+            ui.subStage.value = parts.slice(1).join('_');
+        }
+        
+        ui.subStage.dispatchEvent(new Event('change'));
+        
+        ui.yearStage.value = yearIndex;
+        ui.yearStage.dispatchEvent(new Event('change'));
+        ui.subjectSelect.value = subject;
+        ui.subjectSelect.dispatchEvent(new Event('change'));
     }
 
     // ربط رفع الصور
@@ -1866,6 +1962,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 const targetLang = isForeignLang ? "the EXACT specific foreign language of the subject (e.g., English, French, German, or Italian)" : "Arabic";
 
                 let aiPrompt = `MANDATORY_STRICT_INSTRUCTION: YOU ARE THE CHIEF EXAM CREATOR FOR THE EGYPTIAN MINISTRY OF EDUCATION (2026). YOU MUST GENERATE CONTENT THAT EXACTLY MATCHES THE EGYPTIAN NATIONAL CURRICULUM EXAM STANDARDS FOR "${yearText}" IN SUBJECT "${subject}".
+
+CRITICAL PDF EXTRACTION RULE (MANDATORY): YOU MUST BE 1,000,000% SURE THAT ALL TEXT, LOGIC, AND INFORMATION FROM THE IMAGES ARE FULLY EXTRACTED AND WRITTEN IN THE JSON OUTPUT. DO NOT RETURN EMPTY STRINGS, INCOMPLETE SENTENCES, OR PLACEHOLDERS. EVERY SINGLE WORD MUST BE EXTRACTED AND FORMATTED CORRECTLY SO IT CAN BE PRINTED IN A PDF WITHOUT ANY BLANK SPACES. IF YOU ARE NOT SURE, ANALYZE DEEPER. EMPTY OR BLANK PDF OUTPUTS ARE STRICTLY FORBIDDEN.
+
 CRITICAL LANGUAGE INSTRUCTION: The output language MUST BE STRICTLY in ${targetLang}. If the subject is a foreign language, ALL questions, answers, and explanations MUST be written in that foreign language. Do not use Arabic unless it is a standard translation question explicitly required by the Egyptian Ministry.
 
 OUTPUT FORMAT: You MUST return a JSON object containing an array named 'qa_data'. Each item in 'qa_data' must have: 'q' (the question or section title), 'a' (the answer or full explanation), 'reason' (detailed scientific/logical justification), 'type' (MCQ, TF, or ESSAY), and 'options' (array of 4 choices if MCQ).
@@ -1877,6 +1976,7 @@ MINISTRY SPECS BY SUBJECT:
 4. ARABIC LANGUAGE: Focus on Free Reading (قراءة متحررة), Poetry (نصوص متحررة), Grammar & Morphology (نحو وصرف) with parsing (إعراب) and extraction (استخراج).
 5. SCIENCES & MATH (الرياضيات والعلوم): Focus on scientific reasons, comparisons, laws, and applied problem-solving with full detailed steps. Use clear mathematical logic and explain steps.
 6. SOCIAL STUDIES: Focus on map deduction, historical results (ما النتائج المترتبة على), and evidence (دلل تاريخيا).
+
 ALL MCQs AND TRUE/FALSE MUST HAVE DETAILED REASONS. THE TONE MUST BE 100% IDENTICAL TO OFFICIAL EGYPTIAN EXAMS. DO NOT DEVIATE.`;
 
                 const serverPayload = {
@@ -2001,68 +2101,68 @@ ALL MCQs AND TRUE/FALSE MUST HAVE DETAILED REASONS. THE TONE MUST BE 100% IDENTI
         }
         
         const nativePrintBtn = document.getElementById('native-print-btn');
-if (nativePrintBtn) {
-    const newPrintBtn = nativePrintBtn.cloneNode(true);
-    nativePrintBtn.parentNode.replaceChild(newPrintBtn, nativePrintBtn);
+        if (nativePrintBtn) {
+            const newPrintBtn = nativePrintBtn.cloneNode(true);
+            nativePrintBtn.parentNode.replaceChild(newPrintBtn, nativePrintBtn);
 
-    newPrintBtn.onclick = async function(e) {
-        e.preventDefault();
-        
-        if (typeof serverData === 'undefined' || !serverData || !serverData.qa_data || serverData.qa_data.length === 0) {
-            showCustomAlert("عفواً، لا توجد أسئلة أو ملخص لطباعته. تأكد من معالجة الدرس أولاً.", "error");
-            return;
+            newPrintBtn.onclick = async function(e) {
+                e.preventDefault();
+                
+                if (typeof serverData === 'undefined' || !serverData || !serverData.qa_data || serverData.qa_data.length === 0) {
+                    showCustomAlert("عفواً، لا توجد أسئلة أو ملخص لطباعته. تأكد من معالجة الدرس أولاً.", "error");
+                    return;
+                }
+
+                showToast("جاري التجهيز والتحقق من النصوص لملف الـ PDF...", "#0ea5e9");
+                preparePDFDOM(serverData, subjectName || "المادة");
+                
+                const elementToPrint = document.getElementById('pdf-template');
+                const contentArea = document.getElementById('pdf-qa-content');
+
+                if (!contentArea || contentArea.innerText.trim().length < 20) {
+                    showCustomAlert("خطأ: تم اكتشاف أن الصفحة ستكون فارغة! جاري إعادة المعالجة...", "error");
+                    preparePDFDOM(serverData, subjectName || "المادة");
+                }
+
+                elementToPrint.style.display = 'block';
+                elementToPrint.style.position = 'absolute';
+                elementToPrint.style.left = '-9999px'; 
+                elementToPrint.style.top = '0';
+                elementToPrint.style.width = '800px';
+                elementToPrint.style.backgroundColor = '#ffffff';
+                elementToPrint.style.color = '#000000';
+                
+                await document.fonts.ready;
+                await new Promise(resolve => setTimeout(resolve, 1500)); 
+
+                const opt = {
+                    margin: 0.3,
+                    filename: 'مذكرة_' + (subjectName || 'المنصة') + '_' + Date.now() + '.pdf',
+                    image: { type: 'jpeg', quality: 1.0 },
+                    html2canvas: { 
+                        scale: 3, 
+                        useCORS: true, 
+                        logging: false,
+                        letterRendering: true,
+                        scrollY: 0,
+                        windowWidth: 800
+                    },
+                    jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' },
+                    pagebreak: { mode: ['css', 'legacy'], avoid: '.pdf-question-block' }
+                };
+
+                try {
+                    await html2pdf().set(opt).from(elementToPrint).save();
+                    showToast("تم التحقق وطباعة الـ PDF بنجاح تام!", "#10b981");
+                } catch (err) {
+                    showCustomAlert("فشل في استخراج الـ PDF: " + err.message, "error");
+                } finally {
+                    elementToPrint.style.display = 'none';
+                    elementToPrint.style.position = '';
+                    elementToPrint.style.left = '';
+                }
+            };
         }
-
-        showToast("جاري التجهيز والتحقق من النصوص لملف الـ PDF...", "#0ea5e9");
-        preparePDFDOM(serverData, subjectName || "المادة");
-        
-        const elementToPrint = document.getElementById('pdf-template');
-        const contentArea = document.getElementById('pdf-qa-content');
-
-        if (!contentArea || contentArea.innerText.trim().length < 20) {
-            showCustomAlert("خطأ: تم اكتشاف أن الصفحة ستكون فارغة! جاري إعادة المعالجة...", "error");
-            preparePDFDOM(serverData, subjectName || "المادة");
-        }
-
-        elementToPrint.style.display = 'block';
-        elementToPrint.style.position = 'absolute';
-        elementToPrint.style.left = '-9999px'; 
-        elementToPrint.style.top = '0';
-        elementToPrint.style.width = '800px';
-        elementToPrint.style.backgroundColor = '#ffffff';
-        elementToPrint.style.color = '#000000';
-        
-        await document.fonts.ready;
-        await new Promise(resolve => setTimeout(resolve, 1500)); 
-
-        const opt = {
-            margin: 0.3,
-            filename: 'مذكرة_' + (subjectName || 'المنصة') + '_' + Date.now() + '.pdf',
-            image: { type: 'jpeg', quality: 1.0 },
-            html2canvas: { 
-                scale: 3, 
-                useCORS: true, 
-                logging: false,
-                letterRendering: true,
-                scrollY: 0,
-                windowWidth: 800
-            },
-            jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' },
-            pagebreak: { mode: ['css', 'legacy'], avoid: '.pdf-question-block' }
-        };
-
-        try {
-            await html2pdf().set(opt).from(elementToPrint).save();
-            showToast("تم التحقق وطباعة الـ PDF بنجاح تام!", "#10b981");
-        } catch (err) {
-            showCustomAlert("فشل في استخراج الـ PDF: " + err.message, "error");
-        } finally {
-            elementToPrint.style.display = 'none';
-            elementToPrint.style.position = '';
-            elementToPrint.style.left = '';
-        }
-    };
-}
 
         
         document.getElementById('ai-output-container').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
