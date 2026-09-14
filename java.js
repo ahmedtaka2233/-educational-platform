@@ -1523,6 +1523,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (ui.searchInput) {
         ui.searchInput.addEventListener('input', (event) => {
             const query = normalizeText(event.target.value.trim());
+            if (!ui.searchResults) return;
             ui.searchResults.innerHTML = '';
             hideElement(ui.filterContainer);
             
@@ -1782,27 +1783,26 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function autoFillDropdowns(pathKey, yearIndex, subject) {
         const parts = pathKey.split('_');
-        
         if (parts[0] === 'high') {
             ui.mainStage.value = parts[0] + '_' + parts[1];
         } else {
             ui.mainStage.value = parts[0];
         }
-        
         ui.mainStage.dispatchEvent(new Event('change'));
-        
         if (parts[0] === 'high' && parts.length > 2) {
             ui.subStage.value = parts.slice(2).join('_');
         } else if (parts.length > 1) {
             ui.subStage.value = parts.slice(1).join('_');
         }
-        
         ui.subStage.dispatchEvent(new Event('change'));
-        
         ui.yearStage.value = yearIndex;
         ui.yearStage.dispatchEvent(new Event('change'));
-        ui.subjectSelect.value = subject;
-        ui.subjectSelect.dispatchEvent(new Event('change'));
+        // تأكيد تعبئة المادة وإظهار سكشن الرفع والاعدادات فوراً
+        setTimeout(() => {
+            ui.subjectSelect.value = subject;
+            ui.subjectSelect.dispatchEvent(new Event('change'));
+            updatePathDisplay();
+        }, 100);
     }
 
     // ربط رفع الصور
@@ -2084,7 +2084,7 @@ ALL MCQs AND TRUE/FALSE MUST HAVE DETAILED REASONS. THE TONE MUST BE 100% IDENTI
         }
 
         document.getElementById('ai-response-text').innerHTML = resultHtml;
-        globalLessonContext = JSON.stringify(serverData.qa_data);
+        globalLessonContext = JSON.stringify(serverData.qa_data || serverData.qa_list);
         
         let btnContainer = document.getElementById('interactive-exam-btn-container');
         if (btnContainer) {
@@ -2696,40 +2696,33 @@ ALL MCQs AND TRUE/FALSE MUST HAVE DETAILED REASONS. THE TONE MUST BE 100% IDENTI
             } else {
                 let currentYear = document.getElementById('year-stage')?.options[document.getElementById('year-stage')?.selectedIndex]?.text || "غير محدد";
                 let mainStageVal = document.getElementById('main-stage')?.value || "";
+                // برومبت حديدي بالعامية المصرية عشان نجبر الموديل يلتزم 100% بالهوية المصرية
+                let customPrompt = `أنت الآن معلم مصري شاطر جداً، ذكي، ودمك خفيف، وخبير في المناهج المصرية. المشغل الإجباري: يجب أن تتحدث وتشرح حصرياً بالعامية المصرية البحتة (زي ما المدرسين الجدعان بيشرحوا في مصر). إياك ثم إياك استخدام اللغة العربية الفصحى المعقدة أو الكلمات الآلية الحرفية نهائياً. استخدم مصطلحات مصرية طبيعية للتشجيع مثل: (بص يا بطل، ركز معايا، دي سهلة جداً، الفكرة وما فيها، خد بالك، قشطة، يا دكتور). جاوب على سؤال الطالب مباشرة وبسلاسة، ولو فيه خطوات شرح، بسطها لأقصى حد.`;
                 
-                let customPrompt = `
-SYSTEM ROLE: أنت الآن معلم مصري شاطر جداً، ذكي، ودمك خفيف، وخبير في المناهج المصرية.
-CRITICAL RULE 1: يجب أن تتحدث وتشرح حصرياً بالعامية المصرية البحتة (زي ما المصريين بيتكلموا في الشارع وفي المدارس). إياك ثم إياك استخدام اللغة العربية الفصحى أو الكلمات المعقدة نهائياً. استخدم مصطلحات زي (بص يا بطل، ركز معايا، دي سهلة جداً، الفكرة وما فيها، خد بالك، قشطة).
-CRITICAL RULE 2: الرد يجب أن يكون مباشراً على سؤال الطالب. لو السؤال فيه رياضيات أو فيزياء، اشرح الخطوات بالبلدي وبطريقة منطقية وعملية.
-CRITICAL RULE 3: لا تكن آلياً، كن بشرياً وتفاعلياً لأقصى حد.
-`;
-
-if (mainStageVal.includes('primary')) {
-    customPrompt += `الطالب في المرحلة الابتدائية (${currentYear}). اشرح له بأسلوب طفولي مبسط جداً، شجعه، وقوله يا بطل أو يا دكتور.`;
-} else if (mainStageVal.includes('prep')) {
-    customPrompt += `الطالب في المرحلة الإعدادية (${currentYear}). اشرح ببساطة بس اديله تفاصيل المنهج بشكل يثبت في دماغه، ووضح القوانين لو فيه مسائل.`;
-} else if (mainStageVal.includes('high') || mainStageVal.includes('diploma')) {
-    customPrompt += `الطالب في المرحلة الثانوية أو الدبلومات (${currentYear}). ده طالب كبير، اديله الخلاصة والتكات بتاعة الامتحانات، واشرح التفاصيل العميقة بأسلوب مصري سلس خصوصاً لو المسألة صعبة.`;
-}
-
-
+                if (mainStageVal.includes('primary')) {
+                    customPrompt += `\nالطالب في المرحلة الابتدائية (${currentYear}). اشرح له بأسلوب مبسط جداً ومشجع وقوله يا بطل.`;
+                } else if (mainStageVal.includes('prep')) {
+                    customPrompt += `\nالطالب في المرحلة الإعدادية (${currentYear}). وضح له الفكرة والتريكة عشان تثبت في دماغه.`;
+                } else if (mainStageVal.includes('high') || mainStageVal.includes('diploma')) {
+                    customPrompt += `\nالطالب في ثانوية عامة أو دبلوم (${currentYear}). ده طالب كبير، اديله الخلاصة والتكات بتاعة الامتحانات ووضح القوانين بذكاء وسلاسة.`;
+                }
                 const response = await fetch('/api/analyze', {
                     method: 'POST',
-                    headers: { 
+                    headers: {
                         'Content-Type': 'application/json',
-                        'X-Bypass-Trial': 'true' 
+                        'X-Bypass-Trial': 'true'
                     },
                     body: JSON.stringify({
                         action: 'chat',
                         message: text,
                         context: globalLessonContext,
-                        strict_prompt_command: customPrompt
+                        strict_prompt_command: customPrompt // تمرير البرومبت الصارم للسيرفر
                     })
                 });
-
+                
                 if (!response.ok) throw new Error("Server error");
                 const data = await response.json();
-                finalReply = data.answer || data.reply || data.message || "لا يوجد رد متاح.";
+                finalReply = data.reply || data.answer || "لا يوجد رد متاح يا بطل.";
             }
 
             document.getElementById(typingId).remove();
