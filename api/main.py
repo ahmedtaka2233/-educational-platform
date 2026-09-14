@@ -18,6 +18,17 @@ CORS(app)
 
 SECRET_KEY = os.environ.get("JWT_SECRET", "super-secret-edu-key-2026")
 
+# ترتيب الموديلات: كل موديلات عيلة Flash المجانية المتاحة حالياً في Gemini API (سبتمبر 2026).
+# كل موديل ليه كوتة (RPM/RPD) مستقلة تماماً عن التاني، فتوزيع الطلبات عليهم بيقلل فرصة
+# الوقوع في "كل البيض في سلة واحدة" وقت الزحمة، من غير أي تكلفة إضافية.
+# ملحوظة: جوجل بتحدّث/بتوقف الموديلات بشكل دوري، فمن وقت للتاني يفضل تتأكد من القائمة
+# الحالية على https://ai.google.dev/gemini-api/docs/models
+MODELS_CHAIN = [
+    "gemini-3-flash-preview",
+    "gemini-3.1-flash-lite-preview",
+    "gemini-2.5-flash",
+]
+
 # تحميل بنك الأسئلة الثابت
 def load_static_db():
     try:
@@ -28,12 +39,12 @@ def load_static_db():
 
 static_db = load_static_db()
 
-def get_gemini_url():
+def get_gemini_url(model_name):
     # جلب مفتاح الـ API من متغيرات البيئة في Vercel
     key = os.environ.get("GEMINI_API_KEY", "")
     return (
         "https://generativelanguage.googleapis.com/"
-        f"v1beta/models/gemini-3.6-flash:generateContent?key={key}"
+        f"v1beta/models/{model_name}:generateContent?key={key}"
     )
 
 def verify_token(req):
@@ -47,29 +58,84 @@ def verify_token(req):
     except Exception:
         return False, "invalid_token"
 
-def call_gemini_with_retry(payload, max_retries=3):
-    url = get_gemini_url()
-    
-    if not os.environ.get("GEMINI_API_KEY"):
-         return {"error": {"message": "عذراً، مفتاح GEMINI_API_KEY غير موجود في إعدادات Vercel. يرجى إضافته وعمل Redeploy."}}
+def _is_overloaded(status_code, response_data):
+    """يتحقق هل الرد يمثل ازدحام مؤقت (503) يستدعي إعادة المحاولة أو التبديل للموديل الاحتياطي."""
+    if status_code == 503:
+        return True
+    if isinstance(response_data, dict):
+        err = response_data.get('error', {})
+        if isinstance(err, dict) and err.get('code') == 503:
+            return True
+        status_str = str(err.get('status', '')) if isinstance(err, dict) else ''
+        if status_str == 'UNAVAILABLE':
+            return True
+    return False
+
+def _call_single_model(model_name, payload, max_retries):
+    """يحاول موديل واحد بعدد محاولات محدد مع انتظار متزايد (exponential backoff)."""
+    url = get_gemini_url(model_name)
+    last_response_data = {"error": {"message": "لم تتم أي محاولة اتصال."}}
 
     for attempt in range(max_retries):
         try:
-            response = requests.post(url, headers={'Content-Type': 'application/json'}, json=payload)
-            response_data = response.json()
-            
-            if response.status_code == 503 or (isinstance(response_data, dict) and response_data.get('error', {}).get('code') == 503):
+            response = requests.post(
+                url,
+                headers={'Content-Type': 'application/json'},
+                json=payload,
+                timeout=60
+            )
+            try:
+                response_data = response.json()
+            except Exception:
+                response_data = {"error": {"message": f"رد غير متوقع من جوجل (status {response.status_code})"}}
+
+            last_response_data = response_data
+
+            if _is_overloaded(response.status_code, response_data):
                 if attempt < max_retries - 1:
-                    time.sleep(2 * (attempt + 1))
+                    # انتظار متزايد: 3, 6, 9, 12 ثانية... يعطي فرصة أكبر لتخف الزحمة
+                    time.sleep(3 * (attempt + 1))
                     continue
-            
-            return response_data
-        except Exception as e:
+                # آخر محاولة لهذا الموديل وفشلت بازدحام -> نرجع النتيجة عشان الكولر يجرب موديل تاني
+                return response_data, True
+
+            # نجح الطلب أو فشل بخطأ غير متعلق بالازدحام -> نرجعه كما هو
+            return response_data, False
+
+        except requests.exceptions.RequestException as e:
+            last_response_data = {"error": {"message": f"خطأ شبكة: {str(e)}"}}
             if attempt < max_retries - 1:
-                time.sleep(2)
+                time.sleep(3 * (attempt + 1))
                 continue
-            return {"error": {"message": str(e)}}
-    return response_data
+            return last_response_data, True
+
+    return last_response_data, True
+
+def call_gemini_with_retry(payload, max_retries_per_model=2):
+    """
+    يوزّع الطلب على سلسلة الموديلات المجانية بالكامل (MODELS_CHAIN) بدل التركيز
+    على موديل واحد: يحاول كل موديل بعدد محاولات محدود مع انتظار متزايد، ولو فشل
+    بسبب الازدحام (503) ينتقل فوراً للموديل التالي في السلسلة، وهكذا حتى ينجح
+    الطلب أو تنتهي كل الموديلات المتاحة.
+    """
+    if not os.environ.get("GEMINI_API_KEY"):
+        return {"error": {"message": "عذراً، مفتاح GEMINI_API_KEY غير موجود في إعدادات Vercel. يرجى إضافته وعمل Redeploy."}}
+
+    last_result = {"error": {"message": "فشل الاتصال بجميع الموديلات المتاحة."}}
+
+    for model_name in MODELS_CHAIN:
+        result, was_overloaded = _call_single_model(model_name, payload, max_retries_per_model)
+        last_result = result
+
+        if not was_overloaded:
+            # نجح الطلب، أو فشل بخطأ حقيقي غير متعلق بالازدحام -> لا داعي لتجربة موديل آخر
+            return result
+
+        # كان ازدحام (503) على هذا الموديل -> انتقل تلقائياً للموديل التالي في السلسلة
+        continue
+
+    # كل الموديلات في السلسلة فشلت بسبب الازدحام
+    return last_result
 
 @app.route('/api/auth', methods=['POST', 'OPTIONS'])
 def auth_login():
