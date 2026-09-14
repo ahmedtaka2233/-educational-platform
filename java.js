@@ -2107,67 +2107,71 @@ ALL MCQs AND TRUE/FALSE MUST HAVE DETAILED REASONS. THE TONE MUST BE 100% IDENTI
 
             newPrintBtn.onclick = async function(e) {
                 e.preventDefault();
-                if (typeof serverData === 'undefined' || !serverData || !serverData.qa_data || serverData.qa_data.length === 0) {
+                // التحقق من وجود البيانات وصحتها من السيرفر أو القاعدة الثابتة
+                const finalQaData = serverData.qa_data || serverData.qa_list || [];
+                if (finalQaData.length === 0) {
                     showCustomAlert("عفواً، لا توجد أسئلة أو ملخص لطباعته. تأكد من معالجة الدرس أولاً.", "error");
                     return;
                 }
-                showToast("جاري تجهيز نصوص المذكرة والتحقق من جودة الـ PDF...", "#0ea5e9");
+                showToast("جاري معالجة النصوص وحقن الهيكل للـ PDF...", "#0ea5e9");
 
-                // بناء الـ DOM أولاً
-                preparePDFDOM(serverData, subjectName || "المادة");
-                
-                const elementToPrint = document.getElementById('pdf-template');
+                // 1. فحص وجود حاوية pdf-template وإذا لم تكن موجودة نصنعها برمجياً فوراً لمنع الملف الأبيض
+                let elementToPrint = document.getElementById('pdf-template');
                 if (!elementToPrint) {
-                    showCustomAlert("خطأ: لم يتم العثور على قالب الـ PDF بالموقع.", "error");
-                    return;
+                    elementToPrint = document.createElement('div');
+                    elementToPrint.id = 'pdf-template';
+                    document.body.appendChild(elementToPrint);
                 }
 
-                // إظهار العنصر في مكان خفي وشفاف تماماً داخل الشاشة لضمان أن يقرأه المحرك 100%
+                // إعداد هيكل الحاوية الداخلي بالكامل وتأمين وجود حاوية المحتوى المائي
+                elementToPrint.innerHTML = `
+                    <div style="padding: 30px; min-height: 1000px; background: #ffffff; color: #000000; position: relative;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #0ea5e9; padding-bottom: 15px; margin-bottom: 25px;">
+                            <h2 id="pdf-header-title" style="margin: 0; font-size: 1.4rem; color: #0f172a; font-family: 'Cairo', sans-serif;"></h2>
+                            <span style="font-size: 0.9rem; color: #64748b; font-weight: bold;">منصة Educational platform</span>
+                        </div>
+                        <div id="pdf-qa-content"></div>
+                        <div style="margin-top: 40px; border-top: 2px solid #e2e8f0; padding-top: 15px; text-align: center; font-size: 0.85rem; color: #64748b;"></div>
+                    </div>
+                `;
+
+                // 2. استدعاء الدالة الأساسية لبناء وحقن الأسئلة داخل الحاوية المصنوعة الآن
+                preparePDFDOM(serverData, subjectName || "المادة");
+
+                // 3. تأمين ظهور العنصر بشكل شفاف للمتصفح ومقروء بالكامل لمحرك الطباعة
                 elementToPrint.style.display = 'block';
                 elementToPrint.style.position = 'fixed';
                 elementToPrint.style.top = '0';
                 elementToPrint.style.left = '0';
                 elementToPrint.style.width = '800px';
                 elementToPrint.style.zIndex = '-999999';
-                elementToPrint.style.opacity = '0.01'; // شفاف شبه مخفي لكنه موجود ومقروء للمحرك
-                elementToPrint.style.backgroundColor = '#ffffff';
-                elementToPrint.style.color = '#000000';
-                
-                // انتظار تحميل خط Cairo والمتصفح بالكامل
+                elementToPrint.style.opacity = '0.02'; // شفاف للمستخدم ومرئي للمحرك بنسبة 100%
+
+                // انتظار تهيئة الخطوط لضمان عدم تقطيع الحروف العربية
                 await document.fonts.ready;
-                await new Promise(resolve => setTimeout(resolve, 1000));
-                
-                // إعدادات المحرك الاحترافية المتوافقة مع الفيرسل والموبايل
+                await new Promise(resolve => setTimeout(resolve, 800));
+
+                // 4. إعدادات خيارات مكتبة html2pdf الاحترافية المقاومة للملفات الفارغة
                 const opt = {
-                    margin: [0.4, 0.4, 0.4, 0.4], // هوامش متناسقة لعدم تداخل الحروف
+                    margin: [0.4, 0.4, 0.4, 0.4],
                     filename: 'مذكرة_' + (subjectName || 'المنصة') + '_' + Date.now() + '.pdf',
                     image: { type: 'jpeg', quality: 1.0 },
-                    html2canvas: {
-                        scale: 2.5, // جودة عالية بدون تهنيج السيرفر
-                        useCORS: true,
-                        logging: false,
-                        letterRendering: false,
-                        scrollY: 0,
-                        windowWidth: 800
-                    },
+                    html2canvas: { scale: 2.5, useCORS: true, logging: false, letterRendering: false, scrollY: 0, windowWidth: 800 },
                     jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' },
                     pagebreak: { mode: ['css', 'legacy'], avoid: '.pdf-question-block' }
                 };
-                
+
                 try {
-                    // تشغيل محرك الطباعة الفعلي
+                    // توليد وحفظ المستند الفعلي
                     await html2pdf().set(opt).from(elementToPrint).save();
                     showToast("تم التحقق وطباعة المذكرة بنجاح تام!", "#10b981");
                 } catch (err) {
                     showCustomAlert("فشل في استخراج الـ PDF: " + err.message, "error");
                 } finally {
-                    // إعادة تصفير الستايل لإخفائه تماماً بعد انتهاء التحميل للعميل
+                    // تنظيف الصفحة بعد انتهاء الطباعة لضمان خفة الموقع
                     elementToPrint.style.display = 'none';
                     elementToPrint.style.position = '';
-                    elementToPrint.style.top = '';
-                    elementToPrint.style.left = '';
                     elementToPrint.style.opacity = '';
-                    elementToPrint.style.zIndex = '';
                 }
             };
         }
@@ -2782,7 +2786,7 @@ ALL MCQs AND TRUE/FALSE MUST HAVE DETAILED REASONS. THE TONE MUST BE 100% IDENTI
         robotHeadGroup.add(upperHead);
         const visorGeo = new THREE.BoxGeometry(2.45, 0.7, 2.25);
         const visorMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.1 });
-        const visor = new THREE.Mesh(visorGeo, visorMat);
+        const visor = new Mesh(visorGeo, visorMat);
         visor.position.set(0, 0.6, 0);
         robotHeadGroup.add(visor);
         const eyeGeo = new THREE.CircleGeometry(0.18, 32);
