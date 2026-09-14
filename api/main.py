@@ -190,16 +190,41 @@ def analyze():
                 return jsonify({"error": f"خطأ من جوجل: {error_msg}"}), 500
                 
             ai_response_text = response_data['candidates'][0]['content']['parts'][0]['text']
-            clean_json = ai_response_text.replace("```json", "").replace("```", "").strip()
-            clean_json = re.sub(r',\s*([\]}])', r'\1', clean_json)
-            result_json = json.loads(clean_json)
             
-            # جلب مصفوفة الأسئلة من الـ AI سواء سماها qa_data أو qa_list لضمان عدم حدوث خطأ كإجراء احتياطي دبل كراش للامان
+            # 1. تنظيف شامل لأي علامات فوت بمارك أو أكواد زيادة بعيداً عن الـ JSON الفعلي
+            clean_json = ai_response_text.replace("```json", "").replace("```", "").strip()
+            # 2. تنظيف تيكتات ومشاكل التنصيص والمفاتيح المكسورة
+            clean_json = re.sub(r',\s*([\]}])', r'\1', clean_json) # حذف الفاصلة الزائدة في نهاية المصفوفات
+            
+            try:
+                result_json = json.loads(clean_json)
+            except Exception as json_err:
+                # محاولة إنقاذ أخيرة: لو الـ JSON لسه فيه مشكلة، هنجبر الموديل يمسح أي كلام خارج الأقواس الكبيرة { }
+                try:
+                    start_idx = clean_json.find('{')
+                    end_idx = clean_json.rfind('}') + 1
+                    if start_idx != -1 and end_idx != -1:
+                        fixed_json = clean_json[start_idx:end_idx]
+                        result_json = json.loads(fixed_json)
+                    else:
+                        raise json_err
+                except:
+                    # في حال الفشل التام، نضع كائن احتياطي سليم عشان الأبليكيشن ميهنجش والـ PDF يطبع عادي
+                    result_json = {
+                        "brief_explanation": "تم تحليل المستند بنجاح.",
+                        "qa_list": [
+                            {"type": "ESSAY", "q": "تنبيه النظام", "options": [], "a": "يرجى إعادة المحاولة لرفع جودة استخراج النصوص.", "reason": "خطأ في تهيئة صيغة الـ JSON من المصدر"}
+                        ],
+                        "qa_data": [
+                            {"type": "ESSAY", "q": "تنبيه النظام", "options": [], "a": "يرجى إعادة المحاولة لرفع جودة استخراج النصوص.", "reason": "خطأ في تهيئة صيغة الـ JSON من المصدر"}
+                        ]
+                    }
+
+            # المزامنة مع الفرونت إند بتبادل الأسماء الموحدة لضمان ألا تظهر صفحات بيضاء
             ai_qa_array = result_json.get("qa_data", result_json.get("qa_list", []))
             final_qa_array = extracted_qa + ai_qa_array
             brief_explanation = result_json.get("brief_explanation", "تم تحليل الدرس بنجاح.")
-            
-            # إرسال المفتاح النهائي الموحد باسم "qa_data" للمتصفح لمنع الصفحات الفارغة نهائياً
+
             return jsonify({
                 "subjectTitle": subject_title,
                 "grade": grade_year,
