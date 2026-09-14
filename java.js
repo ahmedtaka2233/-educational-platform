@@ -2141,7 +2141,9 @@ ALL MCQs AND TRUE/FALSE MUST HAVE DETAILED REASONS. THE TONE MUST BE 100% IDENTI
 
                 // 3. تأمين ظهور العنصر بشكل شفاف للمتصفح ومقروء بالكامل لمحرك الطباعة
                 elementToPrint.style.display = 'block';
-                elementToPrint.style.position = 'fixed';
+                // نفس طريقة الكود القديم الذي كان يعمل على الهاتف:
+                // absolute داخل الصفحة مع z-index موجب، وليس خلف body.
+                elementToPrint.style.position = 'absolute';
                 elementToPrint.style.top = '0';
                 elementToPrint.style.left = '0';
                 elementToPrint.style.width = '800px';
@@ -2175,10 +2177,25 @@ ALL MCQs AND TRUE/FALSE MUST HAVE DETAILED REASONS. THE TONE MUST BE 100% IDENTI
                      * نفس المعاينة. إذا كانت بيضاء أو بلا محتوى نوقف التنزيل.
                      */
                     const expectedPdfText = elementToPrint.innerText || elementToPrint.textContent || '';
-                    const pdfWorker = html2pdf().set(opt).from(elementToPrint);
-                    const previewCanvas = await pdfWorker.toCanvas().get('canvas');
+                    if (typeof html2canvas !== 'function') {
+                        throw new Error("مكتبة معاينة PDF غير متاحة في المتصفح.");
+                    }
+
+                    // نستخدم html2canvas مباشرة في الفحص؛ هذا أكثر توافقاً
+                    // مع متصفحات Android من قراءة canvas من Worker الخاص بـhtml2pdf.
+                    const previewCanvas = await html2canvas(elementToPrint, {
+                        scale: 2.5,
+                        useCORS: true,
+                        logging: false,
+                        letterRendering: false,
+                        scrollY: 0,
+                        windowWidth: 800,
+                        backgroundColor: '#ffffff'
+                    });
                     verifyPdfPreview(previewCanvas, expectedPdfText, finalQaData);
 
+                    // بعد نجاح الفحص فقط نستخدم طريقة التصدير القديمة المستقرة.
+                    const pdfWorker = html2pdf().set(opt).from(elementToPrint);
                     const pdfDocument = await pdfWorker.toPdf().get('pdf');
                     const pageCount = typeof pdfDocument.internal.getNumberOfPages === 'function'
                         ? pdfDocument.internal.getNumberOfPages()
