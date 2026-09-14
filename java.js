@@ -46,25 +46,32 @@ function checkSessionTimeout() {
 
 setInterval(checkSessionTimeout, 60000);
 
-window.addEventListener('load', () => {
+let startupSequenceStarted = false;
+
+function startSingleStartupSequence() {
+    if (startupSequenceStarted) return;
+    startupSequenceStarted = true;
+
+    const customSplash = document.getElementById('custom-splash-screen');
+    const finishStartup = () => {
+        if (customSplash) customSplash.remove();
+        if (!isVIPLoggedIn) showAuthScreen();
+    };
+
+    if (!customSplash) {
+        setTimeout(finishStartup, 700);
+        return;
+    }
+
+    // شاشة بداية واحدة، ثم فاصل واضح قبل ظهور تسجيل الدخول.
     setTimeout(() => {
-        const customSplash = document.getElementById('custom-splash-screen');
-        if (customSplash) {
-            customSplash.style.opacity = '0';
-            customSplash.style.visibility = 'hidden';
-            setTimeout(() => {
-                customSplash.remove();
-                if (!isVIPLoggedIn) {
-                    showAuthScreen();
-                }
-            }, 800);
-        } else {
-            if (!isVIPLoggedIn) {
-                showAuthScreen();
-            }
-        }
-    }, 3000); 
-});
+        customSplash.style.opacity = '0';
+        customSplash.style.visibility = 'hidden';
+        setTimeout(finishStartup, 900);
+    }, 2200);
+}
+
+window.addEventListener('load', startSingleStartupSequence, { once: true });
 
 let appHiddenTime = 0;
 document.addEventListener("visibilitychange", () => {
@@ -72,7 +79,9 @@ document.addEventListener("visibilitychange", () => {
         appHiddenTime = Date.now();
     } else if (document.visibilityState === "visible") {
         if (appHiddenTime > 0 && (Date.now() - appHiddenTime > 45000)) {
-            window.location.reload();
+            // لا تعِد تحميل التطبيق عند العودة من الخلفية؛
+            // إعادة التحميل كانت تظهر للمستخدم كتحميل ثانٍ متتالٍ.
+            appHiddenTime = 0;
         }
     }
 });
@@ -1960,30 +1969,43 @@ document.addEventListener('DOMContentLoaded', () => {
                 const foreignLanguages = ["اللغة الإنجليزية", "اللغة الفرنسية", "اللغة الألمانية", "اللغة الإيطالية", "english", "french", "german", "italian"];
                 const isForeignLang = foreignLanguages.some(lang => subject.toLowerCase().includes(lang));
                 const targetLang = isForeignLang ? "the EXACT specific foreign language of the subject (e.g., English, French, German, or Italian)" : "Arabic";
+                const selectedMainStage = document.getElementById('main-stage')?.value || '';
+                const selectedSubStage = document.getElementById('sub-stage')?.value || '';
+                const isAzharTrack = selectedMainStage === 'high_azhar' || selectedSubStage === 'azhar';
+                const educationTrack = isAzharTrack ? 'azhar' : 'general';
+                const educationAuthority = isAzharTrack
+                    ? 'قطاع المعاهد الأزهرية ومواصفات امتحانات الأزهر الشريف'
+                    : 'وزارة التربية والتعليم والتعليم الفني المصرية والمركز القومي للامتحانات';
 
-                let aiPrompt = `MANDATORY_STRICT_INSTRUCTION: YOU ARE THE CHIEF EXAM CREATOR FOR THE EGYPTIAN MINISTRY OF EDUCATION (2026). YOU MUST GENERATE CONTENT THAT EXACTLY MATCHES THE EGYPTIAN NATIONAL CURRICULUM EXAM STANDARDS FOR "${yearText}" IN SUBJECT "${subject}".
+                let aiPrompt = `MANDATORY_STRICT_INSTRUCTION: أنت خبير إعداد امتحانات مصرية. الجهة التعليمية المختارة هي: ${educationAuthority}. المسار: ${educationTrack === 'azhar' ? 'أزهري' : 'تربية وتعليم عام'}. الصف: "${yearText}". المادة: "${subject}".
+
+CURRICULUM AUTHORITY RULE: استخدم أسلوب الجهة التعليمية والمسار المحدد فقط. لا تخلط بين مواصفات التعليم العام ومواصفات الأزهر. لا تدّعِ أن السؤال من امتحان رسمي أو أنه مضمون ما لم يرد نصه في الصور المرفوعة. استخرج المفاهيم من الصور أولاً، ثم صغ أسئلة تدريبية أصلية على نفس مستوى الصياغة والتدرج والمهارات المطلوبة في الامتحانات المصرية.
 
 CRITICAL PDF EXTRACTION RULE (MANDATORY): YOU MUST BE 1,000,000% SURE THAT ALL TEXT, LOGIC, AND INFORMATION FROM THE IMAGES ARE FULLY EXTRACTED AND WRITTEN IN THE JSON OUTPUT. DO NOT RETURN EMPTY STRINGS, INCOMPLETE SENTENCES, OR PLACEHOLDERS. EVERY SINGLE WORD MUST BE EXTRACTED AND FORMATTED CORRECTLY SO IT CAN BE PRINTED IN A PDF WITHOUT ANY BLANK SPACES. IF YOU ARE NOT SURE, ANALYZE DEEPER. EMPTY OR BLANK PDF OUTPUTS ARE STRICTLY FORBIDDEN.
 
 CRITICAL LANGUAGE INSTRUCTION: The output language MUST BE STRICTLY in ${targetLang}. If the subject is a foreign language, ALL questions, answers, and explanations MUST be written in that foreign language. Do not use Arabic unless it is a standard translation question explicitly required by the Egyptian Ministry.
 
-OUTPUT FORMAT: You MUST return a JSON object containing an array named 'qa_data'. Each item in 'qa_data' must have: 'q' (the question or section title), 'a' (the answer or full explanation), 'reason' (detailed scientific/logical justification), 'type' (MCQ, TF, or ESSAY), and 'options' (array of 4 choices if MCQ).
+OUTPUT FORMAT: You MUST return a JSON object containing an array named 'qa_data'. Each item in 'qa_data' must have: 'q' (question), 'a' (model answer), 'reason' (explanation), 'type' (MCQ, TF, or ESSAY), and 'options' (4 choices for MCQ). Return no empty q/a values.
 
-MINISTRY SPECS BY SUBJECT:
-1. IF SUMMARY MODE (${isSummaryMode}): Generate a highly detailed study summary matching Egyptian standards. Use clear comparisons, scientific reasons, and key concepts. NO EXAM QUESTIONS. Set type to 'ESSAY'.
-2. ENGLISH LANGUAGE: ABSOLUTELY NO TRUE/FALSE. Use ONLY MCQ (Grammar/Vocab), Fill in the blanks (text with word box), Reading Comprehension MCQ, Unscramble sentences, and correct the grammar. 
-3. SECOND LANGUAGES (FRENCH/GERMAN/ITALIAN): Use Reading Documents (True/False & MCQ), Daily Situations (MCQ), Grammar (MCQ), and short email production.
-4. ARABIC LANGUAGE: Focus on Free Reading (قراءة متحررة), Poetry (نصوص متحررة), Grammar & Morphology (نحو وصرف) with parsing (إعراب) and extraction (استخراج).
-5. SCIENCES & MATH (الرياضيات والعلوم): Focus on scientific reasons, comparisons, laws, and applied problem-solving with full detailed steps. Use clear mathematical logic and explain steps.
-6. SOCIAL STUDIES: Focus on map deduction, historical results (ما النتائج المترتبة على), and evidence (دلل تاريخيا).
+MINISTRY_STYLE_BY_SUBJECT:
+1. SUMMARY MODE (${isSummaryMode}): create a structured curriculum summary with key concepts, comparisons, causes/results, laws, examples, and review points. Use type ESSAY and do not invent official quotations.
+2. ARABIC: reading comprehension, unseen reading, texts/poetry, literature, grammar, morphology, rhetoric, parsing, extraction, and writing according to the selected track.
+3. ENGLISH OR OTHER LANGUAGES: reading passage, vocabulary, grammar, dialogue/situations, correction, ordering, completion, and writing tasks appropriate to the selected grade; do not force Arabic answers in a foreign-language subject.
+4. MATHEMATICS: direct concepts, reasoning, multi-step problems, proof where appropriate, correct notation, given/required/solution/check; never omit calculation steps.
+5. SCIENCES: explain, compare, predict, classify, scientific reason, experiments, data/graph interpretation, laws, units, and applied problems with a model answer.
+6. HISTORY/GEOGRAPHY/SOCIAL STUDIES: causes, results, evidence, compare, chronology, map/data interpretation, and inference questions.
+7. AZHAR RELIGIOUS SUBJECTS: use the selected syllabus context for Quran, Hadith, Fiqh, Usul, Tawhid and related subjects; require textual evidence, definitions, rulings, conditions, pillars, comparisons, and application questions where appropriate. Do not apply general-education wording when the track is Azhar.
+8. VOCATIONAL SUBJECTS: practical situations, terminology, procedures, safety, calculations, and workplace applications.
 
-ALL MCQs AND TRUE/FALSE MUST HAVE DETAILED REASONS. THE TONE MUST BE 100% IDENTICAL TO OFFICIAL EGYPTIAN EXAMS. DO NOT DEVIATE.`;
+ALL QUESTIONS MUST BE ORIGINAL TRAINING QUESTIONS, not claims of official ministry questions. Match the selected authority's structure, command verbs, difficulty progression, mark-style logic, and answer expectations. MCQ and TF require plausible distractors and a clear reason.`;
 
                 const serverPayload = {
                     action: 'analyze',
                     images_base64: imagesBase64List,
                     subject: subject,
                     year: yearText,
+                    education_track: educationTrack,
+                    education_authority: educationAuthority,
                     mime_type: 'image/jpeg',
                     output_language: 'same_as_source',
                     detailed_answers: true,
