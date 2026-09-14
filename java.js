@@ -2169,11 +2169,32 @@ ALL MCQs AND TRUE/FALSE MUST HAVE DETAILED REASONS. THE TONE MUST BE 100% IDENTI
                 };
 
                 try {
-                    // توليد وحفظ المستند الفعلي
-                    await html2pdf().set(opt).from(elementToPrint).save();
-                    showToast("تم التحقق وطباعة المذكرة بنجاح تام!", "#10b981");
+                    /*
+                     * لا نستخدم save() مباشرة هنا.
+                     * أولاً نرسم المعاينة على Canvas ونفحصها، ثم ننشئ PDF من
+                     * نفس المعاينة. إذا كانت بيضاء أو بلا محتوى نوقف التنزيل.
+                     */
+                    const expectedPdfText = elementToPrint.innerText || elementToPrint.textContent || '';
+                    const pdfWorker = html2pdf().set(opt).from(elementToPrint);
+                    const previewCanvas = await pdfWorker.toCanvas().get('canvas');
+                    verifyPdfPreview(previewCanvas, expectedPdfText, finalQaData);
+
+                    const pdfDocument = await pdfWorker.toPdf().get('pdf');
+                    const pageCount = typeof pdfDocument.internal.getNumberOfPages === 'function'
+                        ? pdfDocument.internal.getNumberOfPages()
+                        : 0;
+                    const pdfBlob = pdfDocument.output('blob');
+
+                    if (pageCount < 1 || !pdfBlob || pdfBlob.size < 2500) {
+                        throw new Error("تم إيقاف التحويل: ملف PDF الناتج غير صالح أو بلا صفحات.");
+                    }
+
+                    // لا يتم التنزيل إلا بعد نجاح فحص المعاينة والـPDF نفسه.
+                    pdfDocument.save(opt.filename);
+                    showToast("تم التحقق من وجود النصوص ثم إنشاء ملف PDF بنجاح!", "#10b981");
                 } catch (err) {
-                    showCustomAlert("فشل في استخراج الـ PDF: " + err.message, "error");
+                    console.error("فشل فحص/استخراج PDF:", err);
+                    showCustomAlert("تم إيقاف إنشاء الـPDF للحماية من ملف أبيض: " + err.message, "error");
                 } finally {
                     // تنظيف الصفحة بعد انتهاء الطباعة لضمان خفة الموقع
                     elementToPrint.style.display = 'none';
@@ -2192,6 +2213,70 @@ ALL MCQs AND TRUE/FALSE MUST HAVE DETAILED REASONS. THE TONE MUST BE 100% IDENTI
 
         
         document.getElementById('ai-output-container').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    /**
+     * فحص إلزامي للمعاينة قبل إنشاء وتنزيل PDF.
+     * html2pdf يحول الصفحة إلى صورة داخل PDF؛ لذلك نفحص الـCanvas نفسه:
+     * - النص الموجود في DOM يجب ألا يكون فارغاً.
+     * - الـCanvas يجب أن يحتوي على كمية حقيقية من البكسلات غير البيضاء.
+     * - يجب أن توجد بيانات أسئلة فعلية.
+     */
+    function verifyPdfPreview(canvas, domText, qaData) {
+        const normalizedDomText = String(domText || '').replace(/\s+/g, '').trim();
+        const questions = Array.isArray(qaData) ? qaData : [];
+
+        if (normalizedDomText.length < 20) {
+            throw new Error("المعاينة لا تحتوي على نص كافٍ للتحويل.");
+        }
+        if (questions.length === 0) {
+            throw new Error("المعاينة لا تحتوي على أسئلة أو أقسام.");
+        }
+        if (!canvas || !canvas.width || !canvas.height) {
+            throw new Error("تعذر إنشاء معاينة الصفحة.");
+        }
+
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+        if (!ctx) {
+            throw new Error("تعذر قراءة معاينة الصفحة.");
+        }
+
+        const pixels = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+        const sampleStep = Math.max(1, Math.floor(Math.max(canvas.width, canvas.height) / 1400));
+        let samples = 0;
+        let inkPixels = 0;
+        let minX = canvas.width;
+        let minY = canvas.height;
+        let maxX = -1;
+        let maxY = -1;
+
+        for (let y = 0; y < canvas.height; y += sampleStep) {
+            for (let x = 0; x < canvas.width; x += sampleStep) {
+                const offset = (y * canvas.width + x) * 4;
+                const alpha = pixels[offset + 3];
+                const red = pixels[offset];
+                const green = pixels[offset + 1];
+                const blue = pixels[offset + 2];
+                samples++;
+
+                // نعتبر البكسل محتوى مرئياً إذا لم يكن خلفية بيضاء تقريباً.
+                if (alpha > 25 && (red < 220 || green < 220 || blue < 220)) {
+                    inkPixels++;
+                    if (x < minX) minX = x;
+                    if (y < minY) minY = y;
+                    if (x > maxX) maxX = x;
+                    if (y > maxY) maxY = y;
+                }
+            }
+        }
+
+        const inkRatio = samples ? inkPixels / samples : 0;
+        const contentHeight = maxY >= minY ? maxY - minY : 0;
+
+        // هذه الشروط تمنع حفظ صفحة بيضاء أو معاينة شبه فارغة.
+        if (inkPixels < 150 || inkRatio < 0.00005 || contentHeight < 80) {
+            throw new Error("المعاينة ظهرت بيضاء أو بلا نص واضح، لذلك لم يتم تنزيل PDF.");
+        }
     }
 
     function preparePDFDOM(serverData, subjectName) {
