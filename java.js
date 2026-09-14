@@ -1,4 +1,4 @@
-﻿// @ts-nocheck
+// @ts-nocheck
 // ============================================================================
 // ملف الجافاسكريبت الرئيسي (java.js) - منصة الذكاء الاصطناعي
 // ============================================================================
@@ -2090,7 +2090,8 @@ ALL MCQs AND TRUE/FALSE MUST HAVE DETAILED REASONS. THE TONE MUST BE 100% IDENTI
         if (btnContainer) {
             btnContainer.innerHTML = '';
             if (!isSummaryMode) {
-                interactiveExamData = serverData.qa_data.filter(q => q.type === "MCQ" || q.type === "TF" || q.type === "ESSAY");
+                const safeDataForExam = serverData.qa_data || serverData.qa_list || [];
+                interactiveExamData = safeDataForExam.filter(q => q.type === "MCQ" || q.type === "TF" || q.type === "ESSAY");
                 if (interactiveExamData.length > 0) {
                     btnContainer.innerHTML = `<button id="start-interactive-exam-btn" class="action-btn" style="background:#8b5cf6; margin-top:15px; width:100%;"><i class="fas fa-stopwatch"></i> بدء الامتحان التفاعلي أونلاين الآن</button>`;
                     document.getElementById('start-interactive-exam-btn').addEventListener('click', () => {
@@ -2138,18 +2139,14 @@ ALL MCQs AND TRUE/FALSE MUST HAVE DETAILED REASONS. THE TONE MUST BE 100% IDENTI
                 // 2. استدعاء الدالة الأساسية لبناء وحقن الأسئلة داخل الحاوية المصنوعة الآن
                 preparePDFDOM(serverData, subjectName || "المادة");
 
-                // 3. إخفاء العنصر عن المستخدم بالموضع (خارج الشاشة) بدل الشفافية.
-                // ملحوظة هامة: opacity منخفضة (0.02) كانت هي سبب صفحات PDF البيضاء، لأن html2canvas
-                // يرسم العنصر بنفس درجة الشفافية الفعلية فتتحول النصوص لأبيض تقريباً فوق خلفية بيضاء،
-                // وبعدها يتم "تثبيت" هذا اللون الباهت نهائياً عند التحويل لصورة JPEG (لأن JPEG لا يدعم
-                // قناة الشفافية Alpha). الحل: opacity كاملة + إخفاء بالموضع.
+                // 3. تأمين ظهور العنصر بشكل شفاف للمتصفح ومقروء بالكامل لمحرك الطباعة
                 elementToPrint.style.display = 'block';
                 elementToPrint.style.position = 'fixed';
                 elementToPrint.style.top = '0';
-                elementToPrint.style.left = '-9999px'; // خارج حدود الشاشة تماماً
+                elementToPrint.style.left = '0'; // إرجاع العنصر لداخل الشاشة ليتمكن html2canvas من التقاطه
                 elementToPrint.style.width = '800px';
                 elementToPrint.style.zIndex = '-999999';
-                elementToPrint.style.opacity = '1'; // شفافية كاملة إجبارياً
+                elementToPrint.style.opacity = '1';
 
                 // انتظار تهيئة الخطوط لضمان عدم تقطيع الحروف العربية
                 await document.fonts.ready;
@@ -2199,7 +2196,8 @@ ALL MCQs AND TRUE/FALSE MUST HAVE DETAILED REASONS. THE TONE MUST BE 100% IDENTI
         const textDirection = isForeignLang ? 'ltr' : 'rtl';
         const textAlign = isForeignLang ? 'left' : 'right';
         
-        serverData.qa_data.forEach((item, index) => {
+        const safeDataForPDF = serverData.qa_data || serverData.qa_list || [];
+        safeDataForPDF.forEach((item, index) => {
             questionCount++;
             let cleanQuestion = stripParentheses(item.q);
             
