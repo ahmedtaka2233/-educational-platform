@@ -448,43 +448,41 @@ select:focus, input:focus {
     z-index: 1;
 }
 
-/* قواعد محرك الرسم لحماية الحروف العربية من التقطيع والقلب في الـ PDF */
-.pdf-question-block {
-    page-break-inside: avoid !important;
-    break-inside: avoid !important;
-    overflow-wrap: break-word !important;
-    word-wrap: break-word !important;
-    direction: rtl !important;
-    text-align: right !important;
-    letter-spacing: normal !important;
-    unicode-bidi: normal !important;
-    font-family: 'Cairo', sans-serif !important;
-}
-
+/* العلامة المائية المطورة: أنيقة وخلف النصوص تماماً بدون أي تشويش */
 #pdf-template {
     position: relative;
     overflow: hidden;
     direction: rtl !important;
     text-align: right !important;
     font-family: 'Cairo', sans-serif !important;
-    letter-spacing: normal !important;
-    unicode-bidi: normal !important;
+    background-color: #ffffff !important;
 }
 
-/* العلامة المائية: صغيرة وأنيقة ومتموضعة في منتصف الورقة مباشرة */
 #pdf-template::after {
     content: "Educational platform" !important;
     position: absolute;
     top: 50%;
     left: 50%;
-    transform: translate(-50%, -50%) rotate(-30deg);
-    font-size: 1.8rem;
-    font-weight: 700;
-    letter-spacing: 2px;
-    color: rgba(15, 23, 42, 0.18);
+    transform: translate(-50%, -50%) rotate(-35deg);
+    font-size: 3.5rem; /* حجم فخم ومناسب للمنتصف */
+    font-weight: 800;
+    letter-spacing: 4px;
+    color: rgba(15, 23, 42, 0.04) !important; /* درجة خفيفة جداً وباهتة لحماية العين والنصوص */
     pointer-events: none;
-    z-index: 999999;
+    z-index: 0; /* خلف الكتل التعليمية تماماً */
     white-space: nowrap;
+}
+
+/* تأمين كتل الأسئلة لتكون فوق الخلفية */
+.pdf-question-block {
+    position: relative;
+    z-index: 1; /* تضمن ظهور الكلام فوق العلامة المائية */
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    background: #f8fafc;
+    margin-bottom: 18px;
+    padding: 16px;
+    border-radius: 8px;
 }
 
 /* تأثير النبض للميكروفون */

@@ -2107,59 +2107,67 @@ ALL MCQs AND TRUE/FALSE MUST HAVE DETAILED REASONS. THE TONE MUST BE 100% IDENTI
 
             newPrintBtn.onclick = async function(e) {
                 e.preventDefault();
-                
                 if (typeof serverData === 'undefined' || !serverData || !serverData.qa_data || serverData.qa_data.length === 0) {
                     showCustomAlert("عفواً، لا توجد أسئلة أو ملخص لطباعته. تأكد من معالجة الدرس أولاً.", "error");
                     return;
                 }
+                showToast("جاري تجهيز نصوص المذكرة والتحقق من جودة الـ PDF...", "#0ea5e9");
 
-                showToast("جاري التجهيز والتحقق من النصوص لملف الـ PDF...", "#0ea5e9");
+                // بناء الـ DOM أولاً
                 preparePDFDOM(serverData, subjectName || "المادة");
                 
                 const elementToPrint = document.getElementById('pdf-template');
-                const contentArea = document.getElementById('pdf-qa-content');
-
-                if (!contentArea || contentArea.innerText.trim().length < 20) {
-                    showCustomAlert("خطأ: تم اكتشاف أن الصفحة ستكون فارغة! جاري إعادة المعالجة...", "error");
-                    preparePDFDOM(serverData, subjectName || "المادة");
+                if (!elementToPrint) {
+                    showCustomAlert("خطأ: لم يتم العثور على قالب الـ PDF بالموقع.", "error");
+                    return;
                 }
 
+                // إظهار العنصر في مكان خفي وشفاف تماماً داخل الشاشة لضمان أن يقرأه المحرك 100%
                 elementToPrint.style.display = 'block';
-                elementToPrint.style.position = 'absolute';
-                elementToPrint.style.left = '-9999px'; 
+                elementToPrint.style.position = 'fixed';
                 elementToPrint.style.top = '0';
+                elementToPrint.style.left = '0';
                 elementToPrint.style.width = '800px';
+                elementToPrint.style.zIndex = '-999999';
+                elementToPrint.style.opacity = '0.01'; // شفاف شبه مخفي لكنه موجود ومقروء للمحرك
                 elementToPrint.style.backgroundColor = '#ffffff';
                 elementToPrint.style.color = '#000000';
                 
+                // انتظار تحميل خط Cairo والمتصفح بالكامل
                 await document.fonts.ready;
-                await new Promise(resolve => setTimeout(resolve, 1500)); 
-
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                
+                // إعدادات المحرك الاحترافية المتوافقة مع الفيرسل والموبايل
                 const opt = {
-                    margin: 0.3,
+                    margin: [0.4, 0.4, 0.4, 0.4], // هوامش متناسقة لعدم تداخل الحروف
                     filename: 'مذكرة_' + (subjectName || 'المنصة') + '_' + Date.now() + '.pdf',
                     image: { type: 'jpeg', quality: 1.0 },
-                    html2canvas: { 
-                        scale: 3, 
-                        useCORS: true, 
+                    html2canvas: {
+                        scale: 2.5, // جودة عالية بدون تهنيج السيرفر
+                        useCORS: true,
                         logging: false,
-                        letterRendering: true,
+                        letterRendering: false,
                         scrollY: 0,
                         windowWidth: 800
                     },
                     jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' },
                     pagebreak: { mode: ['css', 'legacy'], avoid: '.pdf-question-block' }
                 };
-
+                
                 try {
+                    // تشغيل محرك الطباعة الفعلي
                     await html2pdf().set(opt).from(elementToPrint).save();
-                    showToast("تم التحقق وطباعة الـ PDF بنجاح تام!", "#10b981");
+                    showToast("تم التحقق وطباعة المذكرة بنجاح تام!", "#10b981");
                 } catch (err) {
                     showCustomAlert("فشل في استخراج الـ PDF: " + err.message, "error");
                 } finally {
+                    // إعادة تصفير الستايل لإخفائه تماماً بعد انتهاء التحميل للعميل
                     elementToPrint.style.display = 'none';
                     elementToPrint.style.position = '';
+                    elementToPrint.style.top = '';
                     elementToPrint.style.left = '';
+                    elementToPrint.style.opacity = '';
+                    elementToPrint.style.zIndex = '';
                 }
             };
         }
