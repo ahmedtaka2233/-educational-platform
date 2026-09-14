@@ -2160,70 +2160,54 @@ ALL MCQs AND TRUE/FALSE MUST HAVE DETAILED REASONS. THE TONE MUST BE 100% IDENTI
                 await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
                 await new Promise(resolve => setTimeout(resolve, 150));
 
-                // 4. إعدادات خيارات مكتبة html2pdf الاحترافية المقاومة للملفات الفارغة
-                const opt = {
-                    margin: [0.4, 0.4, 0.4, 0.4],
-                    filename: 'مذكرة_' + (subjectName || 'المنصة') + '_' + Date.now() + '.pdf',
-                    image: { type: 'jpeg', quality: 1.0 },
-                    html2canvas: { scale: 2.5, useCORS: true, logging: false, letterRendering: false, scrollY: 0, windowWidth: 800 },
-                    jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' },
-                    pagebreak: { mode: ['css', 'legacy'], avoid: '.pdf-question-block' }
-                };
-
+                // 4. افتح معاينة الطباعة الأصلية في Android بدلاً من تنزيل PDF مباشرة.
+                // بهذه الطريقة يستطيع المستخدم رؤية الصفحات واختيار "حفظ بتنسيق PDF".
+                let cleanupPrintLayout = null;
                 try {
-                    /*
-                     * لا نستخدم save() مباشرة هنا.
-                     * أولاً نرسم المعاينة على Canvas ونفحصها، ثم ننشئ PDF من
-                     * نفس المعاينة. إذا كانت بيضاء أو بلا محتوى نوقف التنزيل.
-                     */
-                    const expectedPdfText = elementToPrint.innerText || elementToPrint.textContent || '';
-                    if (typeof html2canvas !== 'function') {
-                        throw new Error("مكتبة معاينة PDF غير متاحة في المتصفح.");
+                    const printText = String(
+                        elementToPrint.innerText || elementToPrint.textContent || ''
+                    ).replace(/\s+/g, '').trim();
+                    const printContent = document.getElementById('pdf-qa-content');
+
+                    if (finalQaData.length === 0 || printText.length < 20) {
+                        throw new Error("المعاينة لا تحتوي على نص كافٍ للطباعة.");
+                    }
+                    if (!printContent || !printContent.innerText.trim()) {
+                        throw new Error("تعذر تجهيز نصوص المعاينة للطباعة.");
                     }
 
-                    // نستخدم html2canvas مباشرة في الفحص؛ هذا أكثر توافقاً
-                    // مع متصفحات Android من قراءة canvas من Worker الخاص بـhtml2pdf.
-                    const previewCanvas = await html2canvas(elementToPrint, {
-                        scale: 2.5,
-                        useCORS: true,
-                        logging: false,
-                        letterRendering: false,
-                        scrollY: 0,
-                        windowWidth: 800,
-                        backgroundColor: '#ffffff'
-                    });
-                    verifyPdfPreview(previewCanvas, expectedPdfText, finalQaData);
+                    const oldTitle = document.title;
+                    document.title = 'مذكرة_' + (subjectName || 'المنصة');
+                    let isCleaned = false;
 
-                    // بعد نجاح الفحص فقط نستخدم طريقة التصدير القديمة المستقرة.
-                    const pdfWorker = html2pdf().set(opt).from(elementToPrint);
-                    const pdfDocument = await pdfWorker.toPdf().get('pdf');
-                    const pageCount = typeof pdfDocument.internal.getNumberOfPages === 'function'
-                        ? pdfDocument.internal.getNumberOfPages()
-                        : 0;
-                    const pdfBlob = pdfDocument.output('blob');
+                    cleanupPrintLayout = () => {
+                        if (isCleaned) return;
+                        isCleaned = true;
+                        elementToPrint.style.display = 'none';
+                        elementToPrint.style.position = '';
+                        elementToPrint.style.top = '';
+                        elementToPrint.style.left = '';
+                        elementToPrint.style.width = '';
+                        elementToPrint.style.zIndex = '';
+                        elementToPrint.style.opacity = '';
+                        elementToPrint.style.visibility = '';
+                        elementToPrint.style.pointerEvents = '';
+                        elementToPrint.style.backgroundColor = '';
+                        document.title = oldTitle;
+                    };
 
-                    if (pageCount < 1 || !pdfBlob || pdfBlob.size < 2500) {
-                        throw new Error("تم إيقاف التحويل: ملف PDF الناتج غير صالح أو بلا صفحات.");
-                    }
+                    const afterPrintHandler = () => {
+                        cleanupPrintLayout();
+                        showToast("انتهت معاينة الطباعة. يمكنك اختيار حفظ بتنسيق PDF.", "#10b981");
+                    };
 
-                    // لا يتم التنزيل إلا بعد نجاح فحص المعاينة والـPDF نفسه.
-                    pdfDocument.save(opt.filename);
-                    showToast("تم التحقق من وجود النصوص ثم إنشاء ملف PDF بنجاح!", "#10b981");
+                    window.addEventListener('afterprint', afterPrintHandler, { once: true });
+                    showToast("تم تجهيز النصوص. افتح المعاينة ثم اختر حفظ بتنسيق PDF.", "#0ea5e9");
+                    window.print();
                 } catch (err) {
-                    console.error("فشل فحص/استخراج PDF:", err);
-                    showCustomAlert("تم إيقاف إنشاء الـPDF للحماية من ملف أبيض: " + err.message, "error");
-                } finally {
-                    // تنظيف الصفحة بعد انتهاء الطباعة لضمان خفة الموقع
-                    elementToPrint.style.display = 'none';
-                    elementToPrint.style.position = '';
-                    elementToPrint.style.top = '';
-                    elementToPrint.style.left = '';
-                    elementToPrint.style.width = '';
-                    elementToPrint.style.zIndex = '';
-                    elementToPrint.style.opacity = '';
-                    elementToPrint.style.visibility = '';
-                    elementToPrint.style.pointerEvents = '';
-                    elementToPrint.style.backgroundColor = '';
+                    if (cleanupPrintLayout) cleanupPrintLayout();
+                    console.error("فشل تجهيز معاينة الطباعة:", err);
+                    showCustomAlert("تم إيقاف الطباعة للحماية من معاينة فارغة: " + err.message, "error");
                 }
             };
         }
