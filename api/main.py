@@ -95,11 +95,11 @@ def sync_analytics():
 def analyze():
     if request.method == 'OPTIONS':
         return jsonify({}), 200
-
+        
     is_valid, token_data = verify_token(request)
     if not is_valid and request.headers.get('X-Bypass-Trial') != 'true':
         return jsonify({"error": "غير مصرح لك بالوصول. يرجى تسجيل الدخول أو تأكيد الدفع."}), 401
-
+        
     try:
         data = request.get_json()
         action = data.get('action')
@@ -108,89 +108,72 @@ def analyze():
             message = data.get('message', '')
             context = data.get('context', '')
             strict_prompt = data.get('strict_prompt_command', '')
-
             chat_prompt = f"{strict_prompt}\n\nمعلومات الدرس المرفوع:\n{context}\n\nسؤال الطالب:\n{message}"
-
-            payload = {
-                "contents": [{"parts": [{"text": chat_prompt}]}]
-            }
-
+            payload = {"contents": [{"parts": [{"text": chat_prompt}]}]}
             response_data = call_gemini_with_retry(payload)
             
             if 'candidates' not in response_data:
-                 error_msg = response_data.get('error', {}).get('message', str(response_data))
-                 return jsonify({"error": f"خطأ من جوجل: {error_msg}"}), 500
-                 
+                error_msg = response_data.get('error', {}).get('message', str(response_data))
+                return jsonify({"error": f"خطأ من جوجل: {error_msg}"}), 500
+                
             ai_reply = response_data['candidates'][0]['content']['parts'][0]['text']
             return jsonify({"reply": ai_reply}), 200
-
+            
         if action == 'semantic_grade':
             question = data.get('question', '')
             model_answer = data.get('model_answer', '')
             student_answer = data.get('student_answer', '')
-
-            grade_prompt = f"طالب يجيب على سؤال مقالي في امتحان مصري.\n"
-            grade_prompt += f"السؤال: {question}\n"
-            grade_prompt += f"الإجابة النموذجية: {model_answer}\n"
-            grade_prompt += f"إجابة الطالب: {student_answer}\n\n"
-            grade_prompt += "المطلوب: قيم إجابة الطالب. إذا كانت تحمل نفس المفهوم العلمي أو قريبة جداً من المعنى المنطقي للإجابة النموذجية، اعتبرها صحيحة.\n"
-            grade_prompt += "لا تدقق على الحرفيات أو الأخطاء الإملائية. يجب الرد بصيغة JSON فقط كالتالي:\n{\"isCorrect\": true} أو {\"isCorrect\": false}"
-
+            grade_prompt = f"طالب يجيب على سؤال مقالي في امتحان مصري.\nالسؤال: {question}\nالإجابة النموذجية: {model_answer}\nإجابة الطالب: {student_answer}\n\nالمطلوب: قيم إجابة الطالب. إذا كانت تحمل نفس المفهوم العلمي، اعتبرها صحيحة.\nيجب الرد بصيغة JSON فقط كالتالي:\n{{\"isCorrect\": true}} أو {{\"isCorrect\": false}}"
+            
             payload = {
                 "contents": [{"parts": [{"text": grade_prompt}]}],
-                "generationConfig": {
-                    "responseMimeType": "application/json",
-                    "temperature": 0.1
-                }
+                "generationConfig": {"responseMimeType": "application/json", "temperature": 0.1}
             }
-
             response_data = call_gemini_with_retry(payload)
             
             if 'candidates' not in response_data:
-                 error_msg = response_data.get('error', {}).get('message', str(response_data))
-                 return jsonify({"error": f"فشل التصحيح: {error_msg}"}), 500
-                 
+                error_msg = response_data.get('error', {}).get('message', str(response_data))
+                return jsonify({"error": f"فشل التصحيح: {error_msg}"}), 500
+                
             ai_reply = response_data['candidates'][0]['content']['parts'][0]['text']
             clean_json = ai_reply.replace("```json", "").replace("```", "").strip()
-            
             return jsonify({"reply": clean_json}), 200
-
+            
         if action == 'analyze':
             images_base64 = data.get('images_base64', [])
             if not images_base64 and data.get('image_base64'):
                 images_base64 = [data.get('image_base64')]
-                
             subject_title = data.get('subject')
             grade_year = data.get('year')
             mime_type = data.get('mime_type', 'image/jpeg')
             prompt_command = data.get('strict_prompt_command', '')
-
+            
             extracted_qa = []
             if subject_title in static_db and grade_year in static_db[subject_title]:
                 extracted_qa = static_db[subject_title][grade_year].get('qa_data', [])
-
+                
             session_id = int(time.time())
-
+            # هنا تم تعديل الـ Prompt لإجبار الذكاء الاصطناعي على تسمية المصفوفة qa_data لكي تطابق الجافاسكريبت تماماً
             prompt = "أنت الآن 'رئيس لجنة وضع الامتحانات' و'خبير المناهج التعليمية الأول' في منصة Educational platform.\n"
-            prompt += f"رقم الجلسة الفريد: {session_id} (تنبيه إجباري: قم بتوليد أسئلة جديدة ومختلفة تماماً عن أي محاولة سابقة لنفس الدرس).\n"
+            prompt += f"رقم الجلسة الفريد: {session_id} (قم بتوليد أسئلة جديدة ومختلفة تماماً عن أي محاولة سابقة).\n"
             if prompt_command:
-                 prompt += f"\nتوجيهات إضافية من النظام: {prompt_command}\n\n"
+                prompt += f"\nتوجيهات إضافية من النظام: {prompt_command}\n\n"
             prompt += "الهدف: تحليل محتوى الصور المرفوعة بدقة متناهية واستخراج بنك أسئلة، مع ذكر الأسباب العلمية.\n\n"
             prompt += "قواعد وأوامر صارمة وإجبارية:\n"
-            prompt += "يجب أن يكون الرد مصفوفة JSON متوافقة تماماً مع هذا التنسيق:\n"
+            prompt += "يجب أن يكون الرد مصفوفة JSON متوافقة تماماً مع هذا التنسيق الحرفي:\n"
             prompt += "{\n"
-            prompt += "  \"brief_explanation\": \"اكتب الشرح المبسط هنا\",\n"
-            prompt += "  \"qa_list\": [\n"
-            prompt += "    {\"type\": \"MCQ\", \"q\": \"نص السؤال\", \"options\": [\"أ\", \"ب\", \"ج\", \"د\"], \"a\": \"الإجابة الصحيحة\", \"reason\": \"السبب\"},\n"
-            prompt += "    {\"type\": \"TF\", \"q\": \"نص العبارة\", \"a\": \"صحيحة أو خطأ\", \"reason\": \"التصحيح والسبب\"},\n"
-            prompt += "    {\"type\": \"ESSAY\", \"q\": \"نص السؤال المقالي\", \"a\": \"الإجابة النموذجية\", \"reason\": \"الشرح المباشر\"}\n"
-            prompt += "  ]\n"
+            prompt += " \"brief_explanation\": \"اكتب الشرح المبسط هنا\",\n"
+            prompt += " \"qa_data\": [\n"
+            prompt += " {\"type\": \"MCQ\", \"q\": \"نص السؤال\", \"options\": [\"أ\", \"ب\", \"ج\", \"د\"], \"a\": \"الإجابة الصحيحة\", \"reason\": \"السبب\"},\n"
+            prompt += " {\"type\": \"TF\", \"q\": \"نص العبارة\", \"a\": \"صحيحة أو خطأ\", \"reason\": \"التصحيح والسبب\"},\n"
+            prompt += " {\"type\": \"ESSAY\", \"q\": \"نص السؤال المقالي\", \"a\": \"الإجابة النموذجية\", \"reason\": \"الشرح المباشر\"}\n"
+            prompt += " ]\n"
             prompt += "}\n"
-
+            
             parts = [{"text": prompt}]
             for img_b64 in images_base64:
                 parts.append({"inlineData": {"mimeType": mime_type, "data": img_b64}})
-
+                
             payload = {
                 "contents": [{"parts": parts}],
                 "generationConfig": {
@@ -199,29 +182,31 @@ def analyze():
                     "temperature": 0.4
                 }
             }
-
+            
             response_data = call_gemini_with_retry(payload)
             
             if 'candidates' not in response_data:
-                 error_msg = response_data.get('error', {}).get('message', str(response_data))
-                 return jsonify({"error": f"خطأ من جوجل: {error_msg}"}), 500
-                 
+                error_msg = response_data.get('error', {}).get('message', str(response_data))
+                return jsonify({"error": f"خطأ من جوجل: {error_msg}"}), 500
+                
             ai_response_text = response_data['candidates'][0]['content']['parts'][0]['text']
             clean_json = ai_response_text.replace("```json", "").replace("```", "").strip()
             clean_json = re.sub(r',\s*([\]}])', r'\1', clean_json)
-            
             result_json = json.loads(clean_json)
-            ai_qa_array = result_json.get("qa_list", [])
+            
+            # جلب مصفوفة الأسئلة من الـ AI سواء سماها qa_data أو qa_list لضمان عدم حدوث خطأ كإجراء احتياطي دبل كراش للامان
+            ai_qa_array = result_json.get("qa_data", result_json.get("qa_list", []))
             final_qa_array = extracted_qa + ai_qa_array
             brief_explanation = result_json.get("brief_explanation", "تم تحليل الدرس بنجاح.")
-
+            
+            # إرسال المفتاح النهائي الموحد باسم "qa_data" للمتصفح لمنع الصفحات الفارغة نهائياً
             return jsonify({
-                "subjectTitle": subject_title, 
-                "grade": grade_year, 
+                "subjectTitle": subject_title,
+                "grade": grade_year,
                 "qa_data": final_qa_array,
                 "brief_explanation": brief_explanation
             }), 200
-
+            
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
