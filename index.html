@@ -341,7 +341,7 @@
 
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
-    <script src="java.js?v=216"></script>
+    <script src="java.js?v=127"></script>
 
     <script>
       if ('serviceWorker' in navigator) {
@@ -355,11 +355,10 @@
             });
         });
         
-        let refreshing;
         navigator.serviceWorker.addEventListener('controllerchange', () => {
-            if (refreshing) return;
-            window.location.reload();
-            refreshing = true;
+            // لا تعِد تحميل الصفحة عند استلام Service Worker جديد؛
+            // إعادة التحميل هنا كانت سبب ظهور شاشة التحميل مرتين.
+            console.log('ServiceWorker أصبح فعالاً بدون إعادة تحميل الصفحة.');
         });
       }
     </script>
