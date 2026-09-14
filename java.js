@@ -2143,14 +2143,20 @@ ALL MCQs AND TRUE/FALSE MUST HAVE DETAILED REASONS. THE TONE MUST BE 100% IDENTI
                 elementToPrint.style.display = 'block';
                 elementToPrint.style.position = 'fixed';
                 elementToPrint.style.top = '0';
-                elementToPrint.style.left = '0'; // إرجاع العنصر لداخل الشاشة ليتمكن html2canvas من التقاطه
+                elementToPrint.style.left = '0';
                 elementToPrint.style.width = '800px';
-                elementToPrint.style.zIndex = '-999999';
+                // لا تضع القالب خلف body؛ html2canvas قد يلتقط الخلفية البيضاء فقط عند
+                // استخدام z-index سالب، فينتج ملف PDF أبيض رغم وجود النص في DOM.
+                elementToPrint.style.zIndex = '999999';
                 elementToPrint.style.opacity = '1';
+                elementToPrint.style.visibility = 'visible';
+                elementToPrint.style.pointerEvents = 'none';
+                elementToPrint.style.backgroundColor = '#ffffff';
 
                 // انتظار تهيئة الخطوط لضمان عدم تقطيع الحروف العربية
                 await document.fonts.ready;
-                await new Promise(resolve => setTimeout(resolve, 800));
+                await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+                await new Promise(resolve => setTimeout(resolve, 150));
 
                 // 4. إعدادات خيارات مكتبة html2pdf الاحترافية المقاومة للملفات الفارغة
                 const opt = {
@@ -2172,8 +2178,14 @@ ALL MCQs AND TRUE/FALSE MUST HAVE DETAILED REASONS. THE TONE MUST BE 100% IDENTI
                     // تنظيف الصفحة بعد انتهاء الطباعة لضمان خفة الموقع
                     elementToPrint.style.display = 'none';
                     elementToPrint.style.position = '';
+                    elementToPrint.style.top = '';
                     elementToPrint.style.left = '';
+                    elementToPrint.style.width = '';
+                    elementToPrint.style.zIndex = '';
                     elementToPrint.style.opacity = '';
+                    elementToPrint.style.visibility = '';
+                    elementToPrint.style.pointerEvents = '';
+                    elementToPrint.style.backgroundColor = '';
                 }
             };
         }
@@ -2199,7 +2211,10 @@ ALL MCQs AND TRUE/FALSE MUST HAVE DETAILED REASONS. THE TONE MUST BE 100% IDENTI
         const safeDataForPDF = serverData.qa_data || serverData.qa_list || [];
         safeDataForPDF.forEach((item, index) => {
             questionCount++;
-            let cleanQuestion = stripParentheses(item.q);
+            const questionText = item && item.q != null ? String(item.q) : 'سؤال بدون نص';
+            const answerText = item && item.a != null ? String(item.a) : '';
+            const reasonText = item && item.reason != null ? String(item.reason) : '';
+            let cleanQuestion = stripParentheses(questionText);
             
             let typeTitle = "";
             if (!isSummaryMode) {
@@ -2212,9 +2227,9 @@ ALL MCQs AND TRUE/FALSE MUST HAVE DETAILED REASONS. THE TONE MUST BE 100% IDENTI
             
             if (isSummaryMode) {
                 qaHtml += '<p style="color: #0f172a; margin: 0 0 12px 0; font-size: 16px; border-bottom: 2px solid #cbd5e1; padding-bottom: 8px;"><strong><i class="fas fa-star" style="color:#f59e0b;"></i> ' + cleanQuestion + '</strong></p>';
-                qaHtml += '<div style="margin: 10px 0 0 0; line-height: 1.9; font-size: 15px; color: #1e293b;">' + (item.a ? item.a.replace(/\n/g, '<br>') : '') + '</div>';
+                qaHtml += '<div style="margin: 10px 0 0 0; line-height: 1.9; font-size: 15px; color: #1e293b;">' + answerText.replace(/\n/g, '<br>') + '</div>';
                 if (item.reason) {
-                    qaHtml += '<div style="margin: 10px 0 0 0; line-height: 1.9; font-size: 14px; color: #059669; font-weight: bold;">' + item.reason.replace(/\n/g, '<br>') + '</div>';
+                    qaHtml += '<div style="margin: 10px 0 0 0; line-height: 1.9; font-size: 14px; color: #059669; font-weight: bold;">' + reasonText.replace(/\n/g, '<br>') + '</div>';
                 }
             } else {
                 let qPrefix = isForeignLang ? 'Q ' : 'س ';
@@ -2224,7 +2239,7 @@ ALL MCQs AND TRUE/FALSE MUST HAVE DETAILED REASONS. THE TONE MUST BE 100% IDENTI
                     qaHtml += '<div style="margin: 10px 0; padding: 10px; background: #ffffff; border-radius: 6px; border: 1px solid #cbd5e1;">';
                     item.options.forEach((opt) => {
                         let cleanOpt = stripParentheses(opt);
-                        let isThisCorrect = (!isExamMode && item.a && (item.a.includes(cleanOpt) || cleanOpt.includes(item.a)));
+                        let isThisCorrect = (!isExamMode && answerText && (answerText.includes(cleanOpt) || cleanOpt.includes(answerText)));
                         let correctMarkText = isForeignLang ? "(✓ Correct)" : "(✓ الإجابة الصحيحة)";
                         let mark = isThisCorrect ? ` <strong style='color:#059669;'>${correctMarkText}</strong>` : "";
                         qaHtml += '<div style="margin-bottom: 6px; color: #1e293b; font-size: 14px;">• ' + cleanOpt + mark + '</div>';
@@ -2235,20 +2250,20 @@ ALL MCQs AND TRUE/FALSE MUST HAVE DETAILED REASONS. THE TONE MUST BE 100% IDENTI
                 if (!isExamMode) {
                     let trueWords = ["صح", "true", "vrai", "richtig", "vero", "✓"];
                     if (item.type === "TF") {
-                        let isTrueAns = item.a && trueWords.some(w => item.a.toLowerCase().includes(w));
+                        let isTrueAns = answerText && trueWords.some(w => answerText.toLowerCase().includes(w));
                         let symbolMark = isTrueAns ? "[ ✓ ]" : "[ ✕ ]";
                         let colorMark = isTrueAns ? "#059669" : "#b45309";
                         let reasonLabel = isForeignLang ? "Scientific Reason:" : "السبب العلمي:";
                         qaHtml += `<p style="margin: 10px 0 0 0; font-size: 14px; font-weight: bold; color: ${colorMark};">${symbolMark}</p>`;
                         if (item.reason) {
-                            qaHtml += '<p style="margin: 6px 0 0 0; line-height: 1.8; font-size: 13px; color: #334155;"><strong>' + reasonLabel + '</strong><br>' + item.reason.replace(/\n/g, '<br>') + '</p>';
+                            qaHtml += '<p style="margin: 6px 0 0 0; line-height: 1.8; font-size: 13px; color: #334155;"><strong>' + reasonLabel + '</strong><br>' + reasonText.replace(/\n/g, '<br>') + '</p>';
                         }
                     } else {
                         let answerLabel = isForeignLang ? "Model Answer:" : "الإجابة النموذجية:";
                         let detailLabel = isForeignLang ? "Detailed Explanation:" : "السبب والتفسير العلمي الوافي:";
-                        qaHtml += '<p style="margin: 10px 0 0 0; line-height: 1.8; font-size: 13px; color: #059669;"><strong>' + answerLabel + ' </strong><br>' + item.a.replace(/\n/g, '<br>') + '</p>';
+                        qaHtml += '<p style="margin: 10px 0 0 0; line-height: 1.8; font-size: 13px; color: #059669;"><strong>' + answerLabel + ' </strong><br>' + answerText.replace(/\n/g, '<br>') + '</p>';
                         if (item.reason) {
-                            qaHtml += '<p style="margin: 8px 0 0 0; line-height: 1.8; font-size: 13px; color: #b45309;"><strong>' + detailLabel + '</strong><br>' + item.reason.replace(/\n/g, '<br>') + '</p>';
+                            qaHtml += '<p style="margin: 8px 0 0 0; line-height: 1.8; font-size: 13px; color: #b45309;"><strong>' + detailLabel + '</strong><br>' + reasonText.replace(/\n/g, '<br>') + '</p>';
                         }
                     }
                 } else {

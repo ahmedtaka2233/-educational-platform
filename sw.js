@@ -1,4 +1,6 @@
-const CACHE_NAME = 'edu-platform-v6-ultra';
+// ارفع رقم الكاش مع كل تعديل مهم في ملفات الواجهة حتى لا يظل المتصفح
+// يستخدم نسخة قديمة من java.js وتستمر مشكلة الـPDF بعد إصلاحها.
+const CACHE_NAME = 'edu-platform-v7-pdf-fix';
 
 const ASSETS_TO_CACHE = [
     '/',
