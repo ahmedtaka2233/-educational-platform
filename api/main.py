@@ -87,8 +87,14 @@ def friendly_gemini_error(response_data):
         "high demand",
         "temporarily unavailable",
         "try again later",
-        "resource exhausted"
+        "resource exhausted",
+        "request too large",
+        "payload too large",
+        "image size",
+        "maximum"
     )):
+        if any(phrase in normalized for phrase in ("request too large", "payload too large", "image size", "maximum")):
+            return "حجم الصور أو عددها كبير على الطلب الواحد. جرّب تقسيم الصور، والنظام الأمامي بيعمل ده تلقائياً عند الحاجة."
         return "خدمة الذكاء الاصطناعي عليها ضغط مؤقت. استنى ثواني وجرب تاني، والطلب هيتعاد تلقائياً كذا مرة قبل ظهور الرسالة دي."
     return raw_message
 
@@ -202,6 +208,11 @@ def analyze():
             images_base64 = data.get('images_base64', [])
             if not images_base64 and data.get('image_base64'):
                 images_base64 = [data.get('image_base64')]
+            if not isinstance(images_base64, list):
+                images_base64 = [images_base64]
+            if len(images_base64) > 10:
+                return jsonify({"error": "مسموح بحد أقصى 10 صور في الطلب الواحد."}), 400
+            include_static_db = data.get('include_static_db', True)
             subject_title = data.get('subject')
             grade_year = data.get('year')
             education_track = data.get('education_track', 'general')
@@ -217,7 +228,7 @@ def analyze():
             prompt_command = data.get('strict_prompt_command', '')
             
             extracted_qa = []
-            if subject_title in static_db and grade_year in static_db[subject_title]:
+            if include_static_db and subject_title in static_db and grade_year in static_db[subject_title]:
                 extracted_qa = static_db[subject_title][grade_year].get('qa_data', [])
                 
             session_id = int(time.time())
