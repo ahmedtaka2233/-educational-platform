@@ -1955,6 +1955,91 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // إرسال الصور مع خطة بديلة: نجرب الطلب الكامل أولاً، ثم نقسم الصور
+    // إلى دفعات صغيرة إذا رفضت الخدمة الحمولة الكبيرة.
+    const IMAGE_ANALYSIS_BATCH_SIZE = 3;
+
+    async function postImageAnalysis(payload) {
+        const response = await fetch('/api/analyze', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Bypass-Trial': 'true'
+            },
+            body: JSON.stringify(payload)
+        });
+
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok || data.error) {
+            throw new Error(data.error || `فشل الاتصال بالسيرفر. الكود: ${response.status}`);
+        }
+        return data;
+    }
+
+    function mergeImageAnalysisResults(results) {
+        const firstResult = results[0] || {};
+        const seenQuestions = new Set();
+        const qaData = [];
+
+        results.forEach((result) => {
+            const items = result.qa_data || result.qa_list || [];
+            items.forEach((item) => {
+                if (!item) return;
+                const key = [
+                    item.type || '',
+                    item.q || '',
+                    item.a || ''
+                ].join('|').trim();
+                if (!seenQuestions.has(key)) {
+                    seenQuestions.add(key);
+                    qaData.push(item);
+                }
+            });
+        });
+
+        const explanations = results
+            .map(result => result.brief_explanation)
+            .filter(Boolean)
+            .filter((value, index, list) => list.indexOf(value) === index);
+
+        return {
+            ...firstResult,
+            qa_data: qaData,
+            brief_explanation: explanations.join('\n\n')
+        };
+    }
+
+    async function analyzeImagesWithFallback(basePayload, images, onProgress) {
+        try {
+            return await postImageAnalysis({
+                ...basePayload,
+                images_base64: images,
+                include_static_db: basePayload.include_static_db !== false
+            });
+        } catch (fullRequestError) {
+            if (images.length <= 1) throw fullRequestError;
+
+            const batchResults = [];
+            const totalBatches = Math.ceil(images.length / IMAGE_ANALYSIS_BATCH_SIZE);
+
+            for (let start = 0; start < images.length; start += IMAGE_ANALYSIS_BATCH_SIZE) {
+                const batchNumber = Math.floor(start / IMAGE_ANALYSIS_BATCH_SIZE) + 1;
+                if (typeof onProgress === 'function') {
+                    onProgress(`جاري تحليل الصور على دفعات (${batchNumber}/${totalBatches})...`);
+                }
+
+                batchResults.push(await postImageAnalysis({
+                    ...basePayload,
+                    images_base64: images.slice(start, start + IMAGE_ANALYSIS_BATCH_SIZE),
+                    // نضيف بنك الأسئلة الثابت مرة واحدة فقط عند التجميع.
+                    include_static_db: basePayload.include_static_db !== false && batchNumber === 1
+                }));
+            }
+
+            return mergeImageAnalysisResults(batchResults);
+        }
+    }
+
     const processBtn = document.getElementById('process-btn');
     
     if (processBtn) {
@@ -2102,7 +2187,6 @@ ALL QUESTIONS MUST BE ORIGINAL TRAINING QUESTIONS, not claims of official minist
 
                 const serverPayload = {
                     action: 'analyze',
-                    images_base64: imagesBase64List,
                     subject: subject,
                     year: yearText,
                     education_track: educationTrack,
@@ -2129,25 +2213,13 @@ ALL QUESTIONS MUST BE ORIGINAL TRAINING QUESTIONS, not claims of official minist
                     difficulty_levels: ["easy", "medium", "hard"]
                 };
 
-                const response = await fetch('/api/analyze', {
-                    method: 'POST',
-                    headers: { 
-                        'Content-Type': 'application/json',
-                        'X-Bypass-Trial': 'true' 
-                    },
-                    body: JSON.stringify(serverPayload)
-                });
-
-                if (!response.ok) {
-                    const errData = await response.json().catch(() => ({}));
-                    throw new Error(errData.error || "فشل الاتصال بالسيرفر. الكود: " + response.status);
-                }
-
-                const finalServerResponse = await response.json();
-
-                if (finalServerResponse.error) {
-                    throw new Error(finalServerResponse.error);
-                }
+                const finalServerResponse = await analyzeImagesWithFallback(
+                    serverPayload,
+                    imagesBase64List,
+                    (message) => {
+                        btnText.innerHTML = `<i class="fas fa-layer-group"></i> ${message}`;
+                    }
+                );
 
                 existingData.current_version = { 
                     imageHash: newImageHash, 
@@ -2178,12 +2250,12 @@ ALL QUESTIONS MUST BE ORIGINAL TRAINING QUESTIONS, not claims of official minist
                 
             } catch (error) {
                 console.error("خطأ تقني:", error);
-                btnText.innerHTML = '<i class="fas fa-exclamation-triangle"></i> حدث خطأ';
+                btnText.innerHTML = '<i class="fas fa-exclamation-triangle"></i> تعذر التحليل - حاول مرة أخرى';
                 processBtn.classList.remove('processing');
-                const isGeminiBusy = /high demand|spikes in demand|temporarily|try again later|resource exhausted/i.test(String(error.message));
+                const isGeminiBusy = /high demand|spikes in demand|temporarily|try again later|resource exhausted|ضغط|دفعات/i.test(String(error.message));
                 const readableError = isGeminiBusy
-                    ? "خدمة الذكاء الاصطناعي عليها ضغط مؤقت. استنى شوية وجرب تاني، والنظام بيحاول تلقائياً قبل ما يعرض الرسالة دي."
-                    : error.message;
+                    ? "خدمة الذكاء الاصطناعي عليها ضغط مؤقت. جرّب بعد ثواني؛ النظام حاول الطلب الكامل وتقسيم الصور تلقائياً."
+                    : (error.message || "تعذر تحليل الصور حالياً. تأكد من الاتصال وحاول مرة تانية.");
                 showCustomAlert("حصلت مشكلة أثناء التحليل:<br><br>" + readableError, 'error');
             }
         });
@@ -2927,27 +2999,18 @@ ALL QUESTIONS MUST BE ORIGINAL TRAINING QUESTIONS, not claims of official minist
 سؤال الطالب عن الصور: "${text}".
 أعد JSON فقط بهذا الشكل: {"brief_explanation":"الشرح المباشر بالمصري مع خطوات الحل","qa_list":[]}`;
                 
-                const response = await fetch('/api/analyze', {
-                    method: 'POST',
-                    headers: { 
-                        'Content-Type': 'application/json',
-                        'X-Bypass-Trial': 'true' 
-                    },
-                    body: JSON.stringify({
+                const data = await analyzeImagesWithFallback({
                         action: 'analyze',
-                        images_base64: chatUploadedImagesBase64,
                         subject: learningContext.subject,
                         year: learningContext.year,
                         education_track: learningContext.educationTrack,
                         stage: learningContext.stage,
                         branch: learningContext.branch,
                         mime_type: 'image/jpeg',
-                        strict_prompt_command: chatPrompt
-                    })
-                });
-
-                if (!response.ok) throw new Error("Server error");
-                const data = await response.json();
+                        strict_prompt_command: chatPrompt,
+                        // الشات لا يحتاج بنك الأسئلة الثابت؛ المطلوب هو الشرح فقط.
+                        include_static_db: false
+                    }, chatUploadedImagesBase64);
                 finalReply = data.brief_explanation || "تم استلام الصور ولكن لم أتمكن من استخراج الشرح المباشر.";
                 
                 chatUploadedImagesBase64 = [];
@@ -2988,7 +3051,7 @@ ALL QUESTIONS MUST BE ORIGINAL TRAINING QUESTIONS, not claims of official minist
                 
                 if (!response.ok) throw new Error("Server error");
                 const data = await response.json();
-                finalReply = data.reply || data.answer || "لا يوجد رد متاح يا بطل.";
+                finalReply = data.reply || data.answer || "مش لاقي رد مناسب دلوقتي. جرّب تصيغ السؤال بطريقة تانية.";
             }
 
             document.getElementById(typingId).remove();
@@ -2998,7 +3061,7 @@ ALL QUESTIONS MUST BE ORIGINAL TRAINING QUESTIONS, not claims of official minist
             
         } catch (err) {
             if(document.getElementById(typingId)) document.getElementById(typingId).remove();
-            appendImmersiveMessage("عذراً، حدث خطأ في الاتصال بالشبكة. 🤖", 'bot');
+            appendImmersiveMessage("حصلت مشكلة وأنا بحاول أوصل للخدمة. جرّب تبعت السؤال تاني بعد ثواني.", 'bot');
         }
     }
 

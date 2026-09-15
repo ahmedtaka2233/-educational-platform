@@ -1,6 +1,6 @@
 // ارفع رقم الكاش مع كل تعديل مهم في ملفات الواجهة حتى لا يظل المتصفح
 // يستخدم نسخة قديمة من java.js وتستمر مشكلة الـPDF بعد إصلاحها.
-const CACHE_NAME = 'edu-platform-v12-natural-chat-retry';
+const CACHE_NAME = 'edu-platform-v13-batched-images-premium';
 
 const ASSETS_TO_CACHE = [
     '/',
