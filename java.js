@@ -2219,6 +2219,16 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (fullRequestError) {
             if (images.length <= 1) throw fullRequestError;
 
+            const errorText = String(fullRequestError?.message || fullRequestError).toLowerCase();
+            const isQuotaError = /quota|free[_ ]tier|rate limit|too many requests|resource exhausted|429|الحصة المجانية|استهلاك الحصة/.test(errorText);
+            const isPayloadTooLarge = /request too large|payload too large|image size|maximum|حجم الصور|عددها كبير|حمولة كبيرة/.test(errorText);
+
+            // لا نحول خطأ الحصة إلى دفعات إضافية؛ ذلك يكرر 429 ويستهلك
+            // محاولات مجانية أكثر. التقسيم مخصص فقط لحمولة الصور الكبيرة.
+            if (isQuotaError || !isPayloadTooLarge) {
+                throw fullRequestError;
+            }
+
             const batchResults = [];
             const totalBatches = Math.ceil(images.length / IMAGE_ANALYSIS_BATCH_SIZE);
 
@@ -2452,9 +2462,13 @@ ALL QUESTIONS MUST BE ORIGINAL TRAINING QUESTIONS, not claims of official minist
                 console.error("خطأ تقني:", error);
                 btnText.innerHTML = '<i class="fas fa-exclamation-triangle"></i> تعذر التحليل - حاول مرة أخرى';
                 processBtn.classList.remove('processing');
-                const isGeminiBusy = /high demand|spikes in demand|temporarily|try again later|resource exhausted|ضغط|دفعات/i.test(String(error.message));
+                const errorText = String(error.message || error);
+                const isGeminiQuota = /quota|free[_ ]tier|rate limit|too many requests|resource exhausted|429|الحصة المجانية|استهلاك الحصة/i.test(errorText);
+                const isGeminiBusy = /high demand|spikes in demand|temporarily|try again later|ضغط|دفعات/i.test(errorText);
                 const readableError = isGeminiBusy
                     ? "خدمة الذكاء الاصطناعي عليها ضغط مؤقت. جرّب بعد ثواني؛ النظام حاول الطلب الكامل وتقسيم الصور تلقائياً."
+                    : isGeminiQuota
+                        ? "تم استهلاك الحصة المجانية الحالية. انتظر قليلًا قبل إعادة المحاولة، ولا تضغط زر التحليل أكثر من مرة."
                     : (error.message || "تعذر تحليل الصور حالياً. تأكد من الاتصال وحاول مرة تانية.");
                 showCustomAlert("حصلت مشكلة أثناء التحليل:<br><br>" + readableError, 'error');
             }
