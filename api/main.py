@@ -47,7 +47,7 @@ def verify_token(req):
     except Exception:
         return False, "invalid_token"
 
-def call_gemini_with_retry(payload, max_retries=3):
+def call_gemini_with_retry(payload, max_retries=4):
     url = get_gemini_url()
     
     if not os.environ.get("GEMINI_API_KEY"):
@@ -57,10 +57,18 @@ def call_gemini_with_retry(payload, max_retries=3):
         try:
             response = requests.post(url, headers={'Content-Type': 'application/json'}, json=payload)
             response_data = response.json()
-            
-            if response.status_code == 503 or (isinstance(response_data, dict) and response_data.get('error', {}).get('code') == 503):
+
+            error_text = json.dumps(response_data, ensure_ascii=False).lower()
+            retryable_status = response.status_code in (429, 500, 502, 503, 504)
+            retryable_message = any(phrase in error_text for phrase in (
+                "high demand",
+                "temporarily unavailable",
+                "try again later",
+                "resource exhausted"
+            ))
+            if retryable_status or retryable_message:
                 if attempt < max_retries - 1:
-                    time.sleep(2 * (attempt + 1))
+                    time.sleep(min(10, 2 ** (attempt + 1)))
                     continue
             
             return response_data
@@ -70,6 +78,19 @@ def call_gemini_with_retry(payload, max_retries=3):
                 continue
             return {"error": {"message": str(e)}}
     return response_data
+
+def friendly_gemini_error(response_data):
+    error = response_data.get('error', {}) if isinstance(response_data, dict) else {}
+    raw_message = str(error.get('message', response_data))
+    normalized = raw_message.lower()
+    if any(phrase in normalized for phrase in (
+        "high demand",
+        "temporarily unavailable",
+        "try again later",
+        "resource exhausted"
+    )):
+        return "خدمة الذكاء الاصطناعي عليها ضغط مؤقت. استنى ثواني وجرب تاني، والطلب هيتعاد تلقائياً كذا مرة قبل ظهور الرسالة دي."
+    return raw_message
 
 @app.route('/api/auth', methods=['POST', 'OPTIONS'])
 def auth_login():
@@ -108,13 +129,38 @@ def analyze():
             message = data.get('message', '')
             context = data.get('context', '')
             strict_prompt = data.get('strict_prompt_command', '')
-            chat_prompt = f"{strict_prompt}\n\nمعلومات الدرس المرفوع:\n{context}\n\nسؤال الطالب:\n{message}"
-            payload = {"contents": [{"parts": [{"text": chat_prompt}]}]}
+            education_track = data.get('education_track', 'general')
+            stage = data.get('stage', 'غير محدد')
+            branch = data.get('branch', 'غير محدد')
+            year = data.get('year', 'غير محدد')
+            subject = data.get('subject', 'غير محدد')
+            authority = 'الأزهر الشريف' if education_track == 'azhar' else 'وزارة التربية والتعليم المصرية'
+            dialect_rules = (
+                "اكتب بالمصري الطبيعي اللي مدرس مصري بيشرح بيه، مش ترجمة حرفية من الفصحى. "
+                "خليك على نفس مستوى بساطة وطريقة كلام الطالب؛ ما تحوّلش كلامه لصيغة رسمية أو ترجمة نصية. "
+                "ممنوع الجمل الآلية والافتتاحيات المحفوظة، وممنوع تكرار يا بطل أو يا دكتور أو قشطة. "
+                "خلي المصطلحات والقوانين العلمية دقيقة، واشرحها بكلام بسيط مناسب للسن. "
+                "لو المسألة رياضيات، اكتب المعطيات والمطلوب والقانون وخطوات الحل والمراجعة النهائية. "
+                "لو الطالب ابتدائي بسّط الأمثلة، ولو إعدادي وضّح السبب والنتيجة، ولو ثانوي أو فني اشرح نواتج التعلم وطريقة التفكير. "
+                "في مواد الأزهر لا تغيّر نص الآية أو الحديث أو الدليل، وبيّن الدليل عند الحاجة."
+            )
+            chat_prompt = (
+                f"{strict_prompt}\n\n"
+                f"قواعد أسلوب الرد الإلزامية: {dialect_rules}\n"
+                f"الجهة التعليمية: {authority}. المرحلة: {stage}. الصف: {year}. "
+                f"الشعبة أو المسار: {branch}. المادة: {subject}.\n"
+                f"معلومات الدرس المرفوع:\n{context}\n\n"
+                f"سؤال الطالب:\n{message}"
+            )
+            payload = {
+                "contents": [{"parts": [{"text": chat_prompt}]}],
+                "generationConfig": {"temperature": 0.55}
+            }
             response_data = call_gemini_with_retry(payload)
             
             if 'candidates' not in response_data:
-                error_msg = response_data.get('error', {}).get('message', str(response_data))
-                return jsonify({"error": f"خطأ من جوجل: {error_msg}"}), 500
+                error_msg = friendly_gemini_error(response_data)
+                return jsonify({"error": f"حصلت مشكلة مؤقتة في خدمة الذكاء الاصطناعي: {error_msg}"}), 503
                 
             ai_reply = response_data['candidates'][0]['content']['parts'][0]['text']
             return jsonify({"reply": ai_reply}), 200
@@ -123,7 +169,20 @@ def analyze():
             question = data.get('question', '')
             model_answer = data.get('model_answer', '')
             student_answer = data.get('student_answer', '')
-            grade_prompt = f"طالب يجيب على سؤال مقالي في امتحان مصري.\nالسؤال: {question}\nالإجابة النموذجية: {model_answer}\nإجابة الطالب: {student_answer}\n\nالمطلوب: قيم إجابة الطالب. إذا كانت تحمل نفس المفهوم العلمي، اعتبرها صحيحة.\nيجب الرد بصيغة JSON فقط كالتالي:\n{{\"isCorrect\": true}} أو {{\"isCorrect\": false}}"
+            education_track = data.get('education_track', 'general')
+            stage = data.get('stage', 'غير محدد')
+            subject = data.get('subject', 'غير محدد')
+            if education_track == 'azhar':
+                grading_rule = "في الأزهر: المعنى الصحيح وحده يحقق جزءاً من الدرجة، وللحكم بالصحة الكاملة ابحث عن الدليل النصي أو القاعدة المطلوبة إذا كان السؤال يتطلب ذلك، مع عدم تغيير نص الدليل."
+            else:
+                grading_rule = "في التعليم العام: المعنى يغني عن النص الحرفي؛ اعتبر الإجابة صحيحة إذا تضمنت الفكرة المنطقية والكلمات المفتاحية أو القانون أو المصطلحات العلمية المطلوبة."
+            grade_prompt = (
+                f"قيّم إجابة طالب في امتحان مصري. الجهة: {'الأزهر الشريف' if education_track == 'azhar' else 'وزارة التربية والتعليم المصرية'}.\n"
+                f"المرحلة: {stage}. المادة: {subject}.\n"
+                f"السؤال: {question}\nالإجابة النموذجية: {model_answer}\nإجابة الطالب: {student_answer}\n\n"
+                f"{grading_rule}\n"
+                "أعد JSON فقط بهذا الشكل: {\"isCorrect\": true} أو {\"isCorrect\": false}."
+            )
             
             payload = {
                 "contents": [{"parts": [{"text": grade_prompt}]}],
@@ -132,7 +191,7 @@ def analyze():
             response_data = call_gemini_with_retry(payload)
             
             if 'candidates' not in response_data:
-                error_msg = response_data.get('error', {}).get('message', str(response_data))
+                error_msg = friendly_gemini_error(response_data)
                 return jsonify({"error": f"فشل التصحيح: {error_msg}"}), 500
                 
             ai_reply = response_data['candidates'][0]['content']['parts'][0]['text']
@@ -146,6 +205,8 @@ def analyze():
             subject_title = data.get('subject')
             grade_year = data.get('year')
             education_track = data.get('education_track', 'general')
+            stage = data.get('stage', 'غير محدد')
+            branch = data.get('branch', 'غير محدد')
             education_authority = data.get(
                 'education_authority',
                 'قطاع المعاهد الأزهرية ومواصفات امتحانات الأزهر الشريف'
@@ -164,7 +225,11 @@ def analyze():
             prompt = "أنت الآن خبير إعداد امتحانات ومناهج مصرية في منصة Educational platform.\n"
             prompt += f"الجهة التعليمية الملزمة: {education_authority}.\n"
             prompt += f"المسار التعليمي الملزم: {'أزهري' if education_track == 'azhar' else 'تربية وتعليم عام'}.\n"
+            prompt += f"المرحلة التعليمية: {stage}. الشعبة أو المسار: {branch}. الصف: {grade_year}.\n"
             prompt += "طبّق صياغة الجهة والمسار المحددين ولا تخلط بين التعليم العام والأزهر. أنشئ أسئلة تدريبية أصلية مستندة إلى الصور والمقرر، ولا تدّعِ أنها أسئلة رسمية أو مضمونة.\n"
+            prompt += "في الرياضيات لكل المراحل: لا تكتفِ بالإجابة النهائية؛ اشرح المعطيات والمطلوب والقانون أو الفكرة، خطوات الحل بالتتابع، ثم راجع الناتج ووحداته إن وجدت. اجعل الصعوبة واللغة مناسبين للمرحلة والشعبة.\n"
+            prompt += "قواعد المرحلة: ابتدائي 1-3 فهم بسيط وأمثلة محسوسة؛ ابتدائي 4-6 قراءة وأسئلة مباشرة؛ إعدادي عام تحليل وسبب ونتيجة، وإعدادي أزهري قواعد فقهية ونحوية مع تعليل؛ ثانوي عام قرابة 85% اختيار من متعدد و15% مقالي قصير؛ ثانوي أزهري أسئلة مقالية تفصيلية واختيارات مباشرة لاسترجاع النص؛ التعليم الفني جدارات مهنية وخطوات تنفيذ وسلامة.\n"
+            prompt += "التصحيح: في العام يُقبل المعنى الصحيح مع الكلمات المفتاحية أو القانون دون نسخ حرفي. في الأزهر لا تُمنح الدرجة الكاملة في السؤال النصي إلا مع الدليل الصحيح إذا طلبه السؤال.\n"
             prompt += f"رقم الجلسة الفريد: {session_id} (قم بتوليد أسئلة جديدة ومختلفة تماماً عن أي محاولة سابقة).\n"
             if prompt_command:
                 prompt += f"\nتوجيهات إضافية من النظام: {prompt_command}\n\n"
@@ -196,8 +261,8 @@ def analyze():
             response_data = call_gemini_with_retry(payload)
             
             if 'candidates' not in response_data:
-                error_msg = response_data.get('error', {}).get('message', str(response_data))
-                return jsonify({"error": f"خطأ من جوجل: {error_msg}"}), 500
+                error_msg = friendly_gemini_error(response_data)
+                return jsonify({"error": f"حصلت مشكلة مؤقتة في خدمة الذكاء الاصطناعي: {error_msg}"}), 503
                 
             ai_response_text = response_data['candidates'][0]['content']['parts'][0]['text']
             
