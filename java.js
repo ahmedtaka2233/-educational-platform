@@ -1011,7 +1011,7 @@ window.loadAndShowDashboard = async function() {
     container.innerHTML = `
         <div id="dash-main-wrapper" style="width: 100%; height: 100%; display: flex; background: #f8fafc; position: relative;">
             
-            <div id="dash-sidebar-panel" style="${isMobile ? 'position: fixed; top: 0; right: 0; width: 260px; height: 100%; z-index: 100000; transition: right 0.3s ease; box-shadow: -5px 0 25px rgba(0,0,0,0.5);' : 'width: 260px; background: linear-gradient(180deg, #0b194f 0%, #060e2b 100%); color: #ffffff; display: flex; flex-direction: column; flex-shrink: 0; box-shadow: -4px 0 15px rgba(0,0,0,0.2); position: static;'}">
+            <div id="dash-sidebar-panel" style="${isMobile ? 'position: fixed; top: 0; right: -320px; width: 260px; height: 100%; z-index: 100000; transition: right 0.3s ease; box-shadow: -5px 0 25px rgba(0,0,0,0.5); background: linear-gradient(180deg, #0b194f 0%, #060e2b 100%); color: #ffffff; display: flex; flex-direction: column; flex-shrink: 0;' : 'width: 260px; background: linear-gradient(180deg, #0b194f 0%, #060e2b 100%); color: #ffffff; display: flex; flex-direction: column; flex-shrink: 0; box-shadow: -4px 0 15px rgba(0,0,0,0.2); position: static;'}">
                 
                 <div style="padding: 22px 18px; border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; align-items: center; gap: 12px;">
                     <img src="1234.jpg" alt="Logo" style="width: 50px; height: 50px; border-radius: 12px; object-fit: cover; box-shadow: 0 4px 10px rgba(0,0,0,0.3);">
@@ -1119,6 +1119,206 @@ window.switchDashTab = function(tabName) {
     }
 
     window.renderActiveDashTab();
+};
+
+// بناء محتوى تبويبات الداشبورد. هذه الدالة كانت مفقودة، لذلك كان الشريط
+// الجانبي يظهر بينما تظل الأرقام والجداول غير موجودة داخل اللوحة.
+window.renderActiveDashTab = function() {
+    const content = document.getElementById('dash-tab-content');
+    if (!content) return;
+
+    const tabMeta = {
+        users: {
+            title: 'إدارة الحسابات وطلبات تفعيل VIP',
+            subtitle: 'مراجعة طلبات التفعيل، أمان الأجهزة، وإضافة أرقام مجانية'
+        },
+        orders: {
+            title: 'الطلبات وإيصالات الدفع',
+            subtitle: 'راجع الطلبات المعلقة وفعّل الحساب بعد التأكد من التحويل'
+        },
+        reports: {
+            title: 'التقارير المالية',
+            subtitle: 'إجمالي الإيرادات والحسابات المدفوعة والدورات النشطة'
+        },
+        analytics: {
+            title: 'أداء الطلاب والتحليلات الأكاديمية',
+            subtitle: 'متابعة الدرجات ونسب النجاح حسب المادة'
+        }
+    };
+    const meta = tabMeta[currentActiveDashTab] || tabMeta.users;
+    const headerTitle = document.getElementById('dash-header-title');
+    const headerSubtitle = document.getElementById('dash-header-subtitle');
+    if (headerTitle) headerTitle.innerText = meta.title;
+    if (headerSubtitle) headerSubtitle.innerText = meta.subtitle;
+
+    const cardStyle = 'background:#ffffff; border:1px solid #dbe4f0; border-radius:14px; padding:18px; box-shadow:0 6px 18px rgba(15,23,42,0.06);';
+    const statNumberStyle = 'font-size:1.9rem; font-weight:900; color:#0f172a; line-height:1.2;';
+    const tableShell = 'background:#ffffff; border:1px solid #dbe4f0; border-radius:14px; overflow:hidden; box-shadow:0 6px 18px rgba(15,23,42,0.05);';
+
+    if (currentActiveDashTab === 'users') {
+        content.innerHTML = `
+            <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:14px; margin-bottom:18px;">
+                <div style="${cardStyle} border-top:4px solid #3b82f6;">
+                    <div style="color:#64748b; font-size:.88rem; font-weight:bold;">إجمالي الحسابات</div>
+                    <div id="stat-total-users" style="${statNumberStyle} margin-top:8px;">0</div>
+                    <span style="color:#3b82f6; font-size:.78rem;"><i class="fas fa-users"></i> كل الحسابات المسجلة</span>
+                </div>
+                <div style="${cardStyle} border-top:4px solid #f59e0b;">
+                    <div style="color:#64748b; font-size:.88rem; font-weight:bold;">طلبات معلقة</div>
+                    <div id="stat-pending-users" style="${statNumberStyle} margin-top:8px; color:#b45309;">0</div>
+                    <span style="color:#b45309; font-size:.78rem;"><i class="fas fa-clock"></i> تحتاج مراجعة</span>
+                </div>
+                <div style="${cardStyle} border-top:4px solid #10b981;">
+                    <div style="color:#64748b; font-size:.88rem; font-weight:bold;">حسابات VIP نشطة</div>
+                    <div id="stat-active-users" style="${statNumberStyle} margin-top:8px; color:#047857;">0</div>
+                    <span style="color:#047857; font-size:.78rem;"><i class="fas fa-check-circle"></i> عضويات مفعلة</span>
+                </div>
+            </div>
+
+            <div style="${cardStyle} margin-bottom:18px; border-right:4px solid #0ea5e9;">
+                <div style="display:flex; justify-content:space-between; gap:12px; align-items:center; flex-wrap:wrap;">
+                    <div>
+                        <h3 style="margin:0 0 5px; color:#0f172a; font-size:1.05rem;"><i class="fas fa-user-plus" style="color:#0ea5e9;"></i> إضافة حساب VIP يدويًا</h3>
+                        <span style="color:#64748b; font-size:.82rem;">اكتب رقم الهاتف ثم حدّد مدة التفعيل من جدول الحسابات.</span>
+                    </div>
+                    <div style="display:flex; gap:8px; flex-wrap:wrap; flex:1; justify-content:flex-end;">
+                        <input id="dash-manual-phone" type="tel" placeholder="رقم الهاتف" style="max-width:190px; padding:10px 12px; border:1px solid #cbd5e1; border-radius:8px;">
+                        <button id="dash-manual-add-btn" style="background:#0ea5e9; color:#fff; border:none; padding:10px 14px; border-radius:8px; font-weight:bold; cursor:pointer;"><i class="fas fa-plus"></i> إضافة حساب</button>
+                    </div>
+                </div>
+            </div>
+
+            <div style="${cardStyle} margin-bottom:14px; display:flex; gap:10px; flex-wrap:wrap;">
+                <input id="dash-search-input" type="search" placeholder="ابحث برقم الحساب أو الاسم..." style="flex:1; min-width:220px; padding:11px 14px; border:1px solid #cbd5e1; border-radius:9px;">
+                <select id="dash-filter-status" style="min-width:180px; padding:11px 14px; border:1px solid #cbd5e1; border-radius:9px;">
+                    <option value="ALL">كل حالات الحسابات</option>
+                    <option value="VIP_Active">VIP نشط</option>
+                    <option value="Pending_Review">معلق للمراجعة</option>
+                    <option value="Expired">منتهي</option>
+                    <option value="Free">مجاني</option>
+                </select>
+            </div>
+
+            <div style="${tableShell}">
+                <div style="padding:15px 18px; border-bottom:1px solid #e2e8f0; font-weight:bold; color:#0f172a;"><i class="fas fa-users" style="color:#0ea5e9;"></i> كل الحسابات</div>
+                <div style="overflow-x:auto;">
+                    <table style="width:100%; min-width:930px; border-collapse:collapse; text-align:right;">
+                        <thead style="background:#f8fafc; color:#475569; font-size:.82rem;">
+                            <tr>
+                                <th style="padding:13px 18px;">#</th>
+                                <th style="padding:13px 18px;">رقم الموبايل</th>
+                                <th style="padding:13px 18px;">الحالة</th>
+                                <th style="padding:13px 18px;">مدة التفعيل الحالية</th>
+                                <th style="padding:13px 18px;">الجهاز</th>
+                                <th style="padding:13px 18px;">إجراءات الإدارة</th>
+                            </tr>
+                        </thead>
+                        <tbody id="dash-table-body"></tbody>
+                    </table>
+                </div>
+            </div>
+        `;
+
+        const searchInput = document.getElementById('dash-search-input');
+        const filterStatus = document.getElementById('dash-filter-status');
+        if (searchInput) searchInput.addEventListener('input', window.loadDashboardTableData);
+        if (filterStatus) filterStatus.addEventListener('change', window.loadDashboardTableData);
+        const manualAddBtn = document.getElementById('dash-manual-add-btn');
+        if (manualAddBtn) {
+            manualAddBtn.addEventListener('click', async () => {
+                const phone = (document.getElementById('dash-manual-phone')?.value || '').trim();
+                if (phone.length < 10) {
+                    showCustomAlert('اكتب رقم موبايل صحيح قبل الإضافة.', 'error');
+                    return;
+                }
+                try {
+                    await db.collection('teachers').doc(phone).set({
+                        phone,
+                        name: 'Student_' + phone,
+                        status: 'VIP_Active',
+                        role: 'User',
+                        addedManuallyByAdmin: true,
+                        isLifetimeVIP: false,
+                        vipDurationText: '0 يوم',
+                        createdAt: new Date()
+                    }, { merge: true });
+                    showToast('تمت إضافة الحساب. حدّد مدة التفعيل من الجدول.', '#10b981');
+                    window.renderActiveDashTab();
+                } catch (e) {
+                    showCustomAlert('تعذر إضافة الحساب: ' + e.message, 'error');
+                }
+            });
+        }
+        window.loadDashboardTableData();
+        return;
+    }
+
+    if (currentActiveDashTab === 'orders') {
+        content.innerHTML = `
+            <div style="${cardStyle} margin-bottom:18px; border-right:4px solid #f59e0b;">
+                <h3 style="margin:0 0 6px; color:#0f172a;"><i class="fas fa-receipt" style="color:#f59e0b;"></i> الطلبات المعلقة</h3>
+                <p style="margin:0; color:#64748b; font-size:.88rem;">راجع التحويلات من فودافون كاش ثم استخدم زر التفعيل الفوري.</p>
+            </div>
+            <div id="orders-report-print-area" style="${tableShell}">
+                <div style="padding:15px 18px; border-bottom:1px solid #e2e8f0; display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;">
+                    <strong style="color:#0f172a;">قائمة طلبات الدفع</strong>
+                    <button onclick="window.printOrdersReportPDF()" style="background:#0ea5e9; color:#fff; border:none; padding:9px 13px; border-radius:8px; font-weight:bold; cursor:pointer;"><i class="fas fa-file-pdf"></i> طباعة التقرير</button>
+                </div>
+                <div style="overflow-x:auto;">
+                    <table style="width:100%; min-width:700px; border-collapse:collapse; text-align:right;">
+                        <thead style="background:#f8fafc; color:#475569; font-size:.82rem;">
+                            <tr><th style="padding:13px 18px;">#</th><th style="padding:13px 18px;">رقم الموبايل</th><th style="padding:13px 18px;">الإيصال</th><th style="padding:13px 18px;">تاريخ الطلب</th><th style="padding:13px 18px;">الإجراء</th></tr>
+                        </thead>
+                        <tbody id="orders-table-body"></tbody>
+                    </table>
+                </div>
+            </div>
+        `;
+        window.loadOrdersTableData();
+        return;
+    }
+
+    if (currentActiveDashTab === 'reports') {
+        content.innerHTML = `
+            <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:14px; margin-bottom:18px;">
+                <div style="${cardStyle} border-top:4px solid #10b981;"><div style="color:#64748b; font-weight:bold;">إجمالي الإيرادات المحسوبة</div><div id="report-total-revenue" style="${statNumberStyle} color:#047857; margin-top:9px;">0 ج.م</div></div>
+                <div style="${cardStyle} border-top:4px solid #3b82f6;"><div style="color:#64748b; font-weight:bold;">عدد المشتركين النشطين</div><div id="report-active-subscribers" style="${statNumberStyle} color:#1d4ed8; margin-top:9px;">0</div></div>
+            </div>
+            <div id="financial-report-print-area" style="${tableShell}">
+                <div style="padding:15px 18px; border-bottom:1px solid #e2e8f0; display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;">
+                    <strong style="color:#0f172a;">التقرير المالي للحسابات النشطة</strong>
+                    <button onclick="window.printFinancialReportPDF()" style="background:#0ea5e9; color:#fff; border:none; padding:9px 13px; border-radius:8px; font-weight:bold; cursor:pointer;"><i class="fas fa-file-pdf"></i> طباعة التقرير</button>
+                </div>
+                <div style="overflow-x:auto;">
+                    <table style="width:100%; min-width:700px; border-collapse:collapse; text-align:right;">
+                        <thead style="background:#f8fafc; color:#475569; font-size:.82rem;">
+                            <tr><th style="padding:13px 15px;">#</th><th style="padding:13px 15px;">رقم الموبايل</th><th style="padding:13px 15px;">مدة الاشتراك</th><th style="padding:13px 15px;">القيمة المحسوبة</th><th style="padding:13px 15px;">تاريخ التفعيل</th></tr>
+                        </thead>
+                        <tbody id="reports-table-body"></tbody>
+                    </table>
+                </div>
+            </div>
+        `;
+        window.loadFinancialReportData();
+        return;
+    }
+
+    content.innerHTML = `
+        <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:18px; margin-bottom:18px;">
+            <div style="${cardStyle}"><h3 style="margin:0 0 12px; color:#0f172a; font-size:1rem;"><i class="fas fa-chart-bar" style="color:#0ea5e9;"></i> متوسط الدرجات حسب المادة</h3><div style="height:260px;"><canvas id="scoresChart"></canvas></div></div>
+            <div style="${cardStyle}"><h3 style="margin:0 0 12px; color:#0f172a; font-size:1rem;"><i class="fas fa-chart-pie" style="color:#10b981;"></i> نسبة النجاح والرسوب</h3><div style="height:260px;"><canvas id="completionChart"></canvas></div></div>
+        </div>
+        <div style="${tableShell}">
+            <div style="padding:15px 18px; border-bottom:1px solid #e2e8f0; font-weight:bold; color:#0f172a;">آخر نتائج الامتحانات</div>
+            <div style="overflow-x:auto;">
+                <table style="width:100%; min-width:650px; border-collapse:collapse; text-align:right;">
+                    <thead style="background:#f8fafc; color:#475569; font-size:.82rem;"><tr><th style="padding:13px;">رقم الطالب</th><th style="padding:13px;">المادة</th><th style="padding:13px;">النتيجة</th><th style="padding:13px;">الوقت</th></tr></thead>
+                    <tbody id="analytics-table-body"></tbody>
+                </table>
+            </div>
+        </div>
+    `;
+    window.loadDeepAnalyticsData();
 };
 
 window.loadDashboardTableData = async function() {
