@@ -156,6 +156,8 @@ const VIP_ADMIN_NUMBERS = ["01021059077", "01026336159", "01063028258", "0155888
 let currentTeacherId = null;
 let isVIPLoggedIn = false; 
 let currentUserRole = "User";
+let currentVipAccountType = "student";
+let currentVipBillingCycle = 1;
 let selectedLessonFiles = []; 
 let filterSelectedSubject = "";
 let filterSelectedStage = "";
@@ -165,6 +167,71 @@ let globalLessonContext = "لا يوجد درس مرفوع حالياً. أنا 
 let globalTeacherStyle = "";
 let isTeacherRecording = false;
 let currentActiveDashTab = "users";
+
+function getVipPricing(accountType = currentVipAccountType, billingCycle = currentVipBillingCycle) {
+    const cycle = Math.max(1, parseInt(billingCycle, 10) || 1);
+    const basePrice = accountType === "teacher" ? 200 : 100;
+    const listedPrice = Math.min(basePrice + ((cycle - 1) * 50), 300);
+    const hasThreeMonthDiscount = cycle % 3 === 0;
+    const discountPercent = hasThreeMonthDiscount ? 10 : 0;
+    const payablePrice = Math.round(listedPrice * (1 - (discountPercent / 100)));
+    return { cycle, listedPrice, payablePrice, discountPercent };
+}
+
+function updateVipPricingUI() {
+    const typeSelect = document.getElementById('vip-account-type');
+    const summary = document.getElementById('vip-price-summary');
+    if (typeSelect) currentVipAccountType = typeSelect.value === 'teacher' ? 'teacher' : 'student';
+    if (!summary) return;
+
+    const pricing = getVipPricing();
+    const accountLabel = currentVipAccountType === 'teacher' ? 'المدرس' : 'الطالب';
+    const discountLine = pricing.discountPercent
+        ? `<br><span style="color:#059669;">خصم التجديد الحالي: ${pricing.discountPercent}%</span>`
+        : '';
+    summary.innerHTML = `
+        <strong>المطلوب دلوقتي: ${pricing.payablePrice} جنيه</strong>
+        <br><span style="font-size:.8rem;">اشتراك شهر واحد لـ${accountLabel} — الدورة رقم ${pricing.cycle}</span>
+        ${pricing.discountPercent && pricing.listedPrice !== pricing.payablePrice
+            ? `<br><span style="font-size:.8rem;">السعر قبل الخصم: ${pricing.listedPrice} جنيه</span>`
+            : ''}
+        ${discountLine}
+    `;
+}
+
+function showVipPaymentCard(teacherData = {}) {
+    const inferredType = teacherData.vipAccountType === 'teacher' || teacherData.role === 'Teacher'
+        ? 'teacher'
+        : 'student';
+    currentVipAccountType = inferredType;
+    currentVipBillingCycle = Math.max(1, parseInt(teacherData.vipBillingCycle, 10) || 1);
+
+    const typeSelect = document.getElementById('vip-account-type');
+    if (typeSelect) typeSelect.value = currentVipAccountType;
+    updateVipPricingUI();
+    document.getElementById('auth-user-card').style.display = 'none';
+    document.getElementById('auth-payment-card').style.display = 'block';
+}
+
+function getCurrentLearningContext() {
+    const readSelect = (id, fallback = '') => {
+        const select = document.getElementById(id);
+        if (!select) return fallback;
+        return select.options[select.selectedIndex]?.text || select.value || fallback;
+    };
+    const mainStageValue = document.getElementById('main-stage')?.value || '';
+    const subStageValue = document.getElementById('sub-stage')?.value || '';
+    const educationTrack = mainStageValue === 'high_azhar' || subStageValue === 'azhar'
+        ? 'azhar'
+        : 'general';
+    return {
+        educationTrack,
+        stage: readSelect('main-stage', 'غير محدد'),
+        branch: readSelect('sub-stage', 'غير محدد'),
+        year: readSelect('year-stage', 'غير محدد'),
+        subject: readSelect('subject-select', 'غير محدد')
+    };
+}
 
 let interactiveExamData = [];
 let interactiveExamTimer = null;
@@ -302,11 +369,18 @@ function createAuthScreen() {
             <div id="auth-payment-card" style="padding:20px 20px; text-align:center; display:none;">
                 <div style="width:45px; height:45px; background:#fef3c7; color:#b45309; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:1.2rem; margin-bottom:10px;"><i class="fas fa-crown"></i></div>
                 <h3 style="color:#1e293b; margin-top:0; margin-bottom:8px;">تفعيل عضوية VIP</h3>
-                <p style="color:#64748b; font-size:0.85rem; margin-bottom:15px;">انتهت محاولاتك المجانية. للاستمرار يرجى الاشتراك.</p>
+                <p style="color:#64748b; font-size:0.85rem; margin-bottom:15px;">اختار نوع حسابك، وشوف قيمة التجديد الحالية قبل ما تبعت طلب الدفع.</p>
+                <label for="vip-account-type" style="display:block; text-align:right; color:#334155; font-weight:bold; font-size:.9rem; margin-bottom:6px;">نوع الحساب</label>
+                <select id="vip-account-type" style="width:100%; padding:11px; border:2px solid #e2e8f0; border-radius:8px; margin-bottom:10px; box-sizing:border-box; font-family:inherit; font-weight:bold;">
+                    <option value="student">طالب — يبدأ من 100 جنيه</option>
+                    <option value="teacher">مدرس — يبدأ من 200 جنيه</option>
+                </select>
+                <div id="vip-price-summary" style="background:#ecfdf5; border:1px solid #86efac; border-radius:8px; padding:10px; margin-bottom:12px; color:#166534; text-align:center; line-height:1.7;"></div>
                 <div style="background:#f8fafc; border:1px solid #cbd5e1; border-radius:8px; padding:12px; margin-bottom:15px; font-size:0.85rem; line-height:1.6; color:#334155; text-align: right;">
                     <strong>باقات الاشتراك المتاحة:</strong><br>
-                    • للطلاب: من 100 إلى 300 جنيه (خصم يصل لـ 25% كل 3 شهور عند دفع الحد الأقصى 300 ج).<br>
-                    • للمدرسين: من 200 إلى 600 جنيه (خصم يصل لـ 25% كل شهرين إلى 3 شهور عند دفع الحد الأقصى 600 ج).<br><br>
+                    • أول تجديد للطالب: 100 جنيه، والزيادة بتظهر وقت التجديد فقط، بحد أقصى 300 جنيه.<br>
+                    • أول تجديد للمدرس: 200 جنيه، والزيادة بتظهر وقت التجديد فقط، بحد أقصى 300 جنيه.<br>
+                    • خصم 10% بيتطبق كل دورة تجديد تالتة، وبيظهر قدامك قبل الدفع.<br><br>
                     قم بالتحويل لفودافون كاش على الرقم <strong style="color:#0ea5e9; font-size:1rem;" dir="ltr">01026336159</strong><br>
                     وبعد إتمام التحويل، اضغط تأكيد وسنقوم بتوجيهك للواتس آب.
                 </div>
@@ -330,6 +404,8 @@ function createAuthScreen() {
     document.getElementById('auth-next-btn').addEventListener('click', handleAuthNextStep);
     document.getElementById('auth-login-btn').addEventListener('click', handleUserLoginFinal);
     document.getElementById('auth-request-btn').addEventListener('click', handlePaymentRequest);
+    document.getElementById('vip-account-type').addEventListener('change', updateVipPricingUI);
+    updateVipPricingUI();
 }
 
 function showAuthScreen() {
@@ -468,16 +544,14 @@ async function handleUserLoginFinal() {
 
         if (teacherData.status === "Pending_Review") {
             btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> دخول المنصة';
-            document.getElementById('auth-user-card').style.display = 'none';
-            document.getElementById('auth-payment-card').style.display = 'block';
+            showVipPaymentCard(teacherData);
             return showCustomAlert("حسابك قيد المراجعة.", 'error');
         }
 
         let isExpired = await checkAndLockIfExpired(phone, teacherData);
         if (isExpired && !isAuthorizedAdmin) {
             btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> دخول المنصة';
-            document.getElementById('auth-user-card').style.display = 'none';
-            document.getElementById('auth-payment-card').style.display = 'block';
+            showVipPaymentCard(teacherData);
             return showCustomAlert("انتهت مدة اشتراكك.", 'error');
         }
 
@@ -618,6 +692,10 @@ async function handlePaymentRequest() {
     if (!currentTeacherId) return;
 
     const btn = document.getElementById('auth-request-btn');
+    const accountType = document.getElementById('vip-account-type')?.value === 'teacher'
+        ? 'teacher'
+        : 'student';
+    const pricing = getVipPricing(accountType, currentVipBillingCycle);
     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري إرسال الطلب...';
     btn.style.pointerEvents = "none";
 
@@ -628,13 +706,19 @@ async function handlePaymentRequest() {
         await teacherRef.update({
             status: isAuthorizedAdmin ? "VIP_Active" : "Pending_Review",
             paymentRequestedAt: new Date(),
-            role: isAuthorizedAdmin ? "Admin" : "User"
+            vipAccountType: accountType,
+            vipBillingCycle: pricing.cycle,
+            requestedVipAmount: pricing.payablePrice,
+            requestedVipListedAmount: pricing.listedPrice,
+            requestedVipDiscountPercent: pricing.discountPercent,
+            role: isAuthorizedAdmin ? "Admin" : (accountType === "teacher" ? "Teacher" : "User")
         });
 
-        showCustomAlert("تم إرسال طلب التفعيل بنجاح! سيتم توجيهك الآن للواتس آب لإرسال رسالة للإدارة.", 'success');
+        showCustomAlert(`تمام، اتسجل طلبك بمبلغ ${pricing.payablePrice} جنيه. هتتوجه للواتساب عشان تبعت تأكيد التحويل للإدارة.`, 'success');
         
         let adminPhoneForWhatsapp = AUTHORIZED_ADMIN_PHONES[0]; 
-        let whatsappMsg = encodeURIComponent(`مرحباً.. لقد قمت بتحويل مبلغ الاشتراك للمنصة.\nبرجاء تفعيل حسابي.\nرقم هاتفي المسجل هو: ${currentTeacherId}`);
+        let accountLabel = accountType === 'teacher' ? 'مدرس' : 'طالب';
+        let whatsappMsg = encodeURIComponent(`أهلاً، أنا ${accountLabel} وحولت ${pricing.payablePrice} جنيه لاشتراك Educational platform.\nالدورة رقم: ${pricing.cycle}\nرقم هاتفي المسجل: ${currentTeacherId}\nمن فضلكم فعّلوا الحساب بعد مراجعة التحويل.`);
         setTimeout(() => {
             window.open(`https://wa.me/2${adminPhoneForWhatsapp}?text=${whatsappMsg}`, '_blank');
         }, 1500);
@@ -1369,12 +1453,20 @@ window.manualActivateVIP = async function(phone) {
     let endTimestamp = new Date(Date.now() + (daysToAdd * 24 * 60 * 60 * 1000));
 
     try {
+        const userRef = db.collection("teachers").doc(phone);
+        const userSnapshot = await userRef.get();
+        const userData = userSnapshot.data() || {};
+        const approvedCycle = Math.max(1, parseInt(userData.vipBillingCycle, 10) || 1);
         await db.collection("teachers").doc(phone).update({
             status: "VIP_Active",
             vipDurationText: customDurationText,
             subscriptionStart: new Date(),
             subscriptionEnd: endTimestamp,
             isLifetimeVIP: isLifetime,
+            vipBillingCycle: isLifetime ? approvedCycle : approvedCycle + 1,
+            requestedVipAmount: null,
+            requestedVipListedAmount: null,
+            requestedVipDiscountPercent: 0,
             lastUpdatedByAdmin: new Date()
         });
         showToast(`تم تفعيل حساب ${phone} بنجاح لمدة (${customDurationText})`);
@@ -1997,6 +2089,15 @@ MINISTRY_STYLE_BY_SUBJECT:
 7. AZHAR RELIGIOUS SUBJECTS: use the selected syllabus context for Quran, Hadith, Fiqh, Usul, Tawhid and related subjects; require textual evidence, definitions, rulings, conditions, pillars, comparisons, and application questions where appropriate. Do not apply general-education wording when the track is Azhar.
 8. VOCATIONAL SUBJECTS: practical situations, terminology, procedures, safety, calculations, and workplace applications.
 
+STAGE_AND_ASSESSMENT_RULES:
+- PRIMARY GRADES 1-3: very simple language, concrete examples, and short questions measuring understanding.
+- PRIMARY GRADES 4-6: clear reading/comprehension and direct objective questions without unnecessary complexity.
+- PREPARATORY GENERAL: begin analytical commands such as explain, result, compare, and what happens if. PREPARATORY AZHAR: retrieve core fiqh/grammar rules with simple justification.
+- SECONDARY GENERAL: target approximately 85% MCQ and 15% short essay, with close distractors testing learning outcomes and a keyword-based model answer.
+- SECONDARY AZHAR: prioritize detailed essay/retrieval questions and direct MCQs that test accurate textual or linguistic recall.
+- TECHNICAL DIPLOMAS: competency-based practical situations, execution steps, safety, terminology, calculations, and workplace application; avoid trick distractors.
+- GRADING: for general education, meaning plus keywords/laws is more important than literal copying. For Azhar, full credit for religious or textual questions requires the relevant correct evidence when the question asks for it.
+
 ALL QUESTIONS MUST BE ORIGINAL TRAINING QUESTIONS, not claims of official ministry questions. Match the selected authority's structure, command verbs, difficulty progression, mark-style logic, and answer expectations. MCQ and TF require plausible distractors and a clear reason.`;
 
                 const serverPayload = {
@@ -2006,6 +2107,8 @@ ALL QUESTIONS MUST BE ORIGINAL TRAINING QUESTIONS, not claims of official minist
                     year: yearText,
                     education_track: educationTrack,
                     education_authority: educationAuthority,
+                    stage: document.getElementById('main-stage')?.options[document.getElementById('main-stage')?.selectedIndex]?.text || '',
+                    branch: document.getElementById('sub-stage')?.options[document.getElementById('sub-stage')?.selectedIndex]?.text || '',
                     mime_type: 'image/jpeg',
                     output_language: 'same_as_source',
                     detailed_answers: true,
@@ -2077,7 +2180,11 @@ ALL QUESTIONS MUST BE ORIGINAL TRAINING QUESTIONS, not claims of official minist
                 console.error("خطأ تقني:", error);
                 btnText.innerHTML = '<i class="fas fa-exclamation-triangle"></i> حدث خطأ';
                 processBtn.classList.remove('processing');
-                showCustomAlert("الخطأ التقني الحقيقي هو: \n" + error.message, 'error');
+                const isGeminiBusy = /high demand|spikes in demand|temporarily|try again later|resource exhausted/i.test(String(error.message));
+                const readableError = isGeminiBusy
+                    ? "خدمة الذكاء الاصطناعي عليها ضغط مؤقت. استنى شوية وجرب تاني، والنظام بيحاول تلقائياً قبل ما يعرض الرسالة دي."
+                    : error.message;
+                showCustomAlert("حصلت مشكلة أثناء التحليل:<br><br>" + readableError, 'error');
             }
         });
     }
@@ -2559,7 +2666,10 @@ ALL QUESTIONS MUST BE ORIGINAL TRAINING QUESTIONS, not claims of official minist
                                 action: 'semantic_grade',
                                 question: q.q,
                                 model_answer: q.a,
-                                student_answer: studentTextAnswer
+                                student_answer: studentTextAnswer,
+                                education_track: getCurrentLearningContext().educationTrack,
+                                stage: getCurrentLearningContext().stage,
+                                subject: getCurrentLearningContext().subject
                             })
                         });
                         
@@ -2715,6 +2825,9 @@ ALL QUESTIONS MUST BE ORIGINAL TRAINING QUESTIONS, not claims of official minist
             let cleanText = removeEmojisForTTS(text);
             let utterance = new SpeechSynthesisUtterance(cleanText);
             utterance.lang = 'ar-EG'; 
+            const egyptianVoice = window.speechSynthesis.getVoices()
+                .find(voice => /ar[-_]EG/i.test(voice.lang) || /egypt|مصر/i.test(voice.name));
+            if (egyptianVoice) utterance.voice = egyptianVoice;
             utterance.rate = 1.05; 
             window.speechSynthesis.speak(utterance);
         }
@@ -2728,15 +2841,14 @@ ALL QUESTIONS MUST BE ORIGINAL TRAINING QUESTIONS, not claims of official minist
                 showCustomAlert(`
                     عفواً، المعلم الذكي (الروبوت) متاح فقط لحسابات الـ VIP المدفوعة.<br><br>
                     <strong>تفاصيل الاشتراك:</strong><br>
-                    • للطلاب: من 100 إلى 300 جنيه (خصم 25% كل 3 شهور للحد الأقصى).<br>
-                    • للمدرسين: من 200 إلى 600 جنيه (خصم 25% كل 2 إلى 3 شهور للحد الأقصى).<br><br>
+                    • الطالب يبدأ من 100 جنيه، والمدرس يبدأ من 200 جنيه، والحد الأقصى 300 جنيه.<br>
+                    • خصم 10% بيظهر كل دورة تجديد تالتة قبل الدفع.<br><br>
                     سيتم تحويلك الآن لتفعيل اشتراك الـ VIP.
                 `, 'error');
 
                 setTimeout(() => {
                     createAuthScreen();
-                    document.getElementById('auth-user-card').style.display = 'none';
-                    document.getElementById('auth-payment-card').style.display = 'block';
+                    showVipPaymentCard();
                     document.getElementById('auth-overlay').style.display = 'flex';
                 }, 2200);
                 return;
@@ -2797,15 +2909,23 @@ ALL QUESTIONS MUST BE ORIGINAL TRAINING QUESTIONS, not claims of official minist
         const typingDiv = document.createElement('div');
         typingDiv.id = typingId;
         typingDiv.style.cssText = "align-self: flex-start; background: #ffffff; color: #1e293b; border: 1px solid #e2e8f0; border-radius: 15px 15px 15px 0; padding: 14px 18px; max-width: 85%; font-family: 'Cairo', sans-serif;";
-        typingDiv.innerHTML = '<i class="fas fa-ellipsis-h fa-fade"></i> جاري التفكير...';
+        typingDiv.innerHTML = '<i class="fas fa-ellipsis-h fa-fade"></i> ثواني كده، ببص على السؤال...';
         immersiveMessagesArea.appendChild(typingDiv);
         immersiveMessagesArea.scrollTop = immersiveMessagesArea.scrollHeight;
 
         let finalReply = "";
+        const learningContext = getCurrentLearningContext();
+        const trackLabel = learningContext.educationTrack === 'azhar' ? 'الأزهر الشريف' : 'وزارة التربية والتعليم المصرية';
 
         try {
             if (chatUploadedImagesBase64.length > 0) {
-                let chatPrompt = `MANDATORY: YOU MUST EXPLAIN ENTIRELY IN PURE EGYPTIAN COLLOQUIAL ARABIC (عامية مصرية بحتة). DO NOT USE FORMAL ARABIC (فصحى). الطالب يسألك بخصوص الصور المرفقة ويقول: "${text}". اشرح له بأسلوب مبسط جداً وبالعامية المصرية الطبيعية (كأنك مدرس مصري خبير). لا تستخدم اللغة العربية الفصحى المعقدة. IF THE SUBJECT INCLUDES MATH (الرياضيات), EXPLAIN THE STEPS LOGICALLY AND CLEARLY. هام جداً: يجب أن يكون الرد مصفوفة JSON متوافقة تماماً مع هذا التنسيق: {"brief_explanation": "اكتب الشرح المباشر للطالب بالعامية المصرية هنا مع حل المسائل بالخطوات", "qa_list": []}`;
+                let chatPrompt = `أنت مدرس مصري شاطر، وردّ بنفس الطريقة العادية اللي الطالب بيتكلم بيها: بالمصري الطبيعي، مش بترجمة حرفية من الفصحى.
+اكتب الشرح بلهجة مصرية مفهومة وهادية، من غير مبالغة في الإفيهات أو تكرار "يا بطل/يا دكتور/قشطة"، ومن غير ألفاظ رسمية ناشفة أو جمل آلية. خلي المصطلحات العلمية والقوانين دقيقة، لكن اشرح معناها بكلام مصري بسيط.
+الجهة التعليمية: ${trackLabel}. المرحلة: ${learningContext.stage}. الصف: ${learningContext.year}. الشعبة/المسار: ${learningContext.branch}. المادة: ${learningContext.subject}.
+لو السؤال رياضيات، اكتب: المعطيات، المطلوب، القانون أو الفكرة، خطوات الحل واحدة واحدة، ثم راجع الناتج. لازم يكون الشرح مناسباً للمرحلة دي، سواء ابتدائي أو إعدادي أو ثانوي أو تعليم فني.
+لو السؤال ديني أزهري، حافظ على الدليل النصي الصحيح عند الحاجة، واشرحه بالمصري من غير تغيير نص الآية أو الحديث أو القاعدة.
+سؤال الطالب عن الصور: "${text}".
+أعد JSON فقط بهذا الشكل: {"brief_explanation":"الشرح المباشر بالمصري مع خطوات الحل","qa_list":[]}`;
                 
                 const response = await fetch('/api/analyze', {
                     method: 'POST',
@@ -2816,8 +2936,11 @@ ALL QUESTIONS MUST BE ORIGINAL TRAINING QUESTIONS, not claims of official minist
                     body: JSON.stringify({
                         action: 'analyze',
                         images_base64: chatUploadedImagesBase64,
-                        subject: 'سؤال حر',
-                        year: 'عام',
+                        subject: learningContext.subject,
+                        year: learningContext.year,
+                        education_track: learningContext.educationTrack,
+                        stage: learningContext.stage,
+                        branch: learningContext.branch,
                         mime_type: 'image/jpeg',
                         strict_prompt_command: chatPrompt
                     })
@@ -2832,17 +2955,17 @@ ALL QUESTIONS MUST BE ORIGINAL TRAINING QUESTIONS, not claims of official minist
                 if (attachBtn) attachBtn.style.background = "#0ea5e9"; 
 
             } else {
-                let currentYear = document.getElementById('year-stage')?.options[document.getElementById('year-stage')?.selectedIndex]?.text || "غير محدد";
                 let mainStageVal = document.getElementById('main-stage')?.value || "";
-                // برومبت حديدي بالعامية المصرية عشان نجبر الموديل يلتزم 100% بالهوية المصرية
-                let customPrompt = `أنت الآن معلم مصري شاطر جداً، ذكي، ودمك خفيف، وخبير في المناهج المصرية. المشغل الإجباري: يجب أن تتحدث وتشرح حصرياً بالعامية المصرية البحتة (زي ما المدرسين الجدعان بيشرحوا في مصر). إياك ثم إياك استخدام اللغة العربية الفصحى المعقدة أو الكلمات الآلية الحرفية نهائياً. استخدم مصطلحات مصرية طبيعية للتشجيع مثل: (بص يا بطل، ركز معايا، دي سهلة جداً، الفكرة وما فيها، خد بالك، قشطة، يا دكتور). جاوب على سؤال الطالب مباشرة وبسلاسة، ولو فيه خطوات شرح، بسطها لأقصى حد.`;
+                let customPrompt = `أنت مدرس مصري خبير في ${trackLabel}. اتكلم بنفس الطريقة العادية اللي الطالب بيكلمك بيها: مصري طبيعي وبسيط، مش ترجمة حرفية ولا فصحى ثقيلة. ما تغيّرش كلام الطالب لصيغة رسمية، وما تستخدمش جمل روبوتية أو افتتاحيات محفوظة. استخدم التشجيع باعتدال، وما تبدأش كل رد بعبارات محفوظة زي "يا بطل" أو "يا دكتور". جاوب على السؤال مباشرة وبوضوح.
+المرحلة: ${learningContext.stage}. الصف: ${learningContext.year}. الشعبة/المسار: ${learningContext.branch}. المادة: ${learningContext.subject}.
+الشرح لازم يناسب سن الطالب ومستواه. في الرياضيات: اذكر المعطيات والمطلوب والقانون، حل خطوة خطوة، واكتب الرموز والأرقام بوضوح وراجع الناتج. في العلوم والمواد الأدبية: اربط السبب بالنتيجة واذكر المصطلحات المهمة. في مواد الأزهر: التزم بالمنهج الأزهري وأضف الدليل النصي الصحيح عند الحاجة من غير تغيير نصه.`;
                 
                 if (mainStageVal.includes('primary')) {
-                    customPrompt += `\nالطالب في المرحلة الابتدائية (${currentYear}). اشرح له بأسلوب مبسط جداً ومشجع وقوله يا بطل.`;
+                    customPrompt += `\nده طالب ابتدائي؛ استخدم أمثلة قصيرة وكلام بسيط وخطوات قليلة من غير تعقيد.`;
                 } else if (mainStageVal.includes('prep')) {
-                    customPrompt += `\nالطالب في المرحلة الإعدادية (${currentYear}). وضح له الفكرة والتريكة عشان تثبت في دماغه.`;
+                    customPrompt += `\nده طالب إعدادي؛ وضح السبب والنتيجة واربط الفكرة بالدرس من غير اختصار مخل.`;
                 } else if (mainStageVal.includes('high') || mainStageVal.includes('diploma')) {
-                    customPrompt += `\nالطالب في ثانوية عامة أو دبلوم (${currentYear}). ده طالب كبير، اديله الخلاصة والتكات بتاعة الامتحانات ووضح القوانين بذكاء وسلاسة.`;
+                    customPrompt += `\nده طالب ثانوي أو فني؛ استخدم لغة دقيقة، ووضح طريقة التفكير ونواتج التعلم وشكل السؤال المتوقع.`;
                 }
                 const response = await fetch('/api/analyze', {
                     method: 'POST',
@@ -2854,7 +2977,12 @@ ALL QUESTIONS MUST BE ORIGINAL TRAINING QUESTIONS, not claims of official minist
                         action: 'chat',
                         message: text,
                         context: globalLessonContext,
-                        strict_prompt_command: customPrompt // تمرير البرومبت الصارم للسيرفر
+                        strict_prompt_command: customPrompt,
+                        education_track: learningContext.educationTrack,
+                        stage: learningContext.stage,
+                        branch: learningContext.branch,
+                        year: learningContext.year,
+                        subject: learningContext.subject
                     })
                 });
                 
