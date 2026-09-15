@@ -59,12 +59,25 @@ def call_gemini_with_retry(payload, max_retries=4):
             response_data = response.json()
 
             error_text = json.dumps(response_data, ensure_ascii=False).lower()
-            retryable_status = response.status_code in (429, 500, 502, 503, 504)
+            # لا نعيد طلبات الحصة/معدل الاستخدام. إعادة إرسال 429 لا ترفع
+            # الحد المجاني، وقد تستهلك محاولات المستخدم بلا فائدة.
+            quota_error = (
+                response.status_code == 429
+                or "quota" in error_text
+                or "free_tier" in error_text
+                or "free tier" in error_text
+                or "rate limit" in error_text
+                or "too many requests" in error_text
+                or "resource exhausted" in error_text
+            )
+            if quota_error:
+                return response_data
+
+            retryable_status = response.status_code in (500, 502, 503, 504)
             retryable_message = any(phrase in error_text for phrase in (
                 "high demand",
                 "temporarily unavailable",
-                "try again later",
-                "resource exhausted"
+                "try again later"
             ))
             if retryable_status or retryable_message:
                 if attempt < max_retries - 1:
@@ -83,6 +96,18 @@ def friendly_gemini_error(response_data):
     error = response_data.get('error', {}) if isinstance(response_data, dict) else {}
     raw_message = str(error.get('message', response_data))
     normalized = raw_message.lower()
+    if (
+        error.get('code') == 429
+        or "quota" in normalized
+        or "free_tier" in normalized
+        or "free tier" in normalized
+        or "rate limit" in normalized
+        or "too many requests" in normalized
+        or "resource exhausted" in normalized
+    ):
+        retry_hint = re.search(r"retry in\s+([\d.]+)s", raw_message, flags=re.IGNORECASE)
+        wait_text = f" انتظر حوالي {round(float(retry_hint.group(1)))} ثانية ثم جرّب مرة أخرى." if retry_hint else "انتظر قليلًا ثم جرّب مرة أخرى."
+        return "تم استهلاك الحصة المجانية الحالية لخدمة الذكاء الاصطناعي." + wait_text
     if any(phrase in normalized for phrase in (
         "high demand",
         "temporarily unavailable",
